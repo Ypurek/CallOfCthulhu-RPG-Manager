@@ -41,7 +41,6 @@
     "Climb": 20,
     "Cthulhu_Mythos": 3,
     "Language_Latin": 40,
-    "Language_English_Own": 80,
     "Stealth": 20,
     "Fast_Talk": 5,
     "Occult": 60,
@@ -58,16 +57,10 @@
     "Jump": 20,
     "Firearms_Rifle_Shotgun": 25,
     "Firearms_Handgun": 40,
-    "Dodge": 35,
     "Charm": 50
   },
   "weapons": [
-    {
-      "name": "Рукопашний бій",
-      "skill_pct": 50,
-      "damage": "1K3 + DB",
-      "attacks": 1
-    },
+
     {
       "name": "Револьвер .38 калібру",
       "skill_pct": 40,

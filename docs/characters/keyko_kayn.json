@@ -38,7 +38,6 @@
     "Climb": 20,
     "Cthulhu_Mythos": 4,
     "Language_Japanese": 35,
-    "Language_English_Own": 70,
     "Science_Biology": 70,
     "Stealth": 60,
     "Fast_Talk": 40,
@@ -56,16 +55,10 @@
     "Jump": 20,
     "Firearms_Rifle_Shotgun": 25,
     "Firearms_Handgun": 20,
-    "Dodge": 25,
     "Charm": 15
   },
   "weapons": [
-    {
-      "name": "Рукопашний бій",
-      "skill_pct": 45,
-      "damage": "1K3 + DB",
-      "attacks": 1
-    },
+
     {
       "name": "Срібний ніж",
       "skill_pct": 45,

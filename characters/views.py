@@ -22,6 +22,8 @@ WIZARD_SESSION_KEY = 'character_create_draft'
 WIZARD_STEPS = ['basic', 'stats', 'skills', 'inventory', 'review']
 DEFAULT_UNARMED_WEAPON_NAME = 'Unarmed Brawl'
 DEFAULT_UNARMED_WEAPON_DAMAGE = '1D3 + DB'
+NON_EDITABLE_SKILL_NAMES = ['Cthulhu Mythos', 'Own Language', 'English', 'Dodge']
+CUSTOM_SKILL_DESCRIPTION_PREFIXES = ('Custom skill:', 'Imported custom skill:')
 
 
 def _to_int(value, default=0, minimum=None, maximum=None):
@@ -53,6 +55,8 @@ def _default_stats():
 def _initialize_skill_values(education, existing=None):
     skill_values = {} if existing is None else {str(key): int(value) for key, value in existing.items()}
     for skill in Skill.objects.all():
+        if _is_custom_skill_record(skill):
+            continue
         key = str(skill.id)
         if key not in skill_values:
             skill_values[key] = skill.base_value
@@ -61,6 +65,165 @@ def _initialize_skill_values(education, existing=None):
         if skill.name == 'Cthulhu Mythos':
             skill_values[key] = 0
     return skill_values
+
+
+def _default_custom_skills():
+    return {}
+
+
+def _is_custom_skill_record(skill):
+    return str(skill.description or '').startswith(CUSTOM_SKILL_DESCRIPTION_PREFIXES)
+
+
+def _built_in_skill_queryset():
+    return Skill.objects.exclude(name__in=NON_EDITABLE_SKILL_NAMES).exclude(
+        description__startswith=CUSTOM_SKILL_DESCRIPTION_PREFIXES[0]
+    ).exclude(
+        description__startswith=CUSTOM_SKILL_DESCRIPTION_PREFIXES[1]
+    )
+
+
+def _normalize_custom_skill_category(category, default='general'):
+    allowed_categories = {'mutual', 'general', 'combat', 'language'}
+    return category if category in allowed_categories else default
+
+
+def _normalize_custom_skill_key(raw_key):
+    key = str(raw_key).strip()
+    if not key:
+        return None
+    try:
+        parsed = int(key)
+    except (TypeError, ValueError):
+        return None
+    return str(parsed) if parsed < 0 else None
+
+
+def _normalize_custom_skills(entries):
+    if not isinstance(entries, dict):
+        return {}
+
+    normalized = {}
+    for raw_key, payload in entries.items():
+        key = _normalize_custom_skill_key(raw_key)
+        if not key or not isinstance(payload, dict):
+            continue
+        name = str(payload.get('name', '')).strip()
+        if not name:
+            continue
+        normalized[key] = {
+            'name': name,
+            'category': _normalize_custom_skill_category(payload.get('category'), 'general'),
+            'base_value': _to_int(payload.get('base_value'), 1, 1, 100),
+            'description': str(payload.get('description') or f'Custom skill: {name}').strip(),
+        }
+    return normalized
+
+
+def _sync_custom_skill_values(draft):
+    draft['custom_skills'] = _normalize_custom_skills(draft.get('custom_skills', {}))
+    draft.setdefault('skills', {})
+
+    custom_skill_keys = set(draft['custom_skills'].keys())
+    for custom_skill_key, payload in draft['custom_skills'].items():
+        draft['skills'].setdefault(custom_skill_key, payload.get('base_value', 1))
+
+    for skill_key in list(draft['skills'].keys()):
+        normalized_key = _normalize_custom_skill_key(skill_key)
+        if normalized_key and normalized_key not in custom_skill_keys:
+            draft['skills'].pop(skill_key, None)
+
+    return draft
+
+
+def _next_custom_skill_key(existing_custom_skills):
+    negative_ids = [int(key) for key in _normalize_custom_skills(existing_custom_skills).keys()]
+    return str(min(negative_ids, default=0) - 1)
+
+
+def _infer_custom_skill_category(raw_name):
+    raw_name = str(raw_name or '')
+    if raw_name.startswith('Language_'):
+        return 'language'
+    if raw_name.startswith('Fighting_') or raw_name.startswith('Firearms_'):
+        return 'combat'
+    return 'general'
+
+
+def _build_skill_options_from_draft(draft):
+    skill_options = [
+        {
+            'id': skill.id,
+            'name': skill.name,
+            'category': skill.category,
+            'value': draft['skills'].get(str(skill.id), skill.base_value),
+            'base_value': skill.base_value,
+            'is_custom': False,
+        }
+        for skill in _built_in_skill_queryset().order_by('category', 'name')
+    ]
+
+    for custom_skill_id, payload in sorted(
+        draft.get('custom_skills', {}).items(),
+        key=lambda item: (item[1].get('category', 'general'), item[1].get('name', '').lower()),
+    ):
+        skill_options.append({
+            'id': custom_skill_id,
+            'name': payload['name'],
+            'category': payload['category'],
+            'value': draft['skills'].get(custom_skill_id, payload.get('base_value', 1)),
+            'base_value': payload.get('base_value', 1),
+            'is_custom': True,
+        })
+
+    return skill_options
+
+
+def _build_combat_skill_options_from_draft(draft):
+    return [
+        {
+            'id': skill_option['id'],
+            'name': skill_option['name'],
+            'value': skill_option['value'],
+        }
+        for skill_option in _build_skill_options_from_draft(draft)
+        if skill_option['category'] == 'combat'
+    ]
+
+
+def _materialize_custom_skills(draft):
+    custom_skill_id_map = {}
+    for custom_skill_id, payload in _normalize_custom_skills(draft.get('custom_skills', {})).items():
+        skill, _ = Skill.objects.get_or_create(
+            name=payload['name'],
+            defaults={
+                'category': payload['category'],
+                'base_value': payload.get('base_value', 1),
+                'description': payload.get('description') or f"Custom skill: {payload['name']}",
+            },
+        )
+        custom_skill_id_map[custom_skill_id] = skill.id
+    return custom_skill_id_map
+
+
+def _resolve_skill_values_for_storage(draft, education):
+    custom_skill_id_map = _materialize_custom_skills(draft)
+    resolved_skill_values = {}
+
+    for raw_skill_id, value in draft.get('skills', {}).items():
+        skill_key = str(raw_skill_id)
+        if skill_key in custom_skill_id_map:
+            resolved_skill_values[str(custom_skill_id_map[skill_key])] = _to_int(value, 1, 0, 100)
+            continue
+
+        parsed_skill_id = _to_int(skill_key, None)
+        if parsed_skill_id and parsed_skill_id > 0:
+            skill = Skill.objects.filter(id=parsed_skill_id).first()
+            if skill and skill.name == 'Dodge':
+                continue
+            resolved_skill_values[str(parsed_skill_id)] = _to_int(value, 0, 0, 100)
+
+    return _initialize_skill_values(education, resolved_skill_values), custom_skill_id_map
 
 
 def _derive_secondary_stats(stats, cthulhu_mythos=0):
@@ -124,12 +287,13 @@ def _default_draft():
         },
         'stats': stats,
         'skills': _initialize_skill_values(stats['education']),
+        'custom_skills': _default_custom_skills(),
         'inventory': {
             'weapons': [],
             'items': [],
         },
     }
-    return _ensure_default_unarmed_weapon_entry(draft)
+    return _sync_custom_skill_values(_ensure_default_unarmed_weapon_entry(draft))
 
 
 def _get_draft(request):
@@ -139,6 +303,7 @@ def _get_draft(request):
     draft.setdefault('basic', _default_draft()['basic'])
     draft.setdefault('stats', _default_stats())
     draft['skills'] = _initialize_skill_values(draft['stats'].get('education', 0), draft.get('skills', {}))
+    draft.setdefault('custom_skills', _default_custom_skills())
     draft.setdefault('inventory', {'weapons': [], 'items': []})
     draft['inventory'].setdefault('weapons', [])
     draft['inventory'].setdefault('items', [])
@@ -146,7 +311,7 @@ def _get_draft(request):
         draft['inventory']['weapons'] = []
     if not isinstance(draft['inventory']['items'], list):
         draft['inventory']['items'] = []
-    return _ensure_default_unarmed_weapon_entry(draft)
+    return _sync_custom_skill_values(_ensure_default_unarmed_weapon_entry(draft))
 
 
 def _save_draft(request, draft):
@@ -156,6 +321,23 @@ def _save_draft(request, draft):
 
 def _export_payload_from_draft(draft):
     basic = draft['basic']
+    draft = _sync_custom_skill_values(draft)
+    skills_by_id = {str(skill.id): skill for skill in Skill.objects.all()}
+    exported_skills = {}
+    for skill_id, value in draft.get('skills', {}).items():
+        skill_key = str(skill_id)
+        skill = skills_by_id.get(skill_key)
+        if skill:
+            exported_skills[_skill_name_to_export_key(skill.name, skill.category)] = _to_int(value, skill.base_value, 0, 100)
+            continue
+        custom_skill = draft.get('custom_skills', {}).get(skill_key)
+        if custom_skill:
+            exported_skills[_skill_name_to_export_key(custom_skill['name'], custom_skill['category'])] = _to_int(
+                value,
+                custom_skill.get('base_value', 1),
+                0,
+                100,
+            )
     return {
         'version': 1,
         'character_info': {
@@ -175,10 +357,7 @@ def _export_payload_from_draft(draft):
             'EDU': draft['stats'].get('education', 0),
             'Luck': draft['stats'].get('luck', 0),
         },
-        'skills': {
-            skill_id: value
-            for skill_id, value in draft.get('skills', {}).items()
-        },
+        'skills': exported_skills,
         'weapons': [
             {
                 'name': w.get('name') or w.get('custom_name', ''),
@@ -211,7 +390,16 @@ def _normalize_imported_skill_name(raw_name):
     }
     if raw_name in mapping:
         return mapping[raw_name]
+    if str(raw_name).startswith('Language_'):
+        return str(raw_name).replace('Language_', '', 1).replace('_', ' ').strip()
     return raw_name.replace('_', ' ').strip()
+
+
+def _normalize_imported_custom_skill_name(raw_name):
+    normalized_name = _normalize_imported_skill_name(raw_name)
+    if str(raw_name).startswith('Language_') and normalized_name.startswith('Language '):
+        return normalized_name[len('Language '):].strip()
+    return normalized_name
 
 
 def _draft_from_import(data):
@@ -227,7 +415,7 @@ def _draft_from_import(data):
             draft['inventory']['weapons'] = []
         if not isinstance(draft['inventory']['items'], list):
             draft['inventory']['items'] = []
-        return _ensure_default_unarmed_weapon_entry(draft)
+        return _sync_custom_skill_values(_ensure_default_unarmed_weapon_entry(draft))
 
     # Support importing sheet-shaped JSON like docs/characters/*.json.
     info = data.get('character_info', {})
@@ -266,7 +454,8 @@ def _draft_from_import(data):
     })
 
     imported_skills = {}
-    skills_by_name = {skill.name.lower(): skill for skill in Skill.objects.all()}
+    custom_skills = {}
+    skills_by_name = {skill.name.lower(): skill for skill in Skill.objects.all() if not _is_custom_skill_record(skill)}
     skills_by_id = {skill.id: skill for skill in Skill.objects.all()}
     for raw_name, value in data.get('skills', {}).items():
         # Handle both ID-based keys (exported by this app) and name-based keys (template files).
@@ -277,6 +466,17 @@ def _draft_from_import(data):
             skill = skills_by_name.get(normalized_name.lower())
         if skill:
             imported_skills[str(skill.id)] = _to_int(value, skill.base_value, 0, 100)
+        else:
+            custom_skill_key = _next_custom_skill_key(custom_skills)
+            custom_skill_name = _normalize_imported_custom_skill_name(raw_name)
+            custom_skills[custom_skill_key] = {
+                'name': custom_skill_name,
+                'category': _infer_custom_skill_category(raw_name),
+                'base_value': 1,
+                'description': f'Imported custom skill: {custom_skill_name}',
+            }
+            imported_skills[custom_skill_key] = _to_int(value, 1, 0, 100)
+    draft['custom_skills'] = custom_skills
     draft['skills'] = _initialize_skill_values(draft['stats']['education'], imported_skills)
 
     inventory = draft['inventory']
@@ -311,7 +511,7 @@ def _draft_from_import(data):
         elif item_name:
             inventory['items'].append({'custom_name': str(item_name).strip(), 'quantity': 1})
 
-    return _ensure_default_unarmed_weapon_entry(draft)
+    return _sync_custom_skill_values(_ensure_default_unarmed_weapon_entry(draft))
 
 
 def _create_character_from_draft(user, draft):
@@ -330,7 +530,7 @@ def _create_character_from_draft(user, draft):
         'luck': _to_int(stats.get('luck'), 0, 0, 100),
     }
 
-    skill_values = _initialize_skill_values(base_stats['education'], draft.get('skills', {}))
+    skill_values, custom_skill_id_map = _resolve_skill_values_for_storage(draft, base_stats['education'])
     cthulhu_mythos = 0
     for skill in Skill.objects.filter(name='Cthulhu Mythos'):
         cthulhu_mythos = _to_int(skill_values.get(str(skill.id), 0), 0, 0, 99)
@@ -371,7 +571,7 @@ def _create_character_from_draft(user, draft):
         cash=0,
     )
 
-    skill_values = _initialize_skill_values(character.education, draft.get('skills', {}))
+    skill_values, custom_skill_id_map = _resolve_skill_values_for_storage(draft, character.education)
     skills_by_id = {skill.id: skill for skill in Skill.objects.all()}
     CharacterSkill.objects.bulk_create([
         CharacterSkill(
@@ -386,7 +586,11 @@ def _create_character_from_draft(user, draft):
     inventory = draft.get('inventory', {})
     for payload in inventory.get('weapons', []):
         weapon = None
-        selected_skill = Skill.objects.filter(id=_to_int(payload.get('skill_id'), -1)).first()
+        selected_skill_id = str(payload.get('skill_id', ''))
+        if selected_skill_id in custom_skill_id_map:
+            selected_skill = Skill.objects.filter(id=custom_skill_id_map[selected_skill_id]).first()
+        else:
+            selected_skill = Skill.objects.filter(id=_to_int(payload.get('skill_id'), -1)).first()
         selected_skill_name = selected_skill.name if selected_skill else str(payload.get('skill_name') or 'Custom').strip()
         selected_skill_value = skill_values.get(str(selected_skill.id), 0) if selected_skill else 0
         if payload.get('weapon_id'):
@@ -473,10 +677,22 @@ def _normalize_preview_items(item_entries):
     return normalized
 
 
-def _build_character_sheet_context(character, skill_values=None, weapons=None, items=None, spells=None, can_add_custom_skill=False):
+def _build_character_sheet_context(character, skill_values=None, weapons=None, items=None, spells=None, can_add_custom_skill=False, custom_skills=None):
     education = getattr(character, 'education', 0)
     dexterity = getattr(character, 'dexterity', 0)
     skill_values = {} if skill_values is None else {int(key): int(value) for key, value in skill_values.items()}
+    custom_skills = _normalize_custom_skills(custom_skills or {})
+    persisted_custom_skills = {}
+    if isinstance(character, Character) and getattr(character, 'id', None):
+        for char_skill in CharacterSkill.objects.filter(character=character).select_related('skill'):
+            if _is_custom_skill_record(char_skill.skill):
+                persisted_custom_skills[str(char_skill.skill_id)] = {
+                    'name': char_skill.skill.name,
+                    'category': char_skill.skill.category,
+                    'base_value': char_skill.skill.base_value,
+                    'description': char_skill.skill.description,
+                }
+    merged_custom_skills = {**persisted_custom_skills, **custom_skills}
 
     def serialize_skill(skill):
         value = skill_values.get(skill.id, skill.base_value)
@@ -489,17 +705,42 @@ def _build_character_sheet_context(character, skill_values=None, weapons=None, i
             'value': value,
             'base_value': skill.base_value,
             'is_default': value == skill.base_value,
+            'is_custom': str(skill.description or '').startswith('Custom skill:') or str(skill.description or '').startswith('Imported custom skill:'),
+        }
+
+    def serialize_custom_skill(custom_skill_id, payload):
+        value = skill_values.get(int(custom_skill_id), payload.get('base_value', 1))
+        return {
+            'id': int(custom_skill_id),
+            'name': payload['name'],
+            'description': payload.get('description', ''),
+            'value': value,
+            'base_value': payload.get('base_value', 1),
+            'is_default': value == payload.get('base_value', 1),
+            'is_custom': True,
         }
 
     non_combat_skills = [
         serialize_skill(skill)
-        for skill in Skill.objects.exclude(category='combat').order_by('name')
+        for skill in Skill.objects.exclude(category='combat').exclude(name='Dodge').order_by('name')
+        if not _is_custom_skill_record(skill)
     ]
+    non_combat_skills.extend(
+        serialize_custom_skill(custom_skill_id, payload)
+        for custom_skill_id, payload in merged_custom_skills.items()
+        if payload.get('category') != 'combat'
+    )
     non_combat_skills.sort(key=lambda skill: (-skill['value'], skill['name']))
     combat_skills = [
         serialize_skill(skill)
         for skill in Skill.objects.filter(category='combat').order_by('name')
+        if not _is_custom_skill_record(skill)
     ]
+    combat_skills.extend(
+        serialize_custom_skill(custom_skill_id, payload)
+        for custom_skill_id, payload in merged_custom_skills.items()
+        if payload.get('category') == 'combat'
+    )
     combat_skills.sort(key=lambda skill: (-skill['value'], skill['name']))
 
     visible_non_combat_skills = [skill for skill in non_combat_skills if not skill['is_default']]
@@ -581,6 +822,25 @@ def character_detail(request, character_id):
 
 
 @login_required
+def character_delete(request, character_id):
+    """Delete a character after confirmation."""
+    if request.method != 'POST':
+        return redirect('characters:detail', character_id=character_id)
+
+    character = get_object_or_404(Character, id=character_id)
+    can_delete = character.owner == request.user or request.user.is_keeper()
+
+    if not can_delete:
+        messages.error(request, "You don't have permission to delete this character.")
+        return redirect('characters:detail', character_id=character_id)
+
+    character_name = character.name
+    character.delete()
+    messages.success(request, f'Character "{character_name}" deleted successfully.')
+    return redirect('characters:list')
+
+
+@login_required
 def character_edit(request, character_id):
     """Edit character (for keepers during game)"""
     character = get_object_or_404(Character, id=character_id)
@@ -597,19 +857,56 @@ def character_edit(request, character_id):
         return redirect('characters:detail', character_id=character_id)
 
     if request.method == 'POST':
-        # Handle AJAX requests for stat updates
+        # Handle AJAX requests
         if request.headers.get('Content-Type') == 'application/json':
-            import json
             data = json.loads(request.body)
+            action = data.get('action')
 
-            stat = data.get('stat')
-            value = data.get('value')
+            # Handle stat updates
+            if action is None:
+                stat = data.get('stat')
+                value = data.get('value')
 
-            if stat and value is not None:
-                if hasattr(character, stat):
-                    setattr(character, stat, value)
-                    character.save()
-                    return JsonResponse({'success': True})
+                if stat and value is not None:
+                    if hasattr(character, stat):
+                        setattr(character, stat, value)
+                        character.save()
+                        return JsonResponse({'success': True})
+
+            # Handle adding custom skill
+            elif action == 'add_skill':
+                skill_name = data.get('skill_name', '').strip()
+                skill_value = _to_int(data.get('skill_value'), 0, 0, 100)
+                
+                if not skill_name:
+                    return JsonResponse({'success': False, 'error': 'Skill name is required'})
+                
+                # Create custom skill
+                skill, created = Skill.objects.get_or_create(
+                    name=skill_name,
+                    defaults={
+                        'category': 'general',
+                        'base_value': 1,
+                        'description': f'Custom skill: {skill_name}',
+                    }
+                )
+                
+                # Add skill to character
+                char_skill, created = CharacterSkill.objects.get_or_create(
+                    character=character,
+                    skill=skill,
+                    defaults={'value': skill_value}
+                )
+                
+                if not created:
+                    char_skill.value = skill_value
+                    char_skill.save()
+                
+                return JsonResponse({
+                    'success': True,
+                    'skill_id': skill.id,
+                    'message': f'Skill "{skill_name}" added successfully'
+                })
 
         return JsonResponse({'success': False})
 
@@ -652,16 +949,29 @@ def character_create(request):
             for field in ['strength', 'constitution', 'dexterity', 'intelligence', 'power', 'size', 'appearance', 'education', 'luck']:
                 stats[field] = _to_int(request.POST.get(field), stats.get(field, 0), 0, 100)
             draft['skills'] = _initialize_skill_values(stats['education'], draft.get('skills', {}))
+            _sync_custom_skill_values(draft)
         elif step == 'skills':
             updated = {}
-            editable_skills = Skill.objects.exclude(name__in=['Cthulhu Mythos', 'Own Language', 'English'])
+            editable_skills = _built_in_skill_queryset()
+            try:
+                draft['custom_skills'] = _normalize_custom_skills(json.loads(request.POST.get('custom_skills_json', '{}') or '{}'))
+            except json.JSONDecodeError:
+                draft['custom_skills'] = _normalize_custom_skills(draft.get('custom_skills', {}))
             for skill in editable_skills:
                 updated[str(skill.id)] = _to_int(request.POST.get(f'skill_{skill.id}'), skill.base_value, 0, 100)
-            for skill_name in ['Cthulhu Mythos', 'Own Language', 'English']:
+            for custom_skill_id, payload in draft['custom_skills'].items():
+                updated[custom_skill_id] = _to_int(
+                    request.POST.get(f'skill_{custom_skill_id}'),
+                    draft['skills'].get(custom_skill_id, max(payload.get('base_value', 1), 1)),
+                    0,
+                    100,
+                )
+            for skill_name in NON_EDITABLE_SKILL_NAMES:
                 skill = Skill.objects.filter(name=skill_name).first()
                 if skill:
                     updated[str(skill.id)] = draft['skills'].get(str(skill.id), skill.base_value)
             draft['skills'] = _initialize_skill_values(draft['stats']['education'], updated)
+            _sync_custom_skill_values(draft)
         elif step == 'inventory':
             inventory = draft['inventory']
             try:
@@ -750,25 +1060,16 @@ def character_create(request):
         draft['step'] = requested_step
         _save_draft(request, draft)
 
-    skills = list(
-        Skill.objects.exclude(name__in=['Cthulhu Mythos', 'Own Language', 'English']).order_by('category', 'name')
-    )
+    skill_options = _build_skill_options_from_draft(draft)
     existing_categories = []
     for category_key, category_label in [('mutual', 'Mutual'), ('general', 'General'), ('combat', 'Combat'), ('language', 'Language')]:
-        if any(skill.category == category_key for skill in skills):
+        if any(skill['category'] == category_key for skill in skill_options):
             existing_categories.append((category_key, category_label))
 
     mythos_skill = Skill.objects.filter(name='Cthulhu Mythos').first()
     mythos_value = draft['skills'].get(str(mythos_skill.id), 0) if mythos_skill else 0
     derived_stats = _derive_secondary_stats(draft['stats'], mythos_value)
-    combat_skill_options = [
-        {
-            'id': skill.id,
-            'name': skill.name,
-            'value': draft['skills'].get(str(skill.id), skill.base_value),
-        }
-        for skill in Skill.objects.filter(category='combat').order_by('name')
-    ]
+    combat_skill_options = _build_combat_skill_options_from_draft(draft)
     preview_character = type('PreviewCharacter', (), {
         'id': None,
         'name': draft['basic'].get('name') or 'Unnamed Character',
@@ -801,6 +1102,7 @@ def character_create(request):
         items=_normalize_preview_items(draft['inventory']['items']),
         spells=[],
         can_add_custom_skill=False,
+        custom_skills=draft.get('custom_skills', {}),
     )
 
     context = {
@@ -808,16 +1110,7 @@ def character_create(request):
         'current_step': draft['step'],
         'current_step_index': WIZARD_STEPS.index(draft['step']),
         'draft': draft,
-        'skill_options': [
-            {
-                'id': skill.id,
-                'name': skill.name,
-                'category': skill.category,
-                'value': draft['skills'].get(str(skill.id), skill.base_value),
-                'base_value': skill.base_value,
-            }
-            for skill in skills
-        ],
+        'skill_options': skill_options,
         'weapon_templates': list(Weapon.objects.order_by('name').values('id', 'name', 'damage', 'skill_name')),
         'item_templates': list(Item.objects.order_by('name').values('id', 'name')),
         'combat_skill_options': combat_skill_options,
@@ -894,7 +1187,7 @@ def _safe_template_filename(filename):
     return path
 
 
-def _skill_name_to_export_key(skill_name):
+def _skill_name_to_export_key(skill_name, category=None):
     mapping = {
         'Fighting (Brawl)': 'Fighting_Brawl',
         'Firearms (Rifle/Shotgun)': 'Firearms_Rifle_Shotgun',
@@ -908,6 +1201,8 @@ def _skill_name_to_export_key(skill_name):
     }
     if skill_name in mapping:
         return mapping[skill_name]
+    if category == 'language' and not str(skill_name).startswith('Language '):
+        return 'Language_' + '_'.join(str(skill_name).replace('(', '').replace(')', '').replace('/', ' ').replace('-', ' ').split())
     normalized = skill_name.replace('(', '').replace(')', '').replace('/', ' ').replace('-', ' ')
     return '_'.join(normalized.split())
 
@@ -916,13 +1211,23 @@ def _template_payload_from_draft(draft):
     stats = draft.get('stats', {})
     skills = draft.get('skills', {})
     basic = draft.get('basic', {})
+    draft = _sync_custom_skill_values(draft)
     skills_by_id = {str(skill.id): skill for skill in Skill.objects.all()}
     exported_skills = {}
     for skill_id, value in skills.items():
-        skill = skills_by_id.get(str(skill_id))
-        if not skill:
+        skill_key = str(skill_id)
+        skill = skills_by_id.get(skill_key)
+        if skill:
+            exported_skills[_skill_name_to_export_key(skill.name, skill.category)] = _to_int(value, skill.base_value, 0, 100)
             continue
-        exported_skills[_skill_name_to_export_key(skill.name)] = _to_int(value, skill.base_value, 0, 100)
+        custom_skill = draft.get('custom_skills', {}).get(skill_key)
+        if custom_skill:
+            exported_skills[_skill_name_to_export_key(custom_skill['name'], custom_skill['category'])] = _to_int(
+                value,
+                custom_skill.get('base_value', 1),
+                0,
+                100,
+            )
 
     return {
         'character_info': {
@@ -1208,10 +1513,20 @@ def _build_edit_change_entries(character, draft):
 
 def _load_edit_draft_from_character(character):
     """Build a wizard draft from an existing Character instance."""
-    skill_values = {
-        str(cs.skill_id): cs.value
-        for cs in CharacterSkill.objects.filter(character=character)
-    }
+    skill_values = {}
+    custom_skills = {}
+    for char_skill in CharacterSkill.objects.filter(character=character).select_related('skill'):
+        if _is_custom_skill_record(char_skill.skill):
+            custom_skill_id = _next_custom_skill_key(custom_skills)
+            custom_skills[custom_skill_id] = {
+                'name': char_skill.skill.name,
+                'category': char_skill.skill.category,
+                'base_value': char_skill.skill.base_value,
+                'description': char_skill.skill.description,
+            }
+            skill_values[custom_skill_id] = char_skill.value
+        else:
+            skill_values[str(char_skill.skill_id)] = char_skill.value
     # Keep full stats so preview sheet renders correctly
     stats = {
         'strength': character.strength,
@@ -1259,6 +1574,7 @@ def _load_edit_draft_from_character(character):
         },
         'stats': stats,
         'skills': skill_values,
+        'custom_skills': custom_skills,
         'inventory': {'weapons': weapons, 'items': items},
         'adjustments': {
             'hp': 0,
@@ -1267,7 +1583,7 @@ def _load_edit_draft_from_character(character):
             'luck': 0,
         },
     }
-    return _ensure_default_unarmed_weapon_entry(draft)
+    return _sync_custom_skill_values(_ensure_default_unarmed_weapon_entry(draft))
 
 
 def _apply_edit_draft_to_character(character, draft):
@@ -1294,7 +1610,7 @@ def _apply_edit_draft_to_character(character, draft):
     character.luck = _to_int(stats.get('luck'), character.luck, 0, 100)
 
     # Recalculate derived stats
-    skill_values_draft = _initialize_skill_values(character.education, draft.get('skills', {}))
+    skill_values_draft, custom_skill_id_map = _resolve_skill_values_for_storage(draft, character.education)
     cthulhu_mythos = 0
     for skill in Skill.objects.filter(name='Cthulhu Mythos'):
         cthulhu_mythos = _to_int(skill_values_draft.get(str(skill.id), 0), 0, 0, 99)
@@ -1344,7 +1660,11 @@ def _apply_edit_draft_to_character(character, draft):
     character.weapons.all().delete()
     refreshed_skill_values = {cs.skill_id: cs.value for cs in CharacterSkill.objects.filter(character=character)}
     for payload in draft.get('inventory', {}).get('weapons', []):
-        selected_skill = Skill.objects.filter(id=_to_int(payload.get('skill_id'), -1)).first()
+        selected_skill_id = str(payload.get('skill_id', ''))
+        if selected_skill_id in custom_skill_id_map:
+            selected_skill = Skill.objects.filter(id=custom_skill_id_map[selected_skill_id]).first()
+        else:
+            selected_skill = Skill.objects.filter(id=_to_int(payload.get('skill_id'), -1)).first()
         selected_skill_name = selected_skill.name if selected_skill else str(payload.get('skill_name') or '').strip()
         selected_skill_value = refreshed_skill_values.get(selected_skill.id, 0) if selected_skill else 0
         weapon = None
@@ -1393,14 +1713,8 @@ def _build_edit_wizard_context(request, character, draft):
     draft_skills = draft.get('skills', {})
     draft_adjustments = draft.get('adjustments', {'hp': 0, 'mp': 0, 'sanity': 0, 'luck': 0})
 
-    combat_skill_options = [
-        {
-            'id': skill.id,
-            'name': skill.name,
-            'value': draft_skills.get(str(skill.id), skill.base_value),
-        }
-        for skill in Skill.objects.filter(category='combat').order_by('name')
-    ]
+    skill_options = _build_skill_options_from_draft(draft)
+    combat_skill_options = _build_combat_skill_options_from_draft(draft)
     mythos_skill = Skill.objects.filter(name='Cthulhu Mythos').first()
     mythos_value = draft_skills.get(str(mythos_skill.id), 0) if mythos_skill else 0
     derived_stats = _derive_secondary_stats(draft_stats, mythos_value)
@@ -1452,19 +1766,16 @@ def _build_edit_wizard_context(request, character, draft):
     })()
     preview_sheet = _build_character_sheet_context(
         character=preview_character,
-        skill_values={int(k): v for k, v in draft_skills.items() if str(k).isdigit()},
+        skill_values={int(k): v for k, v in draft_skills.items() if str(k).lstrip('-').isdigit()},
         weapons=_normalize_preview_weapons(draft['inventory']['weapons']),
         items=_normalize_preview_items(draft['inventory']['items']),
         spells=[],
         can_add_custom_skill=False,
-    )
-
-    skills = list(
-        Skill.objects.exclude(name__in=['Cthulhu Mythos', 'Own Language', 'English']).order_by('category', 'name')
+        custom_skills=draft.get('custom_skills', {}),
     )
     existing_categories = []
     for category_key, category_label in [('mutual', 'Mutual'), ('general', 'General'), ('combat', 'Combat'), ('language', 'Language')]:
-        if any(s.category == category_key for s in skills):
+        if any(skill['category'] == category_key for skill in skill_options):
             existing_categories.append((category_key, category_label))
 
     return {
@@ -1477,16 +1788,7 @@ def _build_edit_wizard_context(request, character, draft):
         'combat_skill_options': combat_skill_options,
         'derived_stats': derived_stats,
         'preview_sheet': preview_sheet,
-        'skill_options': [
-            {
-                'id': skill.id,
-                'name': skill.name,
-                'category': skill.category,
-                'value': draft_skills.get(str(skill.id), skill.base_value),
-                'base_value': skill.base_value,
-            }
-            for skill in skills
-        ],
+        'skill_options': skill_options,
         'skill_categories': existing_categories,
         'wizard_form_url': reverse('characters:edit_wizard', args=[character.id]),
         'wizard_export_url': reverse('characters:edit_wizard_export', args=[character.id]),
@@ -1520,11 +1822,12 @@ def character_edit_wizard(request, character_id):
         draft.setdefault('basic', {'name': character.name, 'description': '', 'occupation': '', 'age': ''})
         draft.setdefault('stats', {})
         draft.setdefault('skills', {})
+        draft.setdefault('custom_skills', _default_custom_skills())
         draft.setdefault('inventory', {'weapons': [], 'items': []})
         draft.setdefault('adjustments', {'hp': 0, 'mp': 0, 'sanity': 0, 'luck': 0})
         draft['inventory'].setdefault('weapons', [])
         draft['inventory'].setdefault('items', [])
-        return _ensure_default_unarmed_weapon_entry(draft)
+        return _sync_custom_skill_values(_ensure_default_unarmed_weapon_entry(draft))
 
     def save_draft(draft):
         request.session[session_key] = draft
@@ -1553,16 +1856,29 @@ def character_edit_wizard(request, character_id):
             for field in ['strength', 'constitution', 'dexterity', 'intelligence', 'power', 'size', 'appearance', 'education', 'luck']:
                 stats[field] = _to_int(request.POST.get(field), stats.get(field, 0), 0, 100)
             draft['skills'] = _initialize_skill_values(stats['education'], draft.get('skills', {}))
+            _sync_custom_skill_values(draft)
         elif step == 'skills':
             updated = {}
-            editable_skills = Skill.objects.exclude(name__in=['Cthulhu Mythos', 'Own Language', 'English'])
+            editable_skills = _built_in_skill_queryset()
+            try:
+                draft['custom_skills'] = _normalize_custom_skills(json.loads(request.POST.get('custom_skills_json', '{}') or '{}'))
+            except json.JSONDecodeError:
+                draft['custom_skills'] = _normalize_custom_skills(draft.get('custom_skills', {}))
             for skill in editable_skills:
                 updated[str(skill.id)] = _to_int(request.POST.get(f'skill_{skill.id}'), skill.base_value, 0, 100)
-            for skill_name in ['Cthulhu Mythos', 'Own Language', 'English']:
+            for custom_skill_id, payload in draft['custom_skills'].items():
+                updated[custom_skill_id] = _to_int(
+                    request.POST.get(f'skill_{custom_skill_id}'),
+                    draft['skills'].get(custom_skill_id, max(payload.get('base_value', 1), 1)),
+                    0,
+                    100,
+                )
+            for skill_name in NON_EDITABLE_SKILL_NAMES:
                 skill = Skill.objects.filter(name=skill_name).first()
                 if skill:
                     updated[str(skill.id)] = draft['skills'].get(str(skill.id), skill.base_value)
             draft['skills'] = _initialize_skill_values(draft['stats']['education'], updated)
+            _sync_custom_skill_values(draft)
         elif step == 'inventory':
             inventory = draft['inventory']
             try:

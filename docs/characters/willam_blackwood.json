@@ -28,7 +28,6 @@
   },
   "skills": {
     "Fighting_Brawl": 45,
-    "Dodge": 40,
     "Track": 10,
     "Credit_Rating": 30,
     "History": 60,
@@ -36,7 +35,6 @@
     "Library_Use": 70,
     "Climb": 40,
     "Art_Craft_Literature": 40,
-    "Language_English_Own": 60,
     "Occult": 60,
     "Persuade": 30,
     "Spot_Hidden": 50,
@@ -44,12 +42,6 @@
     "Charm": 50
   },
   "weapons": [
-    {
-      "name": "Рукопашний бій",
-      "skill_pct": 45,
-      "damage": "1K3 + DB",
-      "attacks": 1
-    },
     {
       "name": "Кишеньковий ніж",
       "skill_pct": 45,

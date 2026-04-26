@@ -1,0 +1,39 @@
+{
+  "character_info": {
+    "name": "Бертран Меррівезер",
+    "occupation": "Син Руперта",
+    "status": "Неприємний",
+    "age": 32
+  },
+  "characteristics": {
+    "STR": 55,
+    "CON": 50,
+    "DEX": 45,
+    "INT": 80,
+    "APP": 40,
+    "POW": 50,
+    "SIZ": 45,
+    "EDU": 80,
+    "MOV": 8
+  },
+  "status": {
+    "HP": { "max": 10, "current": 10 },
+    "MP": { "max": 10, "current": 10 },
+    "Sanity": { "max": 99, "current": 35 },
+    "Build": 0,
+    "Damage_Bonus": 0
+  },
+  "skills": {
+    "Accounting": 60,
+    "Credit_Rating": 80,
+    "Library_Use": 70,
+    "Psychology": 65,
+    "Fighting_Brawl": 35,
+    "Dodge": 20
+  },
+  "backstory": {
+    "appearance": "Одягнений вишукано, справляє враження зарозумілої людини.",
+    "traits": "Підозрілий, недовірливий, може заважати законним діям дослідників.",
+    "role": "Син Руперта, який прагне отримати спадок і не довіряє стороннім."
+  }
+}

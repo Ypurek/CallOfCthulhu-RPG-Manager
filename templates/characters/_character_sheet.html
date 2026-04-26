@@ -90,7 +90,10 @@
             <div class="skills-grid">
                 {% for skill in sheet.skills %}
                 <div class="skill-item" onclick="showSkillModal('{{ skill.name|escapejs }}', {{ skill.value }}, '{{ skill.description|escapejs }}')">
-                    <span class="skill-name">{{ skill.name }}</span>
+                    <span class="skill-name">
+                        {{ skill.name }}
+                        {% if skill.is_custom %}<span class="badge bg-info text-dark ms-1" style="font-size: 0.7rem;">Custom</span>{% endif %}
+                    </span>
                     <span class="skill-value">{{ skill.value }}%</span>
                 </div>
                 {% empty %}
@@ -108,7 +111,10 @@
                 <div class="skills-grid">
                     {% for skill in sheet.default_skills %}
                     <div class="skill-item" onclick="showSkillModal('{{ skill.name|escapejs }}', {{ skill.value }}, '{{ skill.description|escapejs }}')">
-                        <span class="skill-name">{{ skill.name }}</span>
+                        <span class="skill-name">
+                            {{ skill.name }}
+                            {% if skill.is_custom %}<span class="badge bg-info text-dark ms-1" style="font-size: 0.7rem;">Custom</span>{% endif %}
+                        </span>
                         <span class="skill-value">{{ skill.value }}%</span>
                     </div>
                     {% endfor %}
@@ -138,7 +144,10 @@
 
                 {% for skill in sheet.combat_skills %}
                 <div class="skill-item combat" onclick="showSkillModal('{{ skill.name|escapejs }}', {{ skill.value }}, '{{ skill.description|escapejs }}')">
-                    <span class="skill-name">{{ skill.name }}</span>
+                    <span class="skill-name">
+                        {{ skill.name }}
+                        {% if skill.is_custom %}<span class="badge bg-info text-dark ms-1" style="font-size: 0.7rem;">Custom</span>{% endif %}
+                    </span>
                     <span class="skill-value">{{ skill.value }}%</span>
                 </div>
                 {% endfor %}
@@ -222,12 +231,43 @@
         <a href="{% url 'characters:edit_wizard' sheet.character.id %}" class="btn-compact">
             <i class="fas fa-edit"></i> Edit
         </a>
+        <button type="button" class="btn-compact" data-bs-toggle="modal" data-bs-target="#deleteCharacterModal" style="border-color: rgba(220, 53, 69, 0.7); color: #ff8f98;">
+            <i class="fas fa-trash-alt"></i> Delete
+        </button>
         <a href="{% url 'characters:list' %}" class="btn-compact">
             <i class="fas fa-arrow-left"></i> Back
         </a>
     </div>
+
+    <div class="modal fade" id="deleteCharacterModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="background: rgba(24, 24, 24, 0.98); border: 1px solid rgba(220, 53, 69, 0.55); color: var(--cream);">
+                <div class="modal-header" style="border-bottom-color: rgba(220, 53, 69, 0.35);">
+                    <h5 class="modal-title text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Delete Character</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-2">Are you sure you want to permanently delete <strong>{{ sheet.character.name }}</strong>?</p>
+                    <p class="mb-0 text-muted">This action cannot be undone.</p>
+                </div>
+                <div class="modal-footer" style="border-top-color: rgba(220, 53, 69, 0.35);">
+                    <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+                    <form method="post" action="{% url 'characters:delete' sheet.character.id %}" class="m-0">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash-alt me-1"></i> Delete Character
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
     {% endif %}
 </div>
+
+
+
+
 
 
 

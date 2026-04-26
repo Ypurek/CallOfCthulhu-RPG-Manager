@@ -28,7 +28,6 @@
   },
   "skills": {
     "Fighting_Brawl": 60,
-    "Dodge": 35,
     "Track": 50,
     "Drive_Auto": 40,
     "Sleight_of_Hand": 10,
@@ -38,7 +37,6 @@
     "Library_Use": 20,
     "Climb": 40,
     "Language_Italian": 25,
-    "Language_English_Own": 50,
     "Stealth": 40,
     "Fast_Talk": 25,
     "Occult": 5,
@@ -59,12 +57,7 @@
     "Charm": 15
   },
   "weapons": [
-    {
-      "name": "Рукопашний бій",
-      "skill_pct": 60,
-      "damage": "1K3 + DB",
-      "attacks": 1
-    },
+
     {
       "name": "Викидний ніж",
       "skill_pct": 60,

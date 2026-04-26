@@ -1,8 +1,185 @@
 {% extends 'base.html' %}
-
 {% block title %}{{ wizard_title|default:'Create Character' }} - Cthulhu RPG Manager{% endblock %}
 
 {% block extra_css %}
+<style>
+    .wizard-stat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 0.75rem;
+    }
+
+    .wizard-stat-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.7rem 0.8rem;
+        border: 1px solid rgba(212, 175, 55, 0.25);
+        border-radius: 0.75rem;
+        background: linear-gradient(180deg, rgba(31, 31, 31, 0.8), rgba(20, 20, 20, 0.9));
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+
+    .wizard-stat-meta {
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .wizard-stat-trigger {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--gold);
+        font-weight: 700;
+        text-align: left;
+        cursor: pointer;
+    }
+
+    .wizard-stat-trigger:hover {
+        color: #f1d27a;
+    }
+
+    .wizard-stat-help {
+        font-size: 0.72rem;
+        color: rgba(245, 245, 220, 0.52);
+    }
+
+    .wizard-stat-input,
+    .skill-editor-input {
+        width: 54px;
+        min-width: 54px;
+        padding: 0.2rem 0.25rem;
+        text-align: center;
+        font-weight: 700;
+    }
+
+    .skill-editor-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 0.65rem;
+    }
+
+    .skill-editor-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.65rem 0.8rem;
+        border: 1px solid rgba(212, 175, 55, 0.28);
+        border-radius: 0.75rem;
+        background: linear-gradient(180deg, rgba(30, 30, 30, 0.72), rgba(18, 18, 18, 0.82));
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+
+    .skill-editor-meta {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .skill-editor-label {
+        display: block;
+        margin: 0;
+        line-height: 1.15;
+    }
+
+    .skill-editor-name {
+        display: block;
+        font-weight: 600;
+        color: var(--cream);
+        word-break: break-word;
+    }
+
+    .skill-editor-base {
+        display: block;
+        margin-top: 0.12rem;
+        font-size: 0.72rem;
+        color: rgba(245, 245, 220, 0.62);
+    }
+
+    .skill-editor-controls {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        flex: 0 0 86px;
+        justify-content: flex-end;
+    }
+
+    .skill-remove-btn {
+        width: 30px;
+        height: 30px;
+        border: 1px solid rgba(220, 53, 69, 0.55);
+        border-radius: 999px;
+        background: linear-gradient(180deg, rgba(220, 53, 69, 0.2), rgba(145, 26, 38, 0.45));
+        color: #ffb3bc;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    }
+
+    .skill-remove-btn:hover {
+        color: #fff;
+        background: linear-gradient(180deg, rgba(235, 70, 88, 0.42), rgba(166, 31, 46, 0.72));
+        border-color: rgba(255, 99, 132, 0.7);
+        transform: translateY(-1px);
+    }
+
+    .skill-remove-btn i {
+        font-size: 0.72rem;
+        pointer-events: none;
+    }
+
+    .skill-action-btn {
+        width: 30px;
+        height: 30px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    }
+
+    .skill-edit-btn {
+        border: 1px solid rgba(13, 202, 240, 0.45);
+        background: linear-gradient(180deg, rgba(13, 202, 240, 0.14), rgba(6, 116, 138, 0.38));
+        color: #9fe8ff;
+    }
+
+    .skill-edit-btn:hover {
+        color: #fff;
+        background: linear-gradient(180deg, rgba(38, 217, 255, 0.32), rgba(11, 140, 168, 0.62));
+        border-color: rgba(100, 223, 255, 0.72);
+        transform: translateY(-1px);
+    }
+
+    @media (max-width: 576px) {
+        .wizard-stat-grid,
+        .skill-editor-list {
+            grid-template-columns: 1fr;
+        }
+
+        .skill-editor-item {
+            padding: 0.55rem 0.65rem;
+            gap: 0.55rem;
+        }
+
+        .wizard-stat-input,
+        .skill-editor-input {
+            width: 48px;
+            min-width: 48px;
+        }
+
+        .skill-editor-controls {
+            flex-basis: 82px;
+        }
+    }
+</style>
 {% if current_step == 'review' %}
 {% include 'characters/_character_sheet_styles.html' %}
 {% endif %}
@@ -18,13 +195,13 @@
                     <a href="{{ wizard_export_url }}" class="btn btn-sm btn-outline-info" title="Export current draft as JSON">
                         <i class="fas fa-file-export me-1"></i>Export
                     </a>
-                    <label class="btn btn-sm btn-outline-success mb-0" title="Import character from JSON file">
+                    <button type="button" class="btn btn-sm btn-outline-success" id="import-json-trigger" title="Import character from JSON file">
                         <i class="fas fa-file-import me-1"></i>Import
-                        <form method="post" action="{{ wizard_import_url }}" enctype="multipart/form-data" id="import-json-form">
-                            {% csrf_token %}
-                            <input class="d-none" type="file" name="json_file" accept=".json" id="import-json-input">
-                        </form>
-                    </label>
+                    </button>
+                    <form method="post" action="{{ wizard_import_url }}" enctype="multipart/form-data" id="import-json-form" class="d-none">
+                        {% csrf_token %}
+                        <input class="d-none" type="file" name="json_file" accept=".json" id="import-json-input">
+                    </form>
                     {% if show_reset %}
                     <div class="vr"></div>
                     <form method="post" action="{{ wizard_form_url }}" class="m-0">
@@ -79,29 +256,116 @@
                 </div>
                 {% elif current_step == 'stats' %}
                 <h5 class="mb-3">Step 2: Core Stats</h5>
-                <div class="row g-3">
-                    <div class="col-md-3"><label class="form-label" for="strength">STR</label><input id="strength" type="number" name="strength" min="0" max="100" class="form-control" value="{{ draft.stats.strength }}"></div>
-                    <div class="col-md-3"><label class="form-label" for="constitution">CON</label><input id="constitution" type="number" name="constitution" min="0" max="100" class="form-control" value="{{ draft.stats.constitution }}"></div>
-                    <div class="col-md-3"><label class="form-label" for="dexterity">DEX</label><input id="dexterity" type="number" name="dexterity" min="0" max="100" class="form-control" value="{{ draft.stats.dexterity }}"></div>
-                    <div class="col-md-3"><label class="form-label" for="intelligence">INT</label><input id="intelligence" type="number" name="intelligence" min="0" max="100" class="form-control" value="{{ draft.stats.intelligence }}"></div>
-                    <div class="col-md-3"><label class="form-label" for="power">POW</label><input id="power" type="number" name="power" min="0" max="100" class="form-control" value="{{ draft.stats.power }}"></div>
-                    <div class="col-md-3"><label class="form-label" for="size">SIZ</label><input id="size" type="number" name="size" min="0" max="100" class="form-control" value="{{ draft.stats.size }}"></div>
-                    <div class="col-md-3"><label class="form-label" for="appearance">APP</label><input id="appearance" type="number" name="appearance" min="0" max="100" class="form-control" value="{{ draft.stats.appearance }}"></div>
-                    <div class="col-md-3"><label class="form-label" for="education">EDU</label><input id="education" type="number" name="education" min="0" max="100" class="form-control" value="{{ draft.stats.education }}"></div>
-                    <div class="col-md-3"><label class="form-label" for="luck">LCK</label><input id="luck" type="number" name="luck" min="0" max="100" class="form-control" value="{{ draft.stats.luck }}"></div>
+                <div class="wizard-stat-grid">
+                    <div class="wizard-stat-item">
+                        <div class="wizard-stat-meta">
+                            <button type="button" class="wizard-stat-trigger" onclick="showWizardStatModal('STR', document.getElementById('strength').value || 0)">STR <i class="fas fa-circle-info"></i></button>
+                            <div class="wizard-stat-help">Physical strength and muscle power.</div>
+                        </div>
+                        <label class="visually-hidden" for="strength">Strength</label>
+                        <input id="strength" type="number" name="strength" min="0" max="100" class="form-control wizard-stat-input" value="{{ draft.stats.strength }}">
+                    </div>
+                    <div class="wizard-stat-item">
+                        <div class="wizard-stat-meta">
+                            <button type="button" class="wizard-stat-trigger" onclick="showWizardStatModal('CON', document.getElementById('constitution').value || 0)">CON <i class="fas fa-circle-info"></i></button>
+                            <div class="wizard-stat-help">Health, stamina, and resistance.</div>
+                        </div>
+                        <label class="visually-hidden" for="constitution">Constitution</label>
+                        <input id="constitution" type="number" name="constitution" min="0" max="100" class="form-control wizard-stat-input" value="{{ draft.stats.constitution }}">
+                    </div>
+                    <div class="wizard-stat-item">
+                        <div class="wizard-stat-meta">
+                            <button type="button" class="wizard-stat-trigger" onclick="showWizardStatModal('DEX', document.getElementById('dexterity').value || 0)">DEX <i class="fas fa-circle-info"></i></button>
+                            <div class="wizard-stat-help">Agility, reflexes, and coordination.</div>
+                        </div>
+                        <label class="visually-hidden" for="dexterity">Dexterity</label>
+                        <input id="dexterity" type="number" name="dexterity" min="0" max="100" class="form-control wizard-stat-input" value="{{ draft.stats.dexterity }}">
+                    </div>
+                    <div class="wizard-stat-item">
+                        <div class="wizard-stat-meta">
+                            <button type="button" class="wizard-stat-trigger" onclick="showWizardStatModal('INT', document.getElementById('intelligence').value || 0)">INT <i class="fas fa-circle-info"></i></button>
+                            <div class="wizard-stat-help">Reasoning, memory, and problem solving.</div>
+                        </div>
+                        <label class="visually-hidden" for="intelligence">Intelligence</label>
+                        <input id="intelligence" type="number" name="intelligence" min="0" max="100" class="form-control wizard-stat-input" value="{{ draft.stats.intelligence }}">
+                    </div>
+                    <div class="wizard-stat-item">
+                        <div class="wizard-stat-meta">
+                            <button type="button" class="wizard-stat-trigger" onclick="showWizardStatModal('POW', document.getElementById('power').value || 0)">POW <i class="fas fa-circle-info"></i></button>
+                            <div class="wizard-stat-help">Willpower, spirit, and magical resilience.</div>
+                        </div>
+                        <label class="visually-hidden" for="power">Power</label>
+                        <input id="power" type="number" name="power" min="0" max="100" class="form-control wizard-stat-input" value="{{ draft.stats.power }}">
+                    </div>
+                    <div class="wizard-stat-item">
+                        <div class="wizard-stat-meta">
+                            <button type="button" class="wizard-stat-trigger" onclick="showWizardStatModal('SIZ', document.getElementById('size').value || 0)">SIZ <i class="fas fa-circle-info"></i></button>
+                            <div class="wizard-stat-help">Body size, mass, and physical presence.</div>
+                        </div>
+                        <label class="visually-hidden" for="size">Size</label>
+                        <input id="size" type="number" name="size" min="0" max="100" class="form-control wizard-stat-input" value="{{ draft.stats.size }}">
+                    </div>
+                    <div class="wizard-stat-item">
+                        <div class="wizard-stat-meta">
+                            <button type="button" class="wizard-stat-trigger" onclick="showWizardStatModal('APP', document.getElementById('appearance').value || 0)">APP <i class="fas fa-circle-info"></i></button>
+                            <div class="wizard-stat-help">Looks, charm, and social impression.</div>
+                        </div>
+                        <label class="visually-hidden" for="appearance">Appearance</label>
+                        <input id="appearance" type="number" name="appearance" min="0" max="100" class="form-control wizard-stat-input" value="{{ draft.stats.appearance }}">
+                    </div>
+                    <div class="wizard-stat-item">
+                        <div class="wizard-stat-meta">
+                            <button type="button" class="wizard-stat-trigger" onclick="showWizardStatModal('EDU', document.getElementById('education').value || 0)">EDU <i class="fas fa-circle-info"></i></button>
+                            <div class="wizard-stat-help">Schooling, learned knowledge, and expertise.</div>
+                        </div>
+                        <label class="visually-hidden" for="education">Education</label>
+                        <input id="education" type="number" name="education" min="0" max="100" class="form-control wizard-stat-input" value="{{ draft.stats.education }}">
+                    </div>
+                    <div class="wizard-stat-item">
+                        <div class="wizard-stat-meta">
+                            <button type="button" class="wizard-stat-trigger" onclick="showWizardStatModal('LCK', document.getElementById('luck').value || 0)">LCK <i class="fas fa-circle-info"></i></button>
+                            <div class="wizard-stat-help">Fortune, coincidence, and narrative luck.</div>
+                        </div>
+                        <label class="visually-hidden" for="luck">Luck</label>
+                        <input id="luck" type="number" name="luck" min="0" max="100" class="form-control wizard-stat-input" value="{{ draft.stats.luck }}">
+                    </div>
                 </div>
                 {% elif current_step == 'skills' %}
                 <h5 class="mb-3">Step 3: Skills</h5>
+                {{ draft.custom_skills|json_script:"initial-custom-skills" }}
+                <input type="hidden" name="custom_skills_json" id="custom_skills_json" value="{}">
                 {% for category_key, category_label in skill_categories %}
                 <div class="card mb-3">
-                    <div class="card-header py-2">{{ category_label }}</div>
+                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                        <span>{{ category_label }}</span>
+                        {% if category_key == 'general' or category_key == 'combat' %}
+                        <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#newSkillModal" onclick="setSkillCategory('{{ category_key }}')">
+                            <i class="fas fa-plus"></i> New Skill
+                        </button>
+                        {% endif %}
+                    </div>
                     <div class="card-body py-2">
-                        <div class="row g-2">
+                        <div class="skill-editor-list" id="skills_{{ category_key }}">
                             {% for skill in skill_options %}
                                 {% if skill.category == category_key %}
-                                <div class="col-md-6">
-                                    <label class="form-label small mb-1" for="skill_{{ skill.id }}">{{ skill.name }} <span class="text-muted">(base {{ skill.base_value }}%)</span></label>
-                                    <input id="skill_{{ skill.id }}" type="number" min="0" max="100" class="form-control form-control-sm" name="skill_{{ skill.id }}" value="{{ skill.value }}">
+                                <div class="skill-editor-item" id="custom-skill-{{ skill.id }}" data-custom-skill-id="{{ skill.id }}">
+                                    <div class="skill-editor-meta">
+                                        <label class="skill-editor-label" for="skill_{{ skill.id }}">
+                                            <span class="skill-editor-name">{{ skill.name }}</span>
+                                            <span class="skill-editor-base">base {{ skill.base_value }}%</span>
+                                        </label>
+                                    </div>
+                                    <div class="skill-editor-controls">
+                                            {% if skill.is_custom %}
+                                            <button type="button" class="skill-action-btn skill-edit-btn" onclick="editCustomSkill('{{ skill.id }}')" title="Rename custom skill">
+                                                <i class="fas fa-pen"></i>
+                                            </button>
+                                            <button type="button" class="skill-remove-btn skill-action-btn" onclick="removeCustomSkill('{{ skill.id }}')" title="Remove custom skill">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                            {% endif %}
+                                            <input id="skill_{{ skill.id }}" type="number" min="0" max="100" class="form-control form-control-sm skill-editor-input" name="skill_{{ skill.id }}" value="{{ skill.value }}">
+                                    </div>
                                 </div>
                                 {% endif %}
                             {% endfor %}
@@ -224,6 +488,51 @@
 {% if current_step == 'review' %}
 {% include 'characters/_character_sheet_modals.html' with sheet=preview_sheet %}
 {% endif %}
+
+<div class="modal fade" id="wizardStatModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content" style="background: rgba(24, 24, 24, 0.98); border: 1px solid rgba(212, 175, 55, 0.35); color: var(--cream);">
+            <div class="modal-header" style="border-bottom-color: rgba(212, 175, 55, 0.25);">
+                <h5 class="modal-title text-warning" id="wizardStatModalTitle">Stat</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <div class="fs-2 fw-bold text-warning" id="wizardStatModalValue">0</div>
+                    <div class="small text-muted">Current value</div>
+                </div>
+                <p class="small mb-0" id="wizardStatModalDescription"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Skill Modal -->
+<div class="modal fade" id="newSkillModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content" style="background: rgba(30, 30, 30, 0.95); border: 2px solid var(--gold);">
+            <div class="modal-header" style="border-bottom: 1px solid var(--gold);">
+                <h5 class="modal-title" id="newSkillModalTitle" style="color: var(--gold); font-weight: bold;">Add Custom Skill</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="color: var(--cream);">
+                <div class="mb-3">
+                    <label for="new-skill-name" class="form-label" style="color: var(--gold); font-weight: bold;">Skill Name *</label>
+                    <input id="new-skill-name" type="text" class="form-control"
+                           style="background: rgba(44, 44, 44, 0.9); border: 1px solid var(--gold); color: var(--cream);"
+                           placeholder="e.g., Ancient Languages">
+                </div>
+                <small id="newSkillModalHelp" style="color: rgba(245, 245, 220, 0.7);">New skill will be created with value 1. You can adjust it later.</small>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid var(--gold);">
+                <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="confirm-new-skill-btn" style="background: #28a745; border-color: #28a745;">
+                    <i class="fas fa-plus"></i> <span id="confirm-new-skill-text">Add Skill</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 {% if current_step == 'inventory' %}
 <div class="modal fade" id="weaponModal" tabindex="-1" aria-hidden="true">
@@ -480,6 +789,132 @@ renderWeapons();
 renderItems();
 </script>
 {% endif %}
+
+<!-- Custom skill management -->
+<script>
+let currentSkillCategory = '';
+let editingCustomSkillId = null;
+const customSkillsScript = document.getElementById('initial-custom-skills');
+const customSkillsInput = document.getElementById('custom_skills_json');
+let customSkillEntries = customSkillsScript ? JSON.parse(customSkillsScript.textContent || '{}') : {};
+
+function syncCustomSkillsJson() {
+    if (customSkillsInput) {
+        customSkillsInput.value = JSON.stringify(customSkillEntries);
+    }
+}
+
+function getNextCustomSkillId() {
+    const customSkillIds = Object.keys(customSkillEntries)
+        .map((value) => parseInt(value, 10))
+        .filter((value) => !Number.isNaN(value) && value < 0);
+    return String((customSkillIds.length ? Math.min(...customSkillIds) : 0) - 1);
+}
+
+function setSkillCategory(category) {
+    editingCustomSkillId = null;
+    currentSkillCategory = category;
+    document.getElementById('new-skill-name').value = '';
+    document.getElementById('newSkillModalTitle').textContent = 'Add Custom Skill';
+    document.getElementById('newSkillModalHelp').textContent = 'New skill will be created with value 1. You can adjust it later.';
+    document.getElementById('confirm-new-skill-text').textContent = 'Add Skill';
+}
+
+function editCustomSkill(skillId) {
+    const entry = customSkillEntries[String(skillId)];
+    if (!entry) {
+        return;
+    }
+
+    editingCustomSkillId = String(skillId);
+    currentSkillCategory = entry.category || 'general';
+    document.getElementById('new-skill-name').value = entry.name || '';
+    document.getElementById('newSkillModalTitle').textContent = 'Rename Custom Skill';
+    document.getElementById('newSkillModalHelp').textContent = 'Update the custom skill name. The current value will stay unchanged.';
+    document.getElementById('confirm-new-skill-text').textContent = 'Update Skill';
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('newSkillModal')).show();
+}
+
+document.getElementById('confirm-new-skill-btn').addEventListener('click', () => {
+    const skillName = document.getElementById('new-skill-name').value.trim();
+
+    if (!skillName) {
+        alert('Please enter a skill name');
+        return;
+    }
+
+    if (editingCustomSkillId) {
+        customSkillEntries[editingCustomSkillId] = {
+            ...customSkillEntries[editingCustomSkillId],
+            name: skillName,
+            category: currentSkillCategory || customSkillEntries[editingCustomSkillId].category || 'general',
+            description: `Custom skill: ${skillName}`,
+        };
+
+        const existingRow = document.getElementById(`custom-skill-${editingCustomSkillId}`);
+        if (existingRow) {
+            const nameElement = existingRow.querySelector('.skill-editor-name');
+            if (nameElement) {
+                nameElement.textContent = skillName;
+            }
+        }
+    } else {
+        const customSkillId = getNextCustomSkillId();
+
+        const container = document.getElementById(`skills_${currentSkillCategory}`);
+        if (!container) {
+            alert('Skill container not found');
+            return;
+        }
+
+        const colDiv = document.createElement('div');
+        colDiv.className = 'skill-editor-item';
+        colDiv.id = `custom-skill-${customSkillId}`;
+        colDiv.dataset.customSkillId = customSkillId;
+        customSkillEntries[customSkillId] = {
+            name: skillName,
+            category: currentSkillCategory || 'general',
+            base_value: 1,
+            description: `Custom skill: ${skillName}`,
+        };
+        colDiv.innerHTML = `
+            <div class="skill-editor-meta">
+                <label class="skill-editor-label" for="skill_${customSkillId}">
+                    <span class="skill-editor-name">${skillName}</span>
+                    <span class="skill-editor-base">base 1%</span>
+                </label>
+            </div>
+            <div class="skill-editor-controls">
+                <button type="button" class="skill-action-btn skill-edit-btn" onclick="editCustomSkill('${customSkillId}')" title="Rename custom skill">
+                    <i class="fas fa-pen"></i>
+                </button>
+                <button type="button" class="skill-remove-btn skill-action-btn" onclick="removeCustomSkill('${customSkillId}')" title="Remove custom skill">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+                <input id="skill_${customSkillId}" type="number" min="0" max="100" class="form-control form-control-sm skill-editor-input" name="skill_${customSkillId}" value="1">
+            </div>
+        `;
+
+        container.appendChild(colDiv);
+    }
+
+    editingCustomSkillId = null;
+    syncCustomSkillsJson();
+
+    // Close modal
+    bootstrap.Modal.getInstance(document.getElementById('newSkillModal')).hide();
+});
+
+function removeCustomSkill(skillId) {
+    const element = document.getElementById(`custom-skill-${skillId}`);
+    delete customSkillEntries[String(skillId)];
+    if (element) {
+        element.remove();
+    }
+    syncCustomSkillsJson();
+}
+syncCustomSkillsJson();
+</script>
 {% endblock %}
 
 {% block extra_js %}
@@ -489,6 +924,29 @@ document.getElementById('import-json-input').addEventListener('change', function
         document.getElementById('import-json-form').submit();
     }
 });
+
+document.getElementById('import-json-trigger').addEventListener('click', function () {
+    document.getElementById('import-json-input').click();
+});
+
+function showWizardStatModal(statName, statValue) {
+    const descriptions = {
+        'STR': 'Measures raw muscle power, lifting strength, grappling force, and how much punishment your body can impose physically.',
+        'CON': 'Represents endurance, toughness, breath, and how well the body resists exhaustion, injury, poison, or disease.',
+        'DEX': 'Covers speed, balance, reaction time, fine motor control, stealthy movement, and general physical coordination.',
+        'INT': 'Reflects logic, analysis, memory, deduction, learning speed, and how well the investigator connects clues.',
+        'POW': 'Represents force of personality, inner will, mental resilience, spiritual strength, and resistance to unnatural influence.',
+        'SIZ': 'Shows body mass and overall build; it affects physical presence, toughness, and some derived combat characteristics.',
+        'APP': 'Measures appearance, presence, charm, first impressions, and how positively others react on a social level.',
+        'EDU': 'Represents formal study, accumulated knowledge, literacy, specialist training, and broad academic background.',
+        'LCK': 'Tracks how often chance favors the investigator when facts, timing, or fate could go either way.'
+    };
+
+    document.getElementById('wizardStatModalTitle').textContent = statName;
+    document.getElementById('wizardStatModalValue').textContent = statValue;
+    document.getElementById('wizardStatModalDescription').textContent = descriptions[statName] || '';
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('wizardStatModal')).show();
+}
 </script>
 {% if current_step == 'review' %}
 {% include 'characters/_character_sheet_scripts.html' %}

@@ -6,6 +6,7 @@ app_name = 'characters'
 urlpatterns = [
     path('', views.character_list, name='list'),
     path('<int:character_id>/', views.character_detail, name='detail'),
+    path('<int:character_id>/delete/', views.character_delete, name='delete'),
     path('<int:character_id>/edit/', views.character_edit, name='edit'),
     path('<int:character_id>/wizard/', views.character_edit_wizard, name='edit_wizard'),
     path('<int:character_id>/wizard/export/', views.character_edit_wizard_export, name='edit_wizard_export'),

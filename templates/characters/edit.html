@@ -184,6 +184,10 @@
             {% else %}
                 <p class="text-muted">No skills found for this character.</p>
             {% endif %}
+
+            <button type="button" class="btn btn-sm btn-outline-success mt-3" data-bs-toggle="modal" data-bs-target="#addSkillModal">
+                <i class="fas fa-plus"></i> Add Custom Skill
+            </button>
         </div>
 
         <!-- Notes -->
@@ -235,6 +239,33 @@
         </div>
         <div class="toast-body bg-dark text-light">
             Changes saved successfully!
+        </div>
+    </div>
+</div>
+
+<!-- Add Custom Skill Modal -->
+<div class="modal fade" id="addSkillModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content" style="background: rgba(30, 30, 30, 0.95); border: 2px solid var(--gold);">
+            <div class="modal-header" style="border-bottom: 1px solid var(--gold);">
+                <h5 class="modal-title" style="color: var(--gold); font-weight: bold;">Add Custom Skill</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="color: var(--cream);">
+                <div class="mb-3">
+                    <label for="add-skill-name" class="form-label" style="color: var(--gold); font-weight: bold;">Skill Name *</label>
+                    <input id="add-skill-name" type="text" class="form-control"
+                           style="background: rgba(44, 44, 44, 0.9); border: 1px solid var(--gold); color: var(--cream);"
+                           placeholder="e.g., Ancient Languages">
+                </div>
+                <small style="color: rgba(245, 245, 220, 0.7);">New skill will be created with value 1. You can adjust it later.</small>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid var(--gold);">
+                <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="confirm-add-skill-btn" style="background: #28a745; border-color: #28a745;">
+                    <i class="fas fa-plus"></i> Add Skill
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -324,5 +355,64 @@ function getCookie(name) {
     }
     return cookieValue;
 }
+
+// Add custom skill handler
+document.getElementById('confirm-add-skill-btn').addEventListener('click', () => {
+    const skillName = document.getElementById('add-skill-name').value.trim();
+
+    if (!skillName) {
+        alert('Please enter a skill name');
+        return;
+    }
+
+    // Send AJAX request to create custom skill with default value of 1
+    fetch('', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify({
+            'action': 'add_skill',
+            'skill_name': skillName,
+            'skill_value': 1,
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Add new skill row to the list
+            const skillsContainer = document.querySelector('.stat-group').querySelector('.row.g-3');
+            if (skillsContainer) {
+                const newRow = document.createElement('div');
+                newRow.className = 'col-md-6 col-lg-4';
+                newRow.id = `skill_${data.skill_id}`;
+                newRow.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <label class="form-label mb-0">${skillName} <span class="badge bg-info text-dark">Custom</span></label>
+                        <div class="d-flex align-items-center gap-1">
+                            <input type="number" class="form-control stat-input" style="width: 60px;"
+                                   value="1" min="0" max="100"
+                                   onchange="updateSkill(${data.skill_id}, this.value)">
+                            <span class="text-muted">%</span>
+                        </div>
+                    </div>
+                `;
+                skillsContainer.appendChild(newRow);
+            }
+
+            // Reset form and close modal
+            document.getElementById('add-skill-name').value = '';
+            bootstrap.Modal.getInstance(document.getElementById('addSkillModal')).hide();
+            showToast();
+        } else {
+            alert('Error adding skill: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error adding skill. Please try again.');
+    });
+});
 </script>
 {% endblock %}
