@@ -1,0 +1,107 @@
+{
+  "unarmed": {
+    "price": 0,
+    "base_damage": "1D3 + DB",
+    "extreme_damage": "3",
+    "rounds": 0,
+    "description": "When you have nothing else, you are the weapon yourself!"
+  },
+  "small_knife": {
+    "price": 1.00,
+    "base_damage": "1D4 + DB",
+    "extreme_damage": "4",
+    "rounds": 0,
+    "description": "It hardly looks like a weapon, but it grants confidence. Don't cut yourself!"
+  },
+  "machete": {
+    "price": 1.50,
+    "base_damage": "1D8 + DB",
+    "extreme_damage": "8",
+    "rounds": 0,
+    "description": "You won't get lost in the urban jungle or the real one."
+  },
+  "large_club": {
+    "price": 0,
+    "base_damage": "1D8 + DB",
+    "extreme_damage": "8",
+    "rounds": 0,
+    "description": "An undeniable plus — this weapon can literally be found lying under your feet."
+  },
+  "baseball_bat": {
+    "price": 1.50,
+    "base_damage": "1D8 + DB",
+    "extreme_damage": "8",
+    "rounds": 0,
+    "description": "It's odd to carry this everywhere. But perhaps you just really love the sport?"
+  },
+  "axe": {
+    "price": 2.50,
+    "base_damage": "1D8 + 2 + DB",
+    "extreme_damage": "10",
+    "rounds": 0,
+    "description": "Useful for chores, but quite suspicious in the city."
+  },
+  "revolver_38": {
+    "price": 15.00,
+    "base_damage": "1D10",
+    "extreme_damage": "10",
+    "rounds": 6,
+    "description": "A reliable .38 caliber sidearm that won't let you be bullied."
+  },
+  "automatic_pistol_45": {
+    "price": 25.00,
+    "base_damage": "1D10 + 2",
+    "extreme_damage": "12",
+    "rounds": 7,
+    "description": "More expensive than a revolver, but faster to reload. A heavy-duty Colt M1911."
+  },
+  "shotgun_12g_2_barrel": {
+    "price": 20.00,
+    "base_damage": "4D6 / 2D6 / 1D6",
+    "extreme_damage": "24 / 12 / 6",
+    "rounds": 2,
+    "description": "Are you going to war with evil? Devastating at point-blank range."
+  },
+  "rifle_30_06": {
+    "price": 35.00,
+    "base_damage": "2D6 + 4",
+    "extreme_damage": "16",
+    "rounds": 5,
+    "description": "A powerful bolt-action rifle for long-range defense."
+  },
+  "bow": {
+    "price": 5.00,
+    "base_damage": "1D6 + 1/2 DB",
+    "extreme_damage": "6",
+    "rounds": 1,
+    "description": "Weaker than a firearm, but completely silent."
+  },
+  "hand_grenade": {
+    "price": 3.00,
+    "base_damage": "4D10 (3m) / 2D10 (6m) / 1D10 (9m)",
+    "extreme_damage": "40",
+    "rounds": 1,
+    "description": "The black market sends greetings to everyone within a 5-meter radius!"
+  },
+  "dynamite": {
+    "price": 1.00,
+    "base_damage": "4D10",
+    "extreme_damage": "40",
+    "rounds": 1,
+    "description": "A 1lb stick. Destroys everything nearby, but not exactly easy to purchase legally."
+  },
+  "tommy_gun": {
+    "price": 175.00,
+    "base_damage": "1D10 + 2",
+    "extreme_damage": "12",
+    "rounds": 20,
+    "description": "The Thompson Submachine Gun. The 'Chicago Typewriter' — preferred by mobsters and desperate investigators."
+  },
+  "brass_knuckles": {
+    "price": 1.00,
+    "base_damage": "1D3 + 1 + DB",
+    "extreme_damage": "4",
+    "rounds": 0,
+    "description": "Perfect for bar brawls and street justice."
+  }
+}

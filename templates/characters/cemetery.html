@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}Cemetery - Cthulhu RPG Manager{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1><i class="fas fa-cross"></i> Character Cemetery</h1>
+        <p class="text-muted">Rest in peace, fallen investigators...</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    {% for character in characters %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card bg-dark border-secondary">
+                <div class="card-header d-flex justify-content-between align-items-center bg-danger">
+                    <span class="text-white fw-bold">{{ character.name }}</span>
+                    <span class="badge bg-dark">R.I.P.</span>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        <strong>Occupation:</strong> {{ character.occupation|default:"Unknown" }}<br>
+                        <strong>Age:</strong> {{ character.age|default:"Unknown" }}
+                    </p>
+                    <p class="text-muted">
+                        <i class="fas fa-skull"></i>
+                        Died during their investigations into the unknown...
+                    </p>
+                </div>
+                <div class="card-footer text-muted text-center">
+                    <small>Created {{ character.created_at|date:"M d, Y" }}</small>
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="fas fa-dove fa-5x text-success mb-4"></i>
+                <h3>No Fallen Characters</h3>
+                <p class="lead text-muted">Your characters are still safe... for now.</p>
+                <a href="{% url 'characters:list' %}" class="btn btn-success">
+                    <i class="fas fa-users"></i> Back to Living Characters
+                </a>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="text-center">
+            <a href="{% url 'characters:list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Characters
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

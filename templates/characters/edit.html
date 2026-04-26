@@ -1,0 +1,328 @@
+{% extends 'base.html' %}
+{% load math_filters %}
+
+{% block title %}Edit {{ character.name }} - Cthulhu RPG Manager{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-input {
+        width: 80px;
+        background: rgba(44, 44, 44, 0.8);
+        border: 1px solid var(--gold);
+        color: var(--cream);
+        text-align: center;
+    }
+
+    .stat-input:focus {
+        background: rgba(44, 44, 44, 1);
+        border-color: var(--gold);
+        box-shadow: 0 0 5px var(--gold);
+    }
+
+    .stat-group {
+        background: rgba(26, 60, 46, 0.3);
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+
+    .btn-adjust {
+        width: 35px;
+        height: 35px;
+        padding: 0;
+        font-weight: bold;
+    }
+
+    .current-value {
+        font-size: 1.2em;
+        font-weight: bold;
+        color: var(--gold);
+        min-width: 60px;
+        display: inline-block;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="fas fa-edit"></i> Edit {{ character.name }}</h1>
+            <a href="{% url 'characters:detail' character.id %}" class="btn btn-outline-light">
+                <i class="fas fa-arrow-left"></i> Back to Sheet
+            </a>
+        </div>
+
+        <!-- Status Values -->
+        <div class="stat-group">
+            <h5 class="text-warning mb-3"><i class="fas fa-heart"></i> Status Values</h5>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Hit Points</label>
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-sm btn-danger btn-adjust" onclick="adjustStat('hp_current', -1)">-</button>
+                        <span class="current-value" id="hp_current_display">{{ character.hp_current }}</span>
+                        <button class="btn btn-sm btn-success btn-adjust" onclick="adjustStat('hp_current', 1)">+</button>
+                        <span class="text-muted">/ {{ character.hp_max }}</span>
+                        <input type="hidden" id="hp_current" value="{{ character.hp_current }}">
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Sanity Points</label>
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-sm btn-danger btn-adjust" onclick="adjustStat('sanity_current', -1)">-</button>
+                        <span class="current-value" id="sanity_current_display">{{ character.sanity_current }}</span>
+                        <button class="btn btn-sm btn-success btn-adjust" onclick="adjustStat('sanity_current', 1)">+</button>
+                        <span class="text-muted">/ {{ character.sanity_max }}</span>
+                        <input type="hidden" id="sanity_current" value="{{ character.sanity_current }}">
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Magic Points</label>
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-sm btn-danger btn-adjust" onclick="adjustStat('mp_current', -1)">-</button>
+                        <span class="current-value" id="mp_current_display">{{ character.mp_current }}</span>
+                        <button class="btn btn-sm btn-success btn-adjust" onclick="adjustStat('mp_current', 1)">+</button>
+                        <span class="text-muted">/ {{ character.mp_max }}</span>
+                        <input type="hidden" id="mp_current" value="{{ character.mp_current }}">
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Luck Points</label>
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-sm btn-danger btn-adjust" onclick="adjustStat('luck', -1)">-</button>
+                        <span class="current-value" id="luck_display">{{ character.luck }}</span>
+                        <button class="btn btn-sm btn-success btn-adjust" onclick="adjustStat('luck', 1)">+</button>
+                        <span class="text-muted">/ 100</span>
+                        <input type="hidden" id="luck" value="{{ character.luck }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Characteristics -->
+        <div class="stat-group">
+            <h5 class="text-warning mb-3"><i class="fas fa-user"></i> Characteristics</h5>
+
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">STR</label>
+                    <input type="number" class="form-control stat-input"
+                           id="strength" value="{{ character.strength }}" min="0" max="100"
+                           onchange="updateStat('strength', this.value)">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">CON</label>
+                    <input type="number" class="form-control stat-input"
+                           id="constitution" value="{{ character.constitution }}" min="0" max="100"
+                           onchange="updateStat('constitution', this.value)">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">DEX</label>
+                    <input type="number" class="form-control stat-input"
+                           id="dexterity" value="{{ character.dexterity }}" min="0" max="100"
+                           onchange="updateStat('dexterity', this.value)">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">INT</label>
+                    <input type="number" class="form-control stat-input"
+                           id="intelligence" value="{{ character.intelligence }}" min="0" max="100"
+                           onchange="updateStat('intelligence', this.value)">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">POW</label>
+                    <input type="number" class="form-control stat-input"
+                           id="power" value="{{ character.power }}" min="0" max="100"
+                           onchange="updateStat('power', this.value)">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">SIZ</label>
+                    <input type="number" class="form-control stat-input"
+                           id="size" value="{{ character.size }}" min="0" max="100"
+                           onchange="updateStat('size', this.value)">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">APP</label>
+                    <input type="number" class="form-control stat-input"
+                           id="appearance" value="{{ character.appearance }}" min="0" max="100"
+                           onchange="updateStat('appearance', this.value)">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">EDU</label>
+                    <input type="number" class="form-control stat-input"
+                           id="education" value="{{ character.education }}" min="0" max="100"
+                           onchange="updateStat('education', this.value)">
+                </div>
+            </div>
+        </div>
+
+        <!-- Skills -->
+        <div class="stat-group">
+            <h5 class="text-warning mb-3"><i class="fas fa-list"></i> Skills</h5>
+
+            {% if character.skills.all %}
+                <div class="row g-3">
+                    {% for char_skill in character.skills.all %}
+                        <div class="col-md-6 col-lg-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <label class="form-label mb-0">{{ char_skill.skill.name }}</label>
+                                <div class="d-flex align-items-center gap-1">
+                                    <input type="number" class="form-control stat-input" style="width: 60px;"
+                                           value="{{ char_skill.value }}" min="0" max="100"
+                                           onchange="updateSkill({{ char_skill.id }}, this.value)">
+                                    <span class="text-muted">%</span>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted">No skills found for this character.</p>
+            {% endif %}
+        </div>
+
+        <!-- Notes -->
+        <div class="stat-group">
+            <h5 class="text-warning mb-3"><i class="fas fa-sticky-note"></i> Notes</h5>
+
+            <div class="mb-3">
+                <label for="player_notes" class="form-label">Player Notes</label>
+                <textarea class="form-control" id="player_notes" rows="4"
+                          style="background: rgba(44, 44, 44, 0.8); border-color: var(--gold); color: var(--cream);"
+                          onchange="updateNotes('player_notes', this.value)">{{ character.player_notes }}</textarea>
+            </div>
+
+            {% if user.is_keeper %}
+            <div class="mb-3">
+                <label for="keeper_notes" class="form-label">Keeper Notes</label>
+                <textarea class="form-control" id="keeper_notes" rows="4"
+                          style="background: rgba(44, 44, 44, 0.8); border-color: var(--gold); color: var(--cream);"
+                          onchange="updateNotes('keeper_notes', this.value)">{{ character.keeper_notes }}</textarea>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="text-center">
+            <div class="row g-2 justify-content-center">
+                <div class="col-auto">
+                    <a href="{% url 'characters:detail' character.id %}" class="btn btn-success">
+                        <i class="fas fa-check"></i> Done Editing
+                    </a>
+                </div>
+                <div class="col-auto">
+                    <a href="{% url 'characters:list' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to List
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Status Update Toast -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="updateToast" class="toast" role="alert">
+        <div class="toast-header bg-dark text-light">
+            <i class="fas fa-save me-2"></i>
+            <strong class="me-auto">Character Updated</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body bg-dark text-light">
+            Changes saved successfully!
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function adjustStat(statName, change) {
+    const input = document.getElementById(statName);
+    const display = document.getElementById(statName + '_display');
+
+    let newValue = parseInt(input.value) + change;
+
+    // Prevent negative values
+    if (newValue < 0) newValue = 0;
+
+    // Set max limits based on stat type
+    const maxLimits = {
+        'hp_current': {{ character.hp_max }},
+        'sanity_current': {{ character.sanity_max }},
+        'mp_current': {{ character.mp_max }},
+        'luck': 100
+    };
+
+    if (maxLimits[statName] && newValue > maxLimits[statName]) {
+        newValue = maxLimits[statName];
+    }
+
+    input.value = newValue;
+    display.textContent = newValue;
+
+    // Send update to server
+    updateStat(statName, newValue);
+}
+
+function updateStat(statName, value) {
+    fetch('', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify({
+            'stat': statName,
+            'value': parseInt(value)
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast();
+        } else {
+            alert('Error updating character. Please try again.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating character. Please try again.');
+    });
+}
+
+function updateSkill(skillId, value) {
+    // TODO: Implement skill update via AJAX
+    showToast();
+}
+
+function updateNotes(noteType, value) {
+    updateStat(noteType, value);
+}
+
+function showToast() {
+    const toast = new bootstrap.Toast(document.getElementById('updateToast'));
+    toast.show();
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Cthulhu RPG Manager{% endblock %}</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --dark-green: #1a3c2e;
+            --deep-red: #8b1c1c;
+            --gold: #d4af37;
+            --cream: #f5f5dc;
+            --shadow: #2c2c2c;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--dark-green), var(--shadow));
+            color: var(--cream);
+            min-height: 100vh;
+            font-family: 'Times New Roman', serif;
+        }
+
+        .navbar {
+            background: rgba(26, 60, 46, 0.95) !important;
+            border-bottom: 2px solid var(--gold);
+        }
+
+        .navbar-brand {
+            color: var(--gold) !important;
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+
+        .navbar-nav .nav-link {
+            color: var(--cream) !important;
+        }
+
+        .navbar-nav .nav-link:hover {
+            color: var(--gold) !important;
+        }
+
+        .card {
+            background: rgba(44, 44, 44, 0.9);
+            border: 1px solid var(--gold);
+            color: var(--cream);
+        }
+
+        .card-header {
+            background: rgba(26, 60, 46, 0.8);
+            border-bottom: 1px solid var(--gold);
+            color: var(--gold);
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background: var(--deep-red);
+            border-color: var(--deep-red);
+        }
+
+        .btn-primary:hover {
+            background: #a52323;
+            border-color: #a52323;
+        }
+
+        .btn-secondary {
+            background: var(--dark-green);
+            border-color: var(--dark-green);
+        }
+
+        .btn-warning {
+            background: var(--gold);
+            border-color: var(--gold);
+            color: var(--shadow);
+        }
+
+        .alert-success {
+            background: rgba(26, 60, 46, 0.8);
+            border-color: var(--gold);
+            color: var(--cream);
+        }
+
+        .alert-danger {
+            background: rgba(139, 28, 28, 0.8);
+            border-color: var(--deep-red);
+            color: var(--cream);
+        }
+
+        .progress-bar {
+            background: var(--deep-red);
+        }
+
+        .badge {
+            background: var(--gold);
+            color: var(--shadow);
+        }
+
+        @media (max-width: 768px) {
+            .container-fluid {
+                padding: 0 10px;
+            }
+
+            .card {
+                margin-bottom: 15px;
+            }
+        }
+    </style>
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'home' %}">
+                <i class="fas fa-eye"></i> Cthulhu RPG
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                {% if user.is_authenticated %}
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'dashboard' %}">
+                                <i class="fas fa-tachometer-alt"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'characters:list' %}">
+                                <i class="fas fa-users"></i> Characters
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'scenarios:list' %}">
+                                <i class="fas fa-book-open"></i> Scenarios
+                            </a>
+                        </li>
+                        {% if user.is_keeper %}
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="keeperDropdown" role="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-crown"></i> Keeper
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="{% url 'scenarios:create' %}">Create Scenario</a></li>
+                                    <li><a class="dropdown-item" href="#">Manage NPCs</a></li>
+                                    <li><a class="dropdown-item" href="#">Templates</a></li>
+                                </ul>
+                            </li>
+                        {% endif %}
+                    </ul>
+
+                    <ul class="navbar-nav">
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user"></i> {{ user.username }}
+                                {% if user.is_keeper %}
+                                    <span class="badge bg-warning">Keeper</span>
+                                {% endif %}
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#">Profile</a></li>
+                                <li><a class="dropdown-item" href="#">Settings</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                {% else %}
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'login' %}">Login</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'register' %}">Register</a>
+                        </li>
+                    </ul>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <main class="container-fluid py-4">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="text-center py-4 mt-5">
+        <div class="container">
+            <p class="text-muted">
+                <i class="fas fa-skull"></i>
+                Call of Cthulhu RPG Manager &copy; 2024
+                <i class="fas fa-skull"></i>
+            </p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

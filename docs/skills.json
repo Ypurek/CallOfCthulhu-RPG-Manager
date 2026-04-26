@@ -1,0 +1,192 @@
+{
+  "mutual": {
+    "Credit Rating": {
+      "base_value": "00%",
+      "description": "Your level of income and social class standing."
+    },
+    "Jump": {
+      "base_value": "20%",
+      "description": "You can reduce falling damage by half with a successful use. Typical jump distance is roughly equal to the character's height."
+    },
+    "Cthulhu Mythos": {
+      "base_value": "00%",
+      "description": "Represents knowledge of the cosmic horrors and forbidden truths. This skill is gained only through exposure to the supernatural or studying forbidden tomes. Contact with the Mythos always threatens Sanity."
+    }
+  },
+  "general": {
+    "Anthropology": {
+      "base_value": "01%",
+      "description": "The ability to study people through observation and analysis of behavior, customs, traditions, and culture."
+    },
+    "Archaeology": {
+      "base_value": "01%",
+      "description": "Lets you date and identify traces of past cultures and distinguish fakes from different historical periods."
+    },
+    "Accounting": {
+      "base_value": "05%",
+      "description": "Skill in handling money, financial records, and identifying irregularities in accounts."
+    },
+    "Ride": {
+      "base_value": "05%",
+      "description": "Skill in riding horses, donkeys, camels, or similar animals, including basic care and handling."
+    },
+    "Survival": {
+      "base_value": "10%",
+      "description": "Wilderness survival skills: hunting, shelter building, finding food and water, and recognizing dangerous plants and animals."
+    },
+    "Track": {
+      "base_value": "10%",
+      "description": "The ability to follow people, vehicles, or animals and interpret the traces they leave behind."
+    },
+    "Drive Auto": {
+      "base_value": "20%",
+      "description": "Skill in driving cars, motorcycles, or trucks, including road rules, basic repairs, and high-pressure chases."
+    },
+    "Operate Heavy Machinery": {
+      "base_value": "01%",
+      "description": "Use of trains, bulldozers, cranes, excavators, tractors, and other heavy equipment."
+    },
+    "Pilot": {
+      "base_value": "01%",
+      "description": "Training to operate aircraft safely, including takeoff, navigation, and landing under normal conditions."
+    },
+    "Sleight of Hand": {
+      "base_value": "10%",
+      "description": "Allows concealing items on your person, pickpocketing, and quick manipulations without being noticed."
+    },
+    "Intimidate": {
+      "base_value": "15%",
+      "description": "Use threats, presence, or fear to pressure others into compliance or silence."
+    },
+    "History": {
+      "base_value": "05%",
+      "description": "Knowledge of historical events, timelines, notable figures, and the context of past eras."
+    },
+    "Library Use": {
+      "base_value": "20%",
+      "description": "Ability to find books, newspapers, and archival records. Usually requires several hours of research."
+    },
+    "Climb": {
+      "base_value": "20%",
+      "description": "Scale walls, trees, ropes, and difficult surfaces while managing fatigue and risk."
+    },
+    "Disguise": {
+      "base_value": "05%",
+      "description": "Alter appearance, clothing, and mannerisms to pass as someone else or avoid recognition."
+    },
+    "Medicine": {
+      "base_value": "01%",
+      "description": "Diagnosis and treatment of injuries and illnesses using professional medical knowledge."
+    },
+    "Art/Craft": {
+      "base_value": "05%",
+      "description": "Create or evaluate works in a chosen art or craft specialty, from painting to carpentry."
+    },
+    "Own Language": {
+      "base_value": "EDU%",
+      "description": "Reading, writing, and clear expression in your native language, including nuanced comprehension."
+    },
+    "Foreign Language": {
+      "base_value": "01%",
+      "description": "Reading, writing, and speaking a non-native language with practical fluency."
+    },
+    "Science": {
+      "base_value": "01%",
+      "description": "Understanding and application of scientific principles in a chosen field such as chemistry, biology, or physics."
+    },
+    "Stealth": {
+      "base_value": "20%",
+      "description": "Move quietly, stay out of sight, and avoid drawing attention."
+    },
+    "Fast Talk": {
+      "base_value": "05%",
+      "description": "Use quick lies, excuses, and verbal misdirection to confuse or mislead a target."
+    },
+    "Occult": {
+      "base_value": "05%",
+      "description": "Identify cults by symbols, clothing, terminology, and rites, and recognize rituals, spells, and magical artifacts."
+    },
+    "Navigate": {
+      "base_value": "10%",
+      "description": "Find your way in unfamiliar areas using maps, compass bearings, landmarks, or stars."
+    },
+    "Appraise": {
+      "base_value": "05%",
+      "description": "Estimate the value, authenticity, and condition of property, antiques, or traded goods."
+    },
+    "First Aid": {
+      "base_value": "30%",
+      "description": "Provide immediate treatment to stabilize injuries and prevent conditions from worsening."
+    },
+    "Swim": {
+      "base_value": "20%",
+      "description": "Move effectively in water, stay afloat, and handle difficult currents or long distances."
+    },
+    "Spot Hidden": {
+      "base_value": "25%",
+      "description": "Notice concealed objects, subtle clues, or details others might miss."
+    },
+    "Law": {
+      "base_value": "05%",
+      "description": "Knowledge of legal systems, procedures, crimes, and rights relevant to investigations."
+    },
+    "Natural World": {
+      "base_value": "10%",
+      "description": "Recognize plants, animals, weather patterns, and ecological signs in the environment."
+    },
+    "Psychoanalysis": {
+      "base_value": "01%",
+      "description": "Once per month, can restore Sanity (1d3) or lose 1d6 on a failed attempt. A success may briefly suppress a phobia, mania, or hallucination."
+    },
+    "Psychology": {
+      "base_value": "10%",
+      "description": "Form judgments about motives and personality traits and detect deception. The Keeper may roll secretly to mislead investigators."
+    },
+    "Persuade": {
+      "base_value": "10%",
+      "description": "Convince others through reason, trust, and social influence rather than threats or trickery."
+    },
+    "Repair (Electrical)": {
+      "base_value": "10%",
+      "description": "Install, diagnose, and repair electrical circuits, wiring, and powered devices."
+    },
+    "Repair (Mechanical)": {
+      "base_value": "10%",
+      "description": "Maintain and fix mechanical systems such as engines, mechanisms, and tools."
+    },
+    "Listen": {
+      "base_value": "20%",
+      "description": "Detect faint sounds, conversations, movement, or other important audio cues."
+    },
+    "Locksmith": {
+      "base_value": "01%",
+      "description": "Open, bypass, or repair locks and simple security mechanisms."
+    },
+    "Charm": {
+      "base_value": "15%",
+      "description": "Win people over through likability, warmth, and social grace."
+    }
+  },
+  "combat": {
+    "Fighting (Brawl)": {
+      "base_value": "25%",
+      "description": "Ability to fight in close combat with fists, knives, clubs, axes, swords, and similar melee weapons."
+    },
+    "Throw": {
+      "base_value": "20%",
+      "description": "Any hand-sized object can be thrown at a target within range (up to extreme STR in meters), including knives, grenades, stones, and spears."
+    },
+    "Firearms (Handgun)": {
+      "base_value": "20%",
+      "description": "Skill in using handguns safely and effectively. Anyone can attempt a basic shot with a pistol."
+    },
+    "Firearms (Rifle/Shotgun)": {
+      "base_value": "25%",
+      "description": "Skill in using rifles, shotguns, carbines, and similar long firearms."
+    },
+    "Firearms (Bow/Crossbow)": {
+      "base_value": "15%",
+      "description": "Bows and crossbows require dedicated training and are treated as a separate weapon skill."
+    }
+  }
+}

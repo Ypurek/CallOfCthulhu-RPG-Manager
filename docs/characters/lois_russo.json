@@ -1,0 +1,92 @@
+{
+  "character_info": {
+    "name": "Лоїс Руссо",
+    "birthplace": "Нью-Йорк",
+    "residence": "Аркгем",
+    "occupation": "Студентка інженерного факультету",
+    "gender": "Жіноча",
+    "age": 19
+  },
+  "characteristics": {
+    "STR": 80,
+    "CON": 60,
+    "DEX": 70,
+    "INT": 50,
+    "APP": 40,
+    "POW": 50,
+    "SIZ": 60,
+    "EDU": 50,
+    "MOV": 9,
+    "Luck": 45
+  },
+  "status": {
+    "HP": { "max": 12, "current": 12 },
+    "MP": { "max": 10, "current": 10 },
+    "Sanity": { "start": 50, "current": 42, "max": 99 },
+    "Build": 1,
+    "Damage_Bonus": "+1K4"
+  },
+  "skills": {
+    "Fighting_Brawl": 60,
+    "Dodge": 35,
+    "Track": 50,
+    "Drive_Auto": 40,
+    "Sleight_of_Hand": 10,
+    "Credit_Rating": 40,
+    "Intimidate": 50,
+    "Throw": 20,
+    "Library_Use": 20,
+    "Climb": 40,
+    "Language_Italian": 25,
+    "Language_English_Own": 50,
+    "Stealth": 40,
+    "Fast_Talk": 25,
+    "Occult": 5,
+    "Navigate": 40,
+    "Persuade": 10,
+    "First_Aid": 30,
+    "Swim": 20,
+    "Spot_Hidden": 25,
+    "Natural_World": 10,
+    "Psychology": 10,
+    "Repair_Electrical": 40,
+    "Repair_Mechanical": 70,
+    "Listen": 20,
+    "Locksmith": 20,
+    "Jump": 50,
+    "Firearms_Rifle_Shotgun": 25,
+    "Firearms_Handgun": 20,
+    "Charm": 15
+  },
+  "weapons": [
+    {
+      "name": "Рукопашний бій",
+      "skill_pct": 60,
+      "damage": "1K3 + DB",
+      "attacks": 1
+    },
+    {
+      "name": "Викидний ніж",
+      "skill_pct": 60,
+      "damage": "1K4 + DB",
+      "attacks": 1
+    }
+  ],
+  "backstory": {
+    "appearance": "Спортивної статури. Каштанове волосся коротко підстрижене й укладене у стильну зачіску.",
+    "ideology_beliefs": "Вихована в католицьких традиціях, має здорову повагу до надприродного. Буває забобонною.",
+    "significant_people": "Батько, відомий нью-йоркський гангстер Датч Шульц.",
+    "meaningful_locations": "Нью-Йорк (родина), стадіон (тренування).",
+    "treasured_possessions": "Викидний ніж, подарований батьком: «Хай завжди буде з тобою. Він допоможе тобі в халепі».",
+    "traits": "Вперта, запальна, любить сперечатися. Ніколи не проходить під драбиною."
+  },
+  "inventory": [
+    "Викидний ніж",
+    "Сумочка",
+    "Олівець",
+    "Ключ",
+    "Блокнот",
+    "Шпильки для волосся",
+    "Кулон у формі розп'яття"
+  ]
+}

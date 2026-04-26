@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}Welcome - Cthulhu RPG Manager{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="text-center mb-5">
+            <h1 class="display-3 text-warning">
+                <i class="fas fa-eye fa-3x mb-3"></i><br>
+                Call of Cthulhu<br>
+                <span class="h2">RPG Manager</span>
+            </h1>
+            <p class="lead">Manage your characters and scenarios in the world of cosmic horror</p>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="fas fa-users"></i> For Players
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success"></i> Manage your characters</li>
+                            <li><i class="fas fa-check text-success"></i> View character sheets optimized for mobile</li>
+                            <li><i class="fas fa-check text-success"></i> Join game sessions</li>
+                            <li><i class="fas fa-check text-success"></i> Track character progression</li>
+                            <li><i class="fas fa-check text-success"></i> Receive real-time updates</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="fas fa-crown"></i> For Keepers
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success"></i> Create and manage scenarios</li>
+                            <li><i class="fas fa-check text-success"></i> Control in-game time</li>
+                            <li><i class="fas fa-check text-success"></i> Manage NPCs and encounters</li>
+                            <li><i class="fas fa-check text-success"></i> Run combat encounters</li>
+                            <li><i class="fas fa-check text-success"></i> Send private messages to players</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-5">
+            <div class="row g-3 justify-content-center">
+                <div class="col-auto">
+                    <a href="{% url 'register' %}" class="btn btn-warning btn-lg">
+                        <i class="fas fa-user-plus"></i> Get Started
+                    </a>
+                </div>
+                <div class="col-auto">
+                    <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-5">
+            <div class="card-header">
+                <i class="fas fa-mobile-alt"></i> Mobile-First Design
+            </div>
+            <div class="card-body">
+                <p>
+                    The character sheets are designed to fit on a single phone screen, showing only the most important
+                    skills and stats. Keepers can update character sheets during sessions, so players stay focused
+                    on the story without getting distracted by paperwork.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
