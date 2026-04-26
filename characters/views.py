@@ -2,7 +2,6 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
-from django.db.models import Q
 from .models import Character, CharacterSkill, Skill
 
 
@@ -26,26 +25,46 @@ def character_detail(request, character_id):
         owner=request.user
     )
 
-    # Get character skills
+    if request.method == 'POST':
+        character.player_notes = request.POST.get('player_notes', '').strip()
+        character.save(update_fields=['player_notes', 'updated_at'])
+        messages.success(request, 'Notes saved.')
+        return redirect('characters:detail', character_id=character.id)
+
     character_skills = CharacterSkill.objects.filter(character=character).select_related('skill')
+    character_skills_by_skill_id = {char_skill.skill_id: char_skill for char_skill in character_skills}
 
-    # Separate skills by category
-    skills_by_category = {
-        'mutual': [],
-        'general': [],
-        'combat': [],
-        'language': []
-    }
+    def serialize_skill(skill):
+        char_skill = character_skills_by_skill_id.get(skill.id)
+        value = char_skill.value if char_skill else skill.base_value
+        # Native language is always derived from EDU on the character sheet.
+        if skill.name in {'Own Language', 'English'}:
+            value = character.education
+        return {
+            'id': skill.id,
+            'name': skill.name,
+            'description': skill.description,
+            'value': value,
+            'base_value': skill.base_value,
+            'is_default': value == skill.base_value,
+        }
 
-    for char_skill in character_skills:
-        category = char_skill.skill.category
-        skills_by_category[category].append(char_skill)
+    non_combat_skills = [
+        serialize_skill(skill)
+        for skill in Skill.objects.exclude(category='combat').order_by('name')
+    ]
+    non_combat_skills.sort(key=lambda skill: (-skill['value'], skill['name']))
 
-    # Sort each category by skill value (descending)
-    for category in skills_by_category:
-        skills_by_category[category].sort(key=lambda x: x.value, reverse=True)
+    combat_skills = [
+        serialize_skill(skill)
+        for skill in Skill.objects.filter(category='combat').order_by('name')
+    ]
+    combat_skills.sort(key=lambda skill: (-skill['value'], skill['name']))
 
-    # Calculate success levels for popup
+    visible_non_combat_skills = [skill for skill in non_combat_skills if not skill['is_default']]
+    default_non_combat_skills = [skill for skill in non_combat_skills if skill['is_default']]
+    default_non_combat_skills.sort(key=lambda skill: skill['name'].lower())
+
     def get_success_levels(value):
         return {
             'regular': value,
@@ -55,7 +74,11 @@ def character_detail(request, character_id):
 
     context = {
         'character': character,
-        'skills_by_category': skills_by_category,
+        'skills': visible_non_combat_skills,
+        'default_skills': default_non_combat_skills,
+        'combat_skills': combat_skills,
+        'dodge_value': character.dexterity // 2,
+        'can_add_custom_skill': request.user.is_keeper() or request.GET.get('creation') == '1',
         'get_success_levels': get_success_levels,
     }
 

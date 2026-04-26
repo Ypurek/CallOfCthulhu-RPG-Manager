@@ -6,14 +6,14 @@
 {% block extra_css %}
 <style>
     .character-sheet {
-        max-width: 420px;
+        max-width: 520px;
+        width: 100%;
         margin: 0 auto;
         font-family: 'Cinzel', 'Times New Roman', serif;
-        background: linear-gradient(135deg, rgba(26, 60, 46, 0.9), rgba(44, 44, 44, 0.9));
-        border: 2px solid var(--gold);
-        border-radius: 15px;
-        box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
-        padding: 20px;
+        background: transparent;
+        border-radius: 0;
+        box-shadow: none;
+        padding: 12px;
         color: var(--cream);
     }
 
@@ -71,16 +71,16 @@
         top: 50%;
         transform: translateY(-50%);
         font-weight: bold;
-        font-size: 0.8rem;
+        font-size: 0.72rem;
         z-index: 2;
         text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.9);
         color: white;
     }
 
     .stat-bar {
-        height: 24px;
+        height: 18px;
         background: rgba(0, 0, 0, 0.4);
-        border-radius: 12px;
+        border-radius: 9px;
         overflow: hidden;
         border: 1px solid rgba(255, 255, 255, 0.2);
         position: relative;
@@ -88,7 +88,7 @@
 
     .stat-fill {
         height: 100%;
-        border-radius: 12px;
+        border-radius: 9px;
         transition: width 0.4s ease;
         background: linear-gradient(90deg, var(--fill-color), var(--fill-light));
     }
@@ -104,7 +104,7 @@
         top: 50%;
         transform: translateY(-50%);
         font-weight: bold;
-        font-size: 0.8rem;
+        font-size: 0.72rem;
         z-index: 2;
         text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.9);
         color: white;
@@ -113,19 +113,19 @@
     .characteristics {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 6px;
-        margin-bottom: 20px;
+        gap: 5px;
+        margin-bottom: 14px;
     }
 
     .characteristic {
         background: linear-gradient(145deg, rgba(212, 175, 55, 0.15), rgba(212, 175, 55, 0.25));
         border: 1px solid rgba(212, 175, 55, 0.5);
         border-radius: 8px;
-        padding: 8px;
+        padding: 5px 4px;
         text-align: center;
         cursor: pointer;
         transition: all 0.3s ease;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
     }
 
     .characteristic:hover {
@@ -137,45 +137,54 @@
     .characteristic .stat-name {
         font-weight: bold;
         color: var(--gold);
-        font-size: 0.75rem;
+        font-size: 0.68rem;
+        line-height: 1;
     }
 
     .characteristic .stat-value {
-        font-size: 1.1rem;
+        font-size: 0.95rem;
         font-weight: bold;
         color: white;
+        line-height: 1.1;
     }
 
     .skills-container {
-        margin-bottom: 15px;
+        margin-bottom: 12px;
     }
 
     .section-header {
-        background: linear-gradient(90deg, rgba(139, 28, 28, 0.8), rgba(139, 28, 28, 0.4));
-        border: 1px solid rgba(139, 28, 28, 0.6);
-        border-radius: 8px;
-        padding: 12px;
+        background: linear-gradient(90deg, rgba(26, 60, 46, 0.78), rgba(44, 44, 44, 0.55));
+        border: 1px solid rgba(150, 185, 165, 0.35);
+        border-radius: 6px;
+        padding: 8px 10px;
         cursor: pointer;
         display: flex;
         justify-content: space-between;
         align-items: center;
         font-weight: bold;
+        font-size: 0.9rem;
+        line-height: 1.2;
         transition: all 0.3s ease;
-        margin-bottom: 5px;
+        margin-bottom: 4px;
     }
 
     .section-header:hover {
-        background: linear-gradient(90deg, rgba(139, 28, 28, 0.9), rgba(139, 28, 28, 0.5));
+        background: linear-gradient(90deg, rgba(36, 78, 61, 0.86), rgba(58, 58, 58, 0.62));
+        border-color: rgba(189, 219, 201, 0.45);
         transform: translateY(-1px);
     }
 
     .section-header.combat {
-        background: linear-gradient(90deg, rgba(26, 60, 46, 0.8), rgba(26, 60, 46, 0.4));
-        border-color: rgba(26, 60, 46, 0.6);
+        background: linear-gradient(90deg, rgba(35, 68, 56, 0.8), rgba(52, 64, 58, 0.58));
+        border-color: rgba(140, 172, 155, 0.42);
     }
 
     .section-header.combat:hover {
-        background: linear-gradient(90deg, rgba(26, 60, 46, 0.9), rgba(26, 60, 46, 0.5));
+        background: linear-gradient(90deg, rgba(46, 83, 69, 0.88), rgba(64, 78, 70, 0.66));
+    }
+
+    .section-header i {
+        font-size: 0.85rem;
     }
 
     .section-content {
@@ -291,6 +300,43 @@
         border-color: var(--gold);
     }
 
+    .toggle-default-btn {
+        width: 100%;
+        margin-top: 8px;
+        background: rgba(245, 245, 220, 0.08);
+        border: 1px solid rgba(245, 245, 220, 0.3);
+        color: rgba(245, 245, 220, 0.9);
+        border-radius: 6px;
+        padding: 6px 8px;
+        font-size: 0.8rem;
+    }
+
+    .default-skills {
+        display: none;
+    }
+
+    .default-skills.show {
+        display: block;
+        margin-top: 8px;
+    }
+
+    .notes-textarea {
+        width: 100%;
+        min-height: 120px;
+        border-radius: 8px;
+        border: 1px solid rgba(212, 175, 55, 0.35);
+        background: rgba(10, 10, 10, 0.35);
+        color: var(--cream);
+        padding: 8px;
+        resize: vertical;
+    }
+
+    .notes-textarea:focus {
+        outline: none;
+        border-color: var(--gold);
+        box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2);
+    }
+
     .action-buttons {
         display: flex;
         gap: 8px;
@@ -321,12 +367,12 @@
     @media (max-width: 768px) {
         .character-sheet {
             max-width: 100%;
-            margin: 10px;
-            padding: 15px;
+            margin: 0;
+            padding: 8px;
         }
 
         .skills-grid {
-            grid-template-columns: 1fr;
+            grid-template-columns: 1fr 1fr;
         }
 
         .characteristics {
@@ -357,7 +403,7 @@
         <div class="stat-bar-container">
             <div class="stat-label">HP</div>
             <div class="stat-bar">
-                <div class="stat-fill hp-fill" style="width: 80%"></div>
+                <div class="stat-fill hp-fill" style="width: {{ character.hp_current|percentage:character.hp_max }}%"></div>
                 <div class="stat-text">{{ character.hp_current }}/{{ character.hp_max }}</div>
             </div>
         </div>
@@ -365,7 +411,7 @@
         <div class="stat-bar-container">
             <div class="stat-label">SAN</div>
             <div class="stat-bar">
-                <div class="stat-fill san-fill" style="width: 70%"></div>
+                <div class="stat-fill san-fill" style="width: {{ character.sanity_current|percentage:character.sanity_max }}%"></div>
                 <div class="stat-text">{{ character.sanity_current }}/{{ character.sanity_max }}</div>
             </div>
         </div>
@@ -373,7 +419,7 @@
         <div class="stat-bar-container">
             <div class="stat-label">MP</div>
             <div class="stat-bar">
-                <div class="stat-fill mp-fill" style="width: 50%"></div>
+                <div class="stat-fill mp-fill" style="width: {{ character.mp_current|percentage:character.mp_max }}%"></div>
                 <div class="stat-text">{{ character.mp_current }}/{{ character.mp_max }}</div>
             </div>
         </div>
@@ -431,36 +477,39 @@
         </div>
         <div class="section-content show" id="skills-content">
             <div class="skills-grid">
-                <!-- Always show important skills -->
-                {% for skill in skills_by_category.mutual %}
-                <div class="skill-item" onclick="showSkillModal('{{ skill.skill.name }}', {{ skill.value }}, '{{ skill.skill.description }}')">
-                    <span class="skill-name">{{ skill.skill.name }}</span>
+                {% for skill in skills %}
+                <div class="skill-item" onclick="showSkillModal('{{ skill.name|escapejs }}', {{ skill.value }}, '{{ skill.description|escapejs }}')">
+                    <span class="skill-name">{{ skill.name }}</span>
                     <span class="skill-value">{{ skill.value }}%</span>
                 </div>
-                {% endfor %}
-
-                <!-- Show non-default general skills -->
-                {% for skill in skills_by_category.general %}
-                    {% if skill.value > skill.skill.base_value or skill.skill.name in "Credit Rating,Cthulhu Mythos,Jump,Own Language" %}
-                    <div class="skill-item" onclick="showSkillModal('{{ skill.skill.name }}', {{ skill.value }}, '{{ skill.skill.description }}')">
-                        <span class="skill-name">{{ skill.skill.name }}</span>
-                        <span class="skill-value">{{ skill.value }}%</span>
-                    </div>
-                    {% endif %}
-                {% endfor %}
-
-                <!-- Show language skills -->
-                {% for skill in skills_by_category.language %}
-                <div class="skill-item" onclick="showSkillModal('{{ skill.skill.name }}', {{ skill.value }}, '{{ skill.skill.description }}')">
-                    <span class="skill-name">{{ skill.skill.name }}</span>
-                    <span class="skill-value">{{ skill.value }}%</span>
+                {% empty %}
+                <div class="skill-item">
+                    <span class="skill-name">No improved skills yet.</span>
                 </div>
                 {% endfor %}
             </div>
 
+            {% if default_skills %}
+            <button class="toggle-default-btn" type="button" id="default-skills-btn" onclick="toggleDefaultSkills()">
+                Show more ({{ default_skills|length }} default skills)
+            </button>
+            <div class="default-skills" id="default-skills">
+                <div class="skills-grid">
+                    {% for skill in default_skills %}
+                    <div class="skill-item" onclick="showSkillModal('{{ skill.name|escapejs }}', {{ skill.value }}, '{{ skill.description|escapejs }}')">
+                        <span class="skill-name">{{ skill.name }}</span>
+                        <span class="skill-value">{{ skill.value }}%</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if can_add_custom_skill %}
             <div class="add-skill-btn" onclick="showAddSkillModal()">
                 <i class="fas fa-plus"></i> Add Custom Skill
             </div>
+            {% endif %}
         </div>
     </div>
 
@@ -473,23 +522,24 @@
         <div class="section-content" id="combat-content">
             <div class="skills-grid">
                 <!-- Dodge (calculated) -->
-                <div class="skill-item combat" onclick="showSkillModal('Dodge', 35, 'Avoid attacks by moving out of the way')">
+                <div class="skill-item combat" onclick="showSkillModal('Dodge', {{ dodge_value }}, 'Avoid attacks by moving out of the way')">
                     <span class="skill-name">Dodge</span>
-                    <span class="skill-value">35%</span>
+                    <span class="skill-value">{{ dodge_value }}%</span>
                 </div>
 
                 <!-- Combat skills -->
-                {% for skill in skills_by_category.combat %}
-                <div class="skill-item combat" onclick="showSkillModal('{{ skill.skill.name }}', {{ skill.value }}, '{{ skill.skill.description }}')">
-                    <span class="skill-name">{{ skill.skill.name }}</span>
+                {% for skill in combat_skills %}
+                <div class="skill-item combat" onclick="showSkillModal('{{ skill.name|escapejs }}', {{ skill.value }}, '{{ skill.description|escapejs }}')">
+                    <span class="skill-name">{{ skill.name }}</span>
                     <span class="skill-value">{{ skill.value }}%</span>
                 </div>
                 {% endfor %}
             </div>
 
             <div class="compact-section">
-                <div class="compact-header"><i class="fas fa-info-circle"></i> Combat Info</div>
-                <small>Prepared weapon: +50 DEX for initiative</small>
+                <button class="toggle-default-btn" type="button" onclick="showCombatTips()">
+                    <i class="fas fa-info-circle"></i> Combat Tips
+                </button>
             </div>
 
             <!-- Weapons -->
@@ -506,16 +556,23 @@
     </div>
 
     <!-- Items -->
-    {% if character.items.all %}
-    <div class="compact-section">
-        <div class="compact-header"><i class="fas fa-backpack"></i> Items</div>
-        <div class="items-grid">
-            {% for item in character.items.all %}
-                <span class="item-badge">{{ item.item.name }} x{{ item.quantity }}</span>
-            {% endfor %}
+    <div class="skills-container">
+        <div class="section-header" onclick="toggleSection('items')">
+            <span><i class="fas fa-backpack"></i> Items</span>
+            <i class="fas fa-chevron-down" id="items-icon"></i>
+        </div>
+        <div class="section-content" id="items-content">
+            <div class="compact-section">
+                <div class="items-grid">
+                    {% for item in character.items.all %}
+                        <span class="item-badge">{{ item.item.name }} x{{ item.quantity }}</span>
+                    {% empty %}
+                        <span class="item-badge">No items</span>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
     </div>
-    {% endif %}
 
     <!-- Spells -->
     {% if character.spells.all %}
@@ -528,6 +585,26 @@
         {% endfor %}
     </div>
     {% endif %}
+
+    <!-- Notes -->
+    <div class="skills-container">
+        <div class="section-header" onclick="toggleSection('notes')">
+            <span><i class="fas fa-note-sticky"></i> Notes</span>
+            <i class="fas fa-chevron-down" id="notes-icon"></i>
+        </div>
+        <div class="section-content" id="notes-content">
+            <div class="compact-section">
+                <form method="post">
+                    {% csrf_token %}
+                    <label for="player_notes" class="compact-header">Personal Notes</label>
+                    <textarea id="player_notes" name="player_notes" class="notes-textarea" placeholder="Write your notes for this character...">{{ character.player_notes }}</textarea>
+                    <div class="mt-2 text-end">
+                        <button type="submit" class="btn-compact">Save Notes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <!-- Action Buttons -->
     <div class="action-buttons">
@@ -606,6 +683,7 @@
     </div>
 </div>
 
+{% if can_add_custom_skill %}
 <!-- Add Skill Modal -->
 <div class="modal fade" id="addSkillModal" tabindex="-1">
     <div class="modal-dialog">
@@ -627,6 +705,22 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary" onclick="addCustomSkill()">Add Skill</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Combat Tips Modal -->
+<div class="modal fade" id="combatTipsModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Combat Tips</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-0">Combat tips placeholder. You can add your final tips text here later.</p>
             </div>
         </div>
     </div>
@@ -694,7 +788,32 @@ function showSkillModal(name, value, description) {
 }
 
 function showAddSkillModal() {
-    new bootstrap.Modal(document.getElementById('addSkillModal')).show();
+    const modalElement = document.getElementById('addSkillModal');
+    if (!modalElement) {
+        return;
+    }
+    new bootstrap.Modal(modalElement).show();
+}
+
+function toggleDefaultSkills() {
+    const defaultSkills = document.getElementById('default-skills');
+    const button = document.getElementById('default-skills-btn');
+
+    if (!defaultSkills || !button) {
+        return;
+    }
+
+    if (defaultSkills.classList.contains('show')) {
+        defaultSkills.classList.remove('show');
+        button.textContent = 'Show more ({{ default_skills|length }} default skills)';
+    } else {
+        defaultSkills.classList.add('show');
+        button.textContent = 'Hide default skills';
+    }
+}
+
+function showCombatTips() {
+    new bootstrap.Modal(document.getElementById('combatTipsModal')).show();
 }
 
 function addCustomSkill() {
