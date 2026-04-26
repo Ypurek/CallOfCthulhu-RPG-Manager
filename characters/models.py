@@ -104,6 +104,27 @@ class Character(models.Model):
         ordering = ['-created_at']
 
 
+class CharacterChangeLog(models.Model):
+    """Audit trail entries for character edits."""
+
+    character = models.ForeignKey(Character, on_delete=models.CASCADE, related_name='change_logs')
+    changed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='character_change_logs',
+    )
+    changes = models.JSONField(default=list)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.character.name} changes @ {self.created_at:%Y-%m-%d %H:%M:%S}"
+
+
 class Skill(models.Model):
     """Skills available to characters"""
 

@@ -1,0 +1,96 @@
+{
+  "character_info": {
+    "name": "Кейко Кайн",
+    "birthplace": "Сан-Франциско",
+    "residence": "Аркгем",
+    "occupation": "Студентка факультету природничих наук",
+    "gender": "Жіноча",
+    "age": 21
+  },
+  "characteristics": {
+    "STR": 50,
+    "CON": 80,
+    "DEX": 50,
+    "INT": 60,
+    "APP": 40,
+    "POW": 60,
+    "SIZ": 50,
+    "EDU": 70,
+    "MOV": 9,
+    "Luck": 50
+  },
+  "status": {
+    "HP": { "max": 12, "current": 9 },
+    "MP": { "max": 12, "current": 12 },
+    "Sanity": { "start": 60, "current": 53, "max": 99 },
+    "Build": 0,
+    "Damage_Bonus": 0
+  },
+  "skills": {
+    "Fighting_Brawl": 45,
+    "Track": 10,
+    "Drive_Auto": 20,
+    "Sleight_of_Hand": 10,
+    "Credit_Rating": 40,
+    "Intimidate": 15,
+    "Throw": 20,
+    "Library_Use": 50,
+    "Climb": 20,
+    "Cthulhu_Mythos": 4,
+    "Language_Japanese": 35,
+    "Language_English_Own": 70,
+    "Science_Biology": 70,
+    "Stealth": 60,
+    "Fast_Talk": 40,
+    "Occult": 5,
+    "Navigate": 30,
+    "Persuade": 40,
+    "First_Aid": 50,
+    "Swim": 20,
+    "Spot_Hidden": 45,
+    "Natural_World": 60,
+    "Psychology": 30,
+    "Repair_Electrical": 10,
+    "Repair_Mechanical": 10,
+    "Listen": 50,
+    "Jump": 20,
+    "Firearms_Rifle_Shotgun": 25,
+    "Firearms_Handgun": 20,
+    "Dodge": 25,
+    "Charm": 15
+  },
+  "weapons": [
+    {
+      "name": "Рукопашний бій",
+      "skill_pct": 45,
+      "damage": "1K3 + DB",
+      "attacks": 1
+    },
+    {
+      "name": "Срібний ніж",
+      "skill_pct": 45,
+      "damage": "1K3 + 1",
+      "attacks": 1
+    },
+    {
+      "name": "Хокейна ключка",
+      "skill_pct": 45,
+      "damage": "1K6",
+      "attacks": 1
+    }
+  ],
+  "description": "Струнка, невисока, з густим чорним волоссям, окулярами й широкою усмішкою. Переконана, що будь-яке явище можна пояснити наукою — привиди для неї лише забобони, а дивні події потребують раціонального пояснення. Обожнює старшого брата Г'юго — лікаря із Сан-Франциско. Улюблене місце — бібліотека, де можна поринути у товсту наукову книгу. Завжди носить із собою срібний розкладний ніж, подарований братом як талісман. Авантюристка: не може всидіти без діла й береться за будь-яку справу з завзяттям.",
+  "inventory": [
+    "Срібний ніж",
+    "Блокнот",
+    "Олівці й перова ручка",
+    "Пляшечка синього чорнила",
+    "Ранець із невеликим хімічним набором",
+    "Хокейна ключка",
+    "Перекус",
+    "Аптечка"
+  ],
+  "wealth": {
+    "cash": "$27"
+  }
+}

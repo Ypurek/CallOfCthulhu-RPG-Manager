@@ -1,0 +1,58 @@
+{% load math_filters %}
+<div class="card h-100">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="text-warning fw-bold">{{ character.name }}</span>
+        {% if character.is_alive %}
+            <span class="badge bg-success">Alive</span>
+        {% else %}
+            <span class="badge bg-danger">Dead</span>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        <p class="card-text">
+            <strong>Occupation:</strong> {{ character.occupation|default:"Unknown" }}<br>
+            <strong>Age:</strong> {{ character.age|default:"Unknown" }}
+        </p>
+
+        <div class="mb-2">
+            <small>HP: {{ character.hp_current }}/{{ character.hp_max }}</small>
+            <div class="progress" style="height: 8px;">
+                <div class="progress-bar bg-danger" style="width: {{ character.hp_current|percentage:character.hp_max }}%"></div>
+            </div>
+        </div>
+
+        <div class="mb-2">
+            <small>SAN: {{ character.sanity_current }}/{{ character.sanity_max }}</small>
+            <div class="progress" style="height: 8px;">
+                <div class="progress-bar bg-success" style="width: {{ character.sanity_current|percentage:character.sanity_max }}%"></div>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <small>MP: {{ character.mp_current }}/{{ character.mp_max }}</small>
+            <div class="progress" style="height: 8px;">
+                <div class="progress-bar bg-primary" style="width: {{ character.mp_current|percentage:character.mp_max }}%"></div>
+            </div>
+        </div>
+
+        <div class="text-center">
+            {% if preview_mode %}
+                <span class="btn btn-outline-light disabled">
+                    <i class="fas fa-eye"></i> View Sheet
+                </span>
+            {% else %}
+                <a href="{% url 'characters:detail' character.id %}" class="btn btn-outline-light">
+                    <i class="fas fa-eye"></i> View Sheet
+                </a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-footer text-muted text-center">
+        {% if preview_mode %}
+            <small>Preview after creation</small>
+        {% else %}
+            <small>Created {{ character.created_at|date:"M d, Y" }}</small>
+        {% endif %}
+    </div>
+</div>
+

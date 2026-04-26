@@ -1,0 +1,71 @@
+{
+  "character_info": {
+    "name": "Вільям Блеквуд",
+    "birthplace": "Бостон",
+    "residence": "Бостон",
+    "occupation": "Письменник, дослідник",
+    "gender": "Чоловіча",
+    "age": 38
+  },
+  "characteristics": {
+    "STR": 50,
+    "CON": 50,
+    "DEX": 80,
+    "INT": 60,
+    "APP": 40,
+    "POW": 50,
+    "SIZ": 70,
+    "EDU": 60,
+    "MOV": 8,
+    "Luck": 55
+  },
+  "status": {
+    "HP": { "max": 12, "current": 12 },
+    "MP": { "max": 10, "current": 10 },
+    "Sanity": { "start": 50, "current": 50, "max": 99 },
+    "Build": 0,
+    "Damage_Bonus": 0
+  },
+  "skills": {
+    "Fighting_Brawl": 45,
+    "Dodge": 40,
+    "Track": 10,
+    "Credit_Rating": 30,
+    "History": 60,
+    "Throw": 40,
+    "Library_Use": 70,
+    "Climb": 40,
+    "Art_Craft_Literature": 40,
+    "Language_English_Own": 60,
+    "Occult": 60,
+    "Persuade": 30,
+    "Spot_Hidden": 50,
+    "Psychology": 50,
+    "Charm": 50
+  },
+  "weapons": [
+    {
+      "name": "Рукопашний бій",
+      "skill_pct": 45,
+      "damage": "1K3 + DB",
+      "attacks": 1
+    },
+    {
+      "name": "Кишеньковий ніж",
+      "skill_pct": 45,
+      "damage": "1K4 + DB",
+      "attacks": 1
+    }
+  ],
+  "description": "Почервоніле обличчя, зайва вага, простий одяг. Забобонний — десятою дорогою обходить чорних котів і плює через ліве плече. Мріє знайти докази існування світу духів і побачити привидів на власні очі. Нещодавно пережив смерть мами після тривалої хвороби. Найдорожча річ — блокнот із власними нотатками і спостереженнями. Відрізняється щедрістю, довірливістю та готовністю ризикувати.",
+  "inventory": [
+    "Блокнот",
+    "Перова ручка x2",
+    "Пляшечка чорнил",
+    "Кишеньковий ніж"
+  ],
+  "wealth": {
+    "cash_in_pocket": "$10",
+    "savings": "$60"
+  }
+}

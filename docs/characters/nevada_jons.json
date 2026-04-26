@@ -1,0 +1,86 @@
+{
+  "character_info": {
+    "name": "Невада Джонс",
+    "birthplace": "Вінніпег, Канада",
+    "residence": "Аркгем",
+    "occupation": "Професор археології",
+    "gender": "Чоловіча",
+    "age": 35
+  },
+  "characteristics": {
+    "STR": 60,
+    "CON": 50,
+    "DEX": 70,
+    "INT": 60,
+    "APP": 50,
+    "POW": 50,
+    "SIZ": 40,
+    "EDU": 80,
+    "MOV": 9,
+    "Luck": 60
+  },
+  "status": {
+    "HP": { "max": 9, "current": 5 },
+    "MP": { "max": 10, "current": 10 },
+    "Sanity": { "start": 50, "current": 46, "max": 99 },
+    "Build": 0,
+    "Damage_Bonus": 0
+  },
+  "skills": {
+    "Anthropology": 1,
+    "Archaeology": 70,
+    "Fighting_Brawl": 50,
+    "Track": 10,
+    "Drive_Auto": 20,
+    "Sleight_of_Hand": 10,
+    "Credit_Rating": 40,
+    "Intimidate": 15,
+    "History": 60,
+    "Throw": 20,
+    "Library_Use": 40,
+    "Climb": 20,
+    "Cthulhu_Mythos": 3,
+    "Language_Latin": 40,
+    "Language_English_Own": 80,
+    "Stealth": 20,
+    "Fast_Talk": 5,
+    "Occult": 60,
+    "Navigate": 10,
+    "Persuade": 10,
+    "First_Aid": 50,
+    "Swim": 20,
+    "Spot_Hidden": 50,
+    "Natural_World": 30,
+    "Psychology": 40,
+    "Repair_Electrical": 10,
+    "Repair_Mechanical": 10,
+    "Listen": 20,
+    "Jump": 20,
+    "Firearms_Rifle_Shotgun": 25,
+    "Firearms_Handgun": 40,
+    "Dodge": 35,
+    "Charm": 50
+  },
+  "weapons": [
+    {
+      "name": "Рукопашний бій",
+      "skill_pct": 50,
+      "damage": "1K3 + DB",
+      "attacks": 1
+    },
+    {
+      "name": "Револьвер .38 калібру",
+      "skill_pct": 40,
+      "damage": "1K10",
+      "attacks": 1
+    }
+  ],
+  "description": "Вродливий, з дещо занадто різкими рисами, нижче середнього зросту. Якщо потрібно, одягає костюм, однак здебільшого віддає перевагу неформальному одягу. Захоплюється стародавніми культурами й мріє прославитися пошуками втрачених скарбів. Постійно живе в тіні свого батька — відомого дослідника Френка Джонса. Рятується від турбот у барі з міцними напоями. Носить медальйон святого Христофора, вірячи в його вдачу. Нерозважливий: спочатку діє, тільки потім думає.",
+  "inventory": [
+    "Рюкзак із туристичним спорядженням",
+    "Револьвер 38 калібру й набої до нього",
+    "Олівці й блокнот",
+    "Гребінець",
+    "Медальйон святого Христофора"
+  ]
+}

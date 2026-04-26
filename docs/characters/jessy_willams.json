@@ -1,0 +1,80 @@
+{
+  "character_info": {
+    "name": "Джессі Вільямс",
+    "birthplace": "Бостон",
+    "residence": "Аркгем",
+    "occupation": "Студентка історичного факультету",
+    "gender": "Жіноча",
+    "age": 20
+  },
+  "characteristics": {
+    "STR": 70,
+    "CON": 80,
+    "DEX": 40,
+    "INT": 60,
+    "APP": 50,
+    "POW": 50,
+    "SIZ": 50,
+    "EDU": 60,
+    "MOV": 8,
+    "Luck": 55
+  },
+  "status": {
+    "HP": { "max": 13, "current": 8 },
+    "MP": { "max": 10, "current": 10 },
+    "Sanity": { "start": 50, "current": 44, "max": 99 },
+    "Build": 0,
+    "Damage_Bonus": 0
+  },
+  "skills": {
+    "Archaeology": 20,
+    "Fighting_Brawl": 60,
+    "Track": 30,
+    "Drive_Auto": 40,
+    "Sleight_of_Hand": 10,
+    "Credit_Rating": 40,
+    "Intimidate": 15,
+    "History": 70,
+    "Throw": 20,
+    "Library_Use": 60,
+    "Climb": 20,
+    "Language_English_Own": 60,
+    "Stealth": 50,
+    "Fast_Talk": 25,
+    "Occult": 5,
+    "Navigate": 10,
+    "Persuade": 10,
+    "First_Aid": 30,
+    "Swim": 20,
+    "Spot_Hidden": 50,
+    "Natural_World": 10,
+    "Psychology": 50,
+    "Repair_Electrical": 10,
+    "Repair_Mechanical": 40,
+    "Listen": 20,
+    "Jump": 20,
+    "Firearms_Rifle_Shotgun": 25,
+    "Firearms_Handgun": 20,
+    "Dodge": 40,
+    "Charm": 50
+  },
+  "weapons": [
+    {
+      "name": "Рукопашний бій",
+      "skill_pct": 60,
+      "damage": "1K3 + DB",
+      "attacks": 1
+    }
+  ],
+  "description": "Молода, ясноока, модно одягається. Ревна вірянка, вихована матір'ю у християнських традиціях. Дуже прив'язана до матері, Джойс, з якою листується щотижня, і мріє повернутись до материного дому в Бостоні з його неперевершеною кухнею. Найдорожча річ — кишенькова Біблія покійного батька. Полюбляє ризикувати та бути в центрі подій.",
+  "inventory": [
+    "Ранець",
+    "Олівці й перова ручка",
+    "Блокнот",
+    "Кишенькова Біблія",
+    "Шпильки"
+  ],
+  "wealth": {
+    "cash": "$10"
+  }
+}

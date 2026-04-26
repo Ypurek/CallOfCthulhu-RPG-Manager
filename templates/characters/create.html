@@ -1,26 +1,496 @@
 {% extends 'base.html' %}
 
-{% block title %}Create Character - Cthulhu RPG Manager{% endblock %}
+{% block title %}{{ wizard_title|default:'Create Character' }} - Cthulhu RPG Manager{% endblock %}
+
+{% block extra_css %}
+{% if current_step == 'review' %}
+{% include 'characters/_character_sheet_styles.html' %}
+{% endif %}
+{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-lg-8">
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-user-plus"></i> Create New Character
+    <div class="col-xl-10 col-lg-11">
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2{% if edit_mode %} position-sticky top-0 z-3{% endif %}">
+                <span><i class="fas fa-{% if edit_mode %}user-edit{% else %}user-plus{% endif %}"></i> {{ wizard_title|default:'Character Creation Wizard' }}</span>
+                <div class="d-flex gap-2 align-items-center flex-wrap">
+                    <a href="{{ wizard_export_url }}" class="btn btn-sm btn-outline-info" title="Export current draft as JSON">
+                        <i class="fas fa-file-export me-1"></i>Export
+                    </a>
+                    <label class="btn btn-sm btn-outline-success mb-0" title="Import character from JSON file">
+                        <i class="fas fa-file-import me-1"></i>Import
+                        <form method="post" action="{{ wizard_import_url }}" enctype="multipart/form-data" id="import-json-form">
+                            {% csrf_token %}
+                            <input class="d-none" type="file" name="json_file" accept=".json" id="import-json-input">
+                        </form>
+                    </label>
+                    {% if show_reset %}
+                    <div class="vr"></div>
+                    <form method="post" action="{{ wizard_form_url }}" class="m-0">
+                        {% csrf_token %}
+                        <input type="hidden" name="step" value="{{ current_step }}">
+                        <button type="submit" name="action" value="reset" class="btn btn-sm btn-outline-danger" title="Reset all progress">
+                            <i class="fas fa-trash-alt me-1"></i>Reset
+                        </button>
+                    </form>
+                    {% endif %}
+                    {% if edit_mode %}
+                    <button type="submit" form="wizard-form" name="action" value="save" class="btn btn-sm btn-success" title="Save character changes now">
+                        <i class="fas fa-check me-1"></i>Save
+                    </button>
+                    {% endif %}
+                </div>
             </div>
             <div class="card-body">
-                <div class="text-center py-5">
-                    <i class="fas fa-hammer fa-3x text-warning mb-3"></i>
-                    <h3>Under Construction</h3>
-                    <p class="text-muted">Character creation form coming soon!</p>
-                    <p>For now, characters are created through the admin panel or data import.</p>
-                    <a href="{% url 'characters:list' %}" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left"></i> Back to Characters
+                <div class="d-flex gap-2 flex-wrap">
+                    {% for step in wizard_steps %}
+                    <a href="?step={{ step }}" class="badge text-decoration-none {% if step == current_step %}bg-warning text-dark{% elif forloop.counter0 < current_step_index %}bg-primary{% else %}bg-secondary{% endif %} text-uppercase">
+                        {{ forloop.counter }}. {{ step }}
                     </a>
+                    {% endfor %}
                 </div>
+            </div>
+        </div>
+
+        <form method="post" action="{{ wizard_form_url }}" class="card" id="wizard-form">
+            {% csrf_token %}
+            <input type="hidden" name="step" value="{{ current_step }}">
+            <div class="card-body">
+                {% if current_step == 'basic' %}
+                <h5 class="mb-3">Step 1: Basic Info</h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label" for="name">Name *</label>
+                        <input type="text" id="name" name="name" class="form-control" value="{{ draft.basic.name }}" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label" for="age">Age</label>
+                        <input type="number" id="age" name="age" class="form-control" value="{{ draft.basic.age }}" min="0">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="occupation">Occupation</label>
+                        <input type="text" id="occupation" name="occupation" class="form-control" value="{{ draft.basic.occupation }}">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="description">Description</label>
+                        <textarea id="description" name="description" class="form-control" rows="5">{{ draft.basic.description }}</textarea>
+                    </div>
+                </div>
+                {% elif current_step == 'stats' %}
+                <h5 class="mb-3">Step 2: Core Stats</h5>
+                <div class="row g-3">
+                    <div class="col-md-3"><label class="form-label" for="strength">STR</label><input id="strength" type="number" name="strength" min="0" max="100" class="form-control" value="{{ draft.stats.strength }}"></div>
+                    <div class="col-md-3"><label class="form-label" for="constitution">CON</label><input id="constitution" type="number" name="constitution" min="0" max="100" class="form-control" value="{{ draft.stats.constitution }}"></div>
+                    <div class="col-md-3"><label class="form-label" for="dexterity">DEX</label><input id="dexterity" type="number" name="dexterity" min="0" max="100" class="form-control" value="{{ draft.stats.dexterity }}"></div>
+                    <div class="col-md-3"><label class="form-label" for="intelligence">INT</label><input id="intelligence" type="number" name="intelligence" min="0" max="100" class="form-control" value="{{ draft.stats.intelligence }}"></div>
+                    <div class="col-md-3"><label class="form-label" for="power">POW</label><input id="power" type="number" name="power" min="0" max="100" class="form-control" value="{{ draft.stats.power }}"></div>
+                    <div class="col-md-3"><label class="form-label" for="size">SIZ</label><input id="size" type="number" name="size" min="0" max="100" class="form-control" value="{{ draft.stats.size }}"></div>
+                    <div class="col-md-3"><label class="form-label" for="appearance">APP</label><input id="appearance" type="number" name="appearance" min="0" max="100" class="form-control" value="{{ draft.stats.appearance }}"></div>
+                    <div class="col-md-3"><label class="form-label" for="education">EDU</label><input id="education" type="number" name="education" min="0" max="100" class="form-control" value="{{ draft.stats.education }}"></div>
+                    <div class="col-md-3"><label class="form-label" for="luck">LCK</label><input id="luck" type="number" name="luck" min="0" max="100" class="form-control" value="{{ draft.stats.luck }}"></div>
+                </div>
+                {% elif current_step == 'skills' %}
+                <h5 class="mb-3">Step 3: Skills</h5>
+                {% for category_key, category_label in skill_categories %}
+                <div class="card mb-3">
+                    <div class="card-header py-2">{{ category_label }}</div>
+                    <div class="card-body py-2">
+                        <div class="row g-2">
+                            {% for skill in skill_options %}
+                                {% if skill.category == category_key %}
+                                <div class="col-md-6">
+                                    <label class="form-label small mb-1" for="skill_{{ skill.id }}">{{ skill.name }} <span class="text-muted">(base {{ skill.base_value }}%)</span></label>
+                                    <input id="skill_{{ skill.id }}" type="number" min="0" max="100" class="form-control form-control-sm" name="skill_{{ skill.id }}" value="{{ skill.value }}">
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% elif current_step == 'inventory' %}
+                <h5 class="mb-3">Step 4: Weapons & Items</h5>
+                {{ draft.inventory.weapons|json_script:"initial-weapons" }}
+                {{ draft.inventory.items|json_script:"initial-items" }}
+                <input type="hidden" name="weapons_json" id="weapons_json" value="[]">
+                <input type="hidden" name="items_json" id="items_json" value="[]">
+                <div class="row g-4">
+                    <div class="col-lg-6">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0">Weapons</h6>
+                            <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#weaponModal">
+                                <i class="fas fa-plus"></i> Add weapon
+                            </button>
+                        </div>
+                        <p class="text-muted small mb-2">Unarmed brawl is added automatically and cannot be removed.</p>
+                        <div id="weapon-list" class="list-group"></div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0">Items</h6>
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-7">
+                                <label for="inline-item-name" class="form-label small">Item name</label>
+                                <input id="inline-item-name" type="text" class="form-control form-control-sm" placeholder="Type item name and press Enter">
+                            </div>
+                            <div class="col-3">
+                                <label for="inline-item-quantity" class="form-label small">Quantity</label>
+                                <input id="inline-item-quantity" type="number" min="1" value="1" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-2 d-flex align-items-end">
+                                <button id="confirm-add-item" type="button" class="btn btn-sm btn-outline-primary w-100">Add</button>
+                            </div>
+                        </div>
+                        <p class="text-muted small mb-2">Enter on the item name field adds a new item to the list.</p>
+                        <div id="item-list" class="list-group"></div>
+                    </div>
+                </div>
+                {% else %}
+                <h5 class="mb-3">{% if edit_mode %}Step {{ wizard_steps|length }}: Review & Save{% else %}Step 5: Review & Create{% endif %}</h5>
+                {% if enable_status_adjustments|default:edit_mode %}
+                <input type="hidden" name="adjust_hp" id="adjust_hp" value="{{ draft.adjustments.hp|default:0 }}">
+                <input type="hidden" name="adjust_mp" id="adjust_mp" value="{{ draft.adjustments.mp|default:0 }}">
+                <input type="hidden" name="adjust_sanity" id="adjust_sanity" value="{{ draft.adjustments.sanity|default:0 }}">
+                <input type="hidden" name="adjust_luck" id="adjust_luck" value="{{ draft.adjustments.luck|default:0 }}">
+                {% endif %}
+                <div class="row g-3">
+                    <div class="col-12">
+                        {% include 'characters/_character_sheet.html' with sheet=preview_sheet show_notes=False notes_editable=False show_actions=False status_adjustable=enable_status_adjustments|default:edit_mode %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-footer d-flex justify-content-between">
+                <a href="{{ wizard_back_url }}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left"></i> {{ wizard_back_text|default:'Back' }}</a>
+                <div class="d-flex gap-2">
+                    {% if current_step != wizard_steps.0 %}
+                    <button type="submit" name="action" value="prev" class="btn btn-outline-secondary">Previous</button>
+                    {% endif %}
+                    {% if edit_mode %}
+                    {% if current_step != 'review' %}
+                    <button type="submit" name="action" value="next" class="btn btn-primary">Next</button>
+                    {% endif %}
+                    <button type="submit" name="action" value="save" class="btn btn-success"><i class="fas fa-check"></i> Save Changes</button>
+                    {% else %}
+                    {% if current_step == 'review' %}
+                    <button type="submit" name="action" value="save" class="btn btn-success"><i class="fas fa-check"></i> Create Character</button>
+                    {% else %}
+                    <button type="submit" name="action" value="next" class="btn btn-primary">Next</button>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+
+        {% if show_change_history|default:edit_mode and current_step == 'review' %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <button class="btn btn-link p-0 text-decoration-none text-warning" type="button" data-bs-toggle="collapse" data-bs-target="#character-change-history" aria-expanded="false" aria-controls="character-change-history">
+                    <i class="fas fa-history me-1"></i>Character Change History
+                </button>
+            </div>
+            <div id="character-change-history" class="collapse">
+                <div class="card-body">
+                    {% if character_change_logs %}
+                        {% for log in character_change_logs %}
+                        <div class="mb-3 pb-2 border-bottom border-secondary-subtle">
+                            <div class="small text-muted mb-2">
+                                {{ log.created_at|date:"Y-m-d H:i" }}
+                                {% if log.changed_by %}&middot; {{ log.changed_by.username }}{% endif %}
+                            </div>
+                            {% for change in log.changes %}
+                            <div class="small">
+                                <span class="text-warning">{{ change.field }}:</span>
+                                <span class="text-muted">{{ change.before|default:"(empty)" }}</span>
+                                <i class="fas fa-arrow-right mx-1 text-muted"></i>
+                                <span>{{ change.after|default:"(empty)" }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                    <p class="text-muted mb-0">No saved changes yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if current_step == 'review' %}
+{% include 'characters/_character_sheet_modals.html' with sheet=preview_sheet %}
+{% endif %}
+
+{% if current_step == 'inventory' %}
+<div class="modal fade" id="weaponModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="weaponModalTitle">Add Weapon</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <label for="weapon-template-select" class="form-label">From templates</label>
+                <select id="weapon-template-select" class="form-select mb-3">
+                    <option value="">Custom weapon...</option>
+                    {% for weapon in weapon_templates %}
+                    <option value="{{ weapon.id }}" data-name="{{ weapon.name }}" data-damage="{{ weapon.damage }}" data-skill-name="{{ weapon.skill_name }}">{{ weapon.name }} ({{ weapon.damage }})</option>
+                    {% endfor %}
+                </select>
+                <label for="weapon-custom-name" class="form-label">Custom weapon name</label>
+                <input id="weapon-custom-name" class="form-control mb-2" type="text" placeholder="e.g., Ritual Dagger">
+                <label for="weapon-custom-damage" class="form-label">Damage</label>
+                <input id="weapon-custom-damage" class="form-control mb-2" type="text" placeholder="e.g., 1D6 + DB">
+                <div class="row g-2">
+                    <div class="col-8">
+                        <label for="weapon-skill-select" class="form-label">Combat skill</label>
+                        <select id="weapon-skill-select" class="form-select">
+                            <option value="">Choose combat skill</option>
+                            {% for skill in combat_skill_options %}
+                            <option value="{{ skill.id }}" data-name="{{ skill.name }}">{{ skill.name }} ({{ skill.value }}%)</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-4 d-flex align-items-end">
+                        <div class="form-check mb-2">
+                            <input id="weapon-prepared" class="form-check-input" type="checkbox">
+                            <label class="form-check-label" for="weapon-prepared">Prepared</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirm-weapon-btn">Add</button>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+const initialWeaponsData = JSON.parse(document.getElementById('initial-weapons').textContent || '[]');
+const initialItemsData = JSON.parse(document.getElementById('initial-items').textContent || '[]');
+let weaponEntries = Array.isArray(initialWeaponsData) ? initialWeaponsData : [];
+let itemEntries = Array.isArray(initialItemsData) ? initialItemsData : [];
+
+const weaponList = document.getElementById('weapon-list');
+const itemList = document.getElementById('item-list');
+const weaponsJsonInput = document.getElementById('weapons_json');
+const itemsJsonInput = document.getElementById('items_json');
+
+let editingWeaponIndex = null;
+let editingItemIndex = null;
+
+function syncInventoryJson() {
+    weaponsJsonInput.value = JSON.stringify(weaponEntries);
+    itemsJsonInput.value = JSON.stringify(itemEntries);
+}
+
+function renderWeapons() {
+    weaponList.innerHTML = '';
+    if (!weaponEntries.length) {
+        weaponList.innerHTML = '<div class="list-group-item text-muted">No weapons added.</div>';
+        syncInventoryJson();
+        return;
+    }
+    weaponEntries.forEach((entry, index) => {
+        const name = entry.custom_name || entry.name || `Weapon #${index + 1}`;
+        const damage = entry.damage || '1D4';
+        const skillName = entry.skill_name || 'No combat skill';
+        const prepared = entry.is_prepared ? ' <span class="badge text-bg-info">Prepared</span>' : '';
+        const actions = entry.is_default_unarmed
+            ? '<span class="badge text-bg-secondary">Default</span>'
+            : `<div class="d-flex gap-1">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="editWeapon(${index})"><i class="fas fa-pen"></i></button>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeWeapon(${index})"><i class="fas fa-trash"></i></button>
+               </div>`;
+        weaponList.innerHTML += `<div class="list-group-item d-flex justify-content-between align-items-center gap-2">
+            <span><strong>${name}</strong> <span class="text-muted">(${damage})</span> &middot; ${skillName}${prepared}</span>
+            ${actions}
+        </div>`;
+    });
+    syncInventoryJson();
+}
+
+function renderItems() {
+    itemList.innerHTML = '';
+    if (!itemEntries.length) {
+        itemList.innerHTML = '<div class="list-group-item text-muted">No items added.</div>';
+        syncInventoryJson();
+        return;
+    }
+    itemEntries.forEach((entry, index) => {
+        if (editingItemIndex === index) {
+            itemList.innerHTML += `<div class="list-group-item">
+                <div class="d-flex gap-2 align-items-center">
+                    <input type="text" class="form-control form-control-sm" id="edit-item-name-${index}" value="${entry.custom_name || entry.name || ''}">
+                    <input type="number" min="1" class="form-control form-control-sm" style="width:80px" id="edit-item-qty-${index}" value="${entry.quantity}">
+                    <button type="button" class="btn btn-sm btn-success" onclick="saveEditItem(${index})"><i class="fas fa-check"></i></button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="cancelEditItem()"><i class="fas fa-times"></i></button>
+                </div>
+            </div>`;
+        } else {
+            const name = entry.custom_name || entry.name || `Item #${index + 1}`;
+            itemList.innerHTML += `<div class="list-group-item d-flex justify-content-between align-items-center">
+                <span>${name} <span class="badge text-bg-secondary">×${entry.quantity}</span></span>
+                <div class="d-flex gap-1">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="editItem(${index})"><i class="fas fa-pen"></i></button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeItem(${index})"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>`;
+        }
+    });
+    syncInventoryJson();
+}
+
+function removeWeapon(index) {
+    if (weaponEntries[index] && weaponEntries[index].is_default_unarmed) return;
+    weaponEntries.splice(index, 1);
+    renderWeapons();
+}
+
+function removeItem(index) {
+    itemEntries.splice(index, 1);
+    renderItems();
+}
+
+function editWeapon(index) {
+    const entry = weaponEntries[index];
+    editingWeaponIndex = index;
+
+    document.getElementById('weaponModalTitle').textContent = 'Edit Weapon';
+    document.getElementById('confirm-weapon-btn').textContent = 'Save';
+    document.getElementById('weapon-template-select').value = entry.weapon_id || '';
+    document.getElementById('weapon-custom-name').value = entry.custom_name || entry.name || '';
+    document.getElementById('weapon-custom-damage').value = entry.damage || '';
+    document.getElementById('weapon-prepared').checked = !!entry.is_prepared;
+
+    const skillSelect = document.getElementById('weapon-skill-select');
+    const matchedOption = Array.from(skillSelect.options).find(o => Number(o.value) === entry.skill_id);
+    skillSelect.value = matchedOption ? matchedOption.value : '';
+
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('weaponModal')).show();
+}
+
+function editItem(index) {
+    editingItemIndex = index;
+    renderItems();
+    const nameInput = document.getElementById(`edit-item-name-${index}`);
+    if (nameInput) nameInput.focus();
+}
+
+function saveEditItem(index) {
+    const nameInput = document.getElementById(`edit-item-name-${index}`);
+    const qtyInput = document.getElementById(`edit-item-qty-${index}`);
+    const newName = nameInput ? nameInput.value.trim() : '';
+    const newQty = qtyInput ? Number(qtyInput.value) : 1;
+    if (!newName || newQty <= 0) return;
+    itemEntries[index].custom_name = newName;
+    itemEntries[index].name = newName;
+    itemEntries[index].quantity = newQty;
+    editingItemIndex = null;
+    renderItems();
+}
+
+function cancelEditItem() {
+    editingItemIndex = null;
+    renderItems();
+}
+
+function resetWeaponModal() {
+    editingWeaponIndex = null;
+    document.getElementById('weaponModalTitle').textContent = 'Add Weapon';
+    document.getElementById('confirm-weapon-btn').textContent = 'Add';
+    document.getElementById('weapon-template-select').value = '';
+    document.getElementById('weapon-custom-name').value = '';
+    document.getElementById('weapon-custom-damage').value = '';
+    document.getElementById('weapon-skill-select').value = '';
+    document.getElementById('weapon-prepared').checked = false;
+}
+
+document.getElementById('weaponModal').addEventListener('hidden.bs.modal', resetWeaponModal);
+
+document.getElementById('weapon-template-select').addEventListener('change', (event) => {
+    const selected = event.target.options[event.target.selectedIndex];
+    const skillName = selected.dataset.skillName;
+    const skillSelect = document.getElementById('weapon-skill-select');
+    if (selected.value) {
+        document.getElementById('weapon-custom-damage').value = selected.dataset.damage || '';
+    }
+    if (skillName) {
+        const matchedOption = Array.from(skillSelect.options).find((option) => option.dataset.name === skillName);
+        if (matchedOption) skillSelect.value = matchedOption.value;
+    }
+});
+
+document.getElementById('confirm-weapon-btn').addEventListener('click', () => {
+    const select = document.getElementById('weapon-template-select');
+    const selected = select.options[select.selectedIndex];
+    const customName = document.getElementById('weapon-custom-name').value.trim();
+    const customDamage = document.getElementById('weapon-custom-damage').value.trim();
+    const skillSelect = document.getElementById('weapon-skill-select');
+    const selectedSkill = skillSelect.options[skillSelect.selectedIndex];
+    const isPrepared = document.getElementById('weapon-prepared').checked;
+
+    const entry = {
+        weapon_id: selected.value ? Number(selected.value) : 0,
+        custom_name: selected.value ? '' : customName,
+        name: selected.dataset.name || customName,
+        damage: selected.dataset.damage || customDamage || '1D4',
+        skill_id: selectedSkill.value ? Number(selectedSkill.value) : 0,
+        skill_name: selectedSkill.dataset.name || '',
+        is_prepared: isPrepared,
+        is_default_unarmed: false,
+    };
+
+    if ((!entry.weapon_id && !entry.custom_name) || !entry.skill_id) return;
+
+    if (editingWeaponIndex !== null) {
+        weaponEntries[editingWeaponIndex] = { ...weaponEntries[editingWeaponIndex], ...entry };
+    } else {
+        weaponEntries.push(entry);
+    }
+
+    renderWeapons();
+    bootstrap.Modal.getInstance(document.getElementById('weaponModal')).hide();
+});
+
+document.getElementById('confirm-add-item').addEventListener('click', () => {
+    const customName = document.getElementById('inline-item-name').value.trim();
+    const quantity = Number(document.getElementById('inline-item-quantity').value || 1);
+    if (!customName || quantity <= 0) return;
+    itemEntries.push({ item_id: 0, custom_name: customName, name: customName, quantity });
+    renderItems();
+    document.getElementById('inline-item-name').value = '';
+    document.getElementById('inline-item-quantity').value = '1';
+});
+
+document.getElementById('inline-item-name').addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        document.getElementById('confirm-add-item').click();
+    }
+});
+
+renderWeapons();
+renderItems();
+</script>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('import-json-input').addEventListener('change', function () {
+    if (this.files.length > 0) {
+        document.getElementById('import-json-form').submit();
+    }
+});
+</script>
+{% if current_step == 'review' %}
+{% include 'characters/_character_sheet_scripts.html' %}
+{% endif %}
 {% endblock %}

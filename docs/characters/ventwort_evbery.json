@@ -1,0 +1,78 @@
+{
+  "character_info": {
+    "name": "Вентворт Ейвбері",
+    "birthplace": "Нью-Йорк",
+    "residence": "Аркгем",
+    "occupation": "Професор лінгвістики",
+    "gender": "Чоловіча",
+    "age": 58
+  },
+  "characteristics": {
+    "STR": 50,
+    "CON": 60,
+    "DEX": 40,
+    "INT": 70,
+    "APP": 50,
+    "POW": 60,
+    "SIZ": 50,
+    "EDU": 80,
+    "MOV": 6,
+    "Luck": 60
+  },
+  "status": {
+    "HP": { "max": 11, "current": 11 },
+    "MP": { "max": 12, "current": 12 },
+    "Sanity": { "start": 60, "current": 12, "max": 99 },
+    "Build": 0,
+    "Damage_Bonus": 0
+  },
+  "skills": {
+    "Archaeology": 20,
+    "Fighting_Brawl": 45,
+    "Track": 10,
+    "Drive_Auto": 20,
+    "Sleight_of_Hand": 10,
+    "Credit_Rating": 40,
+    "Intimidate": 15,
+    "History": 25,
+    "Throw": 20,
+    "Library_Use": 60,
+    "Climb": 20,
+    "Language_Latin": 70,
+    "Language_Greek": 40,
+    "Language_Egyptian_Hieroglyphs": 50,
+    "Language_English_Own": 80,
+    "Stealth": 40,
+    "Fast_Talk": 5,
+    "Occult": 5,
+    "Navigate": 10,
+    "Persuade": 60,
+    "First_Aid": 30,
+    "Swim": 20,
+    "Spot_Hidden": 50,
+    "Natural_World": 10,
+    "Psychology": 40,
+    "Repair_Electrical": 10,
+    "Repair_Mechanical": 10,
+    "Listen": 50,
+    "Jump": 20,
+    "Firearms_Rifle_Shotgun": 25,
+    "Firearms_Handgun": 20,
+    "Dodge": 40,
+    "Charm": 15
+  },
+  "weapons": [
+    {
+      "name": "Рукопашний бій",
+      "skill_pct": 45,
+      "damage": "1K3 + DB",
+      "attacks": 1
+    }
+  ],
+  "description": "Носить трохи пошарпаний костюм, середнього зросту, з тонкими вусами. Для читання текстів використовує монокль, а не окуляри. Усе життя захоплений міфологією та фольклором — вірить у надприродне, хоча досі не знайшов жодних доказів. Не може забути покійну дружину Джейн: здається, вона не встигла сказати йому щось важливе перед смертю. Улюблене місце — ліс або парк, де можна почитати книгу під спів птахів. Найдорожча річ — маленький знімок Джейн у рамці. Допитливий і ретельний у будь-якому розслідуванні.",
+  "inventory": [
+    "Перова ручка й олівці",
+    "Блокнот",
+    "Знімок покійної дружини в рамці"
+  ]
+}

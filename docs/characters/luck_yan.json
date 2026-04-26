@@ -1,0 +1,78 @@
+{
+  "character_info": {
+    "name": "Лук'ян",
+    "birthplace": "Бостон",
+    "residence": "Бостон",
+    "occupation": "Приватний детектив",
+    "gender": "Чоловіча",
+    "age": 36
+  },
+  "characteristics": {
+    "STR": 80,
+    "CON": 60,
+    "DEX": 70,
+    "INT": 50,
+    "APP": 50,
+    "POW": 60,
+    "SIZ": 50,
+    "EDU": 40,
+    "MOV": 9,
+    "Luck": 50
+  },
+  "status": {
+    "HP": { "max": 11, "current": 11 },
+    "MP": { "max": 12, "current": 12 },
+    "Sanity": { "start": 60, "current": 60, "max": 99 },
+    "Build": 1,
+    "Damage_Bonus": "+1K4"
+  },
+  "skills": {
+    "Fighting_Brawl": 70,
+    "Credit_Rating": 20,
+    "Intimidate": 35,
+    "Library_Use": 50,
+    "Stealth": 60,
+    "Art_Craft_Photography": 60,
+    "Cthulhu_Mythos": 7,
+    "Language_English_Own": 40,
+    "Fast_Talk": 40,
+    "Spot_Hidden": 50,
+    "Law": 40,
+    "Psychology": 60,
+    "Listen": 40,
+    "Persuade": 60,
+    "Firearms_Handgun": 40,
+    "Dodge": 30
+  },
+  "weapons": [
+    {
+      "name": "Рукопашний бій",
+      "skill_pct": 70,
+      "damage": "1K3 + DB",
+      "attacks": 1
+    },
+    {
+      "name": "Револьвер .38 калібру",
+      "skill_pct": 40,
+      "damage": "1K10",
+      "range": "15м",
+      "attacks": "1-3",
+      "ammo": 6
+    }
+  ],
+  "description": "Вигляд неохайний, грубуватий, пошарпаний — очі завжди втомлені. Привиди для нього — лише жахалки для дітей, а людям він не довіряє: на його думку, всі брешуть. Близьких людей немає. Єдине місце, де він може перепочити, — рідний дім. Завжди носить щасливу каблучку. Головна риса — обачність.",
+  "inventory": [
+    "Блокнот і перова ручка",
+    "Револьвер .38 калібру з набоями (17 шт.)",
+    "Невеликий клубок мотузки",
+    "Запальничка",
+    "Щаслива каблучка",
+    "Фотоапарат",
+    "Пачка сигарет",
+    "Ліхтарик"
+  ],
+  "wealth": {
+    "cash_in_pocket": "$10",
+    "savings": "$40"
+  }
+}

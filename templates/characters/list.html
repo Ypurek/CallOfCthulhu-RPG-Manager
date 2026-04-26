@@ -18,53 +18,7 @@
 <div class="row g-4">
     {% for character in characters %}
         <div class="col-md-6 col-lg-4">
-            <div class="card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span class="text-warning fw-bold">{{ character.name }}</span>
-                    {% if character.is_alive %}
-                        <span class="badge bg-success">Alive</span>
-                    {% else %}
-                        <span class="badge bg-danger">Dead</span>
-                    {% endif %}
-                </div>
-                <div class="card-body">
-                    <p class="card-text">
-                        <strong>Occupation:</strong> {{ character.occupation|default:"Unknown" }}<br>
-                        <strong>Age:</strong> {{ character.age|default:"Unknown" }}
-                    </p>
-
-                    <!-- Status bars -->
-                    <div class="mb-2">
-                        <small>HP: {{ character.hp_current }}/{{ character.hp_max }}</small>
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-danger" style="width: 80%"></div>
-                        </div>
-                    </div>
-
-                    <div class="mb-2">
-                        <small>SAN: {{ character.sanity_current }}/{{ character.sanity_max }}</small>
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-success" style="width: 70%"></div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <small>MP: {{ character.mp_current }}/{{ character.mp_max }}</small>
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-primary" style="width: 50%"></div>
-                        </div>
-                    </div>
-
-                    <div class="text-center">
-                        <a href="{% url 'characters:detail' character.id %}" class="btn btn-outline-light">
-                            <i class="fas fa-eye"></i> View Sheet
-                        </a>
-                    </div>
-                </div>
-                <div class="card-footer text-muted text-center">
-                    <small>Created {{ character.created_at|date:"M d, Y" }}</small>
-                </div>
-            </div>
+            {% include 'characters/_character_card.html' with character=character preview_mode=False %}
         </div>
     {% empty %}
         <div class="col-12">

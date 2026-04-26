@@ -1,0 +1,210 @@
+<script>
+function toggleDescription() {
+    const desc = document.getElementById('description');
+    if (!desc) {
+        return;
+    }
+    if (desc.style.display === 'none' || desc.style.display === '') {
+        desc.style.display = 'block';
+        desc.style.animation = 'slideDown 0.3s ease';
+    } else {
+        desc.style.display = 'none';
+    }
+}
+
+function toggleSection(section) {
+    const content = document.getElementById(section + '-content');
+    const icon = document.getElementById(section + '-icon');
+    if (!content || !icon) {
+        return;
+    }
+
+    if (content.classList.contains('show')) {
+        content.classList.remove('show');
+        icon.classList.remove('fa-chevron-up');
+        icon.classList.add('fa-chevron-down');
+    } else {
+        content.classList.add('show');
+        icon.classList.remove('fa-chevron-down');
+        icon.classList.add('fa-chevron-up');
+    }
+}
+
+function showStatModal(name, value) {
+    const descriptions = {
+        'STR': 'Physical strength and muscle power',
+        'CON': 'Health, stamina, and resistance to disease',
+        'DEX': 'Agility, reflexes, and coordination',
+        'INT': 'Intelligence, memory, and reasoning',
+        'POW': 'Willpower, magical power, and spiritual strength',
+        'SIZ': 'Physical size and mass',
+        'APP': 'Physical attractiveness and charisma',
+        'EDU': 'Formal education and knowledge'
+    };
+
+    document.getElementById('statModalTitle').textContent = name;
+    document.getElementById('statValue').textContent = value;
+    document.getElementById('statRegular').textContent = value;
+    document.getElementById('statHard').textContent = Math.floor(value / 2);
+    document.getElementById('statExtreme').textContent = Math.floor(value / 5);
+    document.getElementById('statDescription').textContent = descriptions[name] || '';
+
+    new bootstrap.Modal(document.getElementById('statModal')).show();
+}
+
+function showSkillModal(name, value, description) {
+    document.getElementById('skillModalTitle').textContent = name;
+    document.getElementById('skillValue').textContent = value + '%';
+    document.getElementById('skillRegular').textContent = value;
+    document.getElementById('skillHard').textContent = Math.floor(value / 2);
+    document.getElementById('skillExtreme').textContent = Math.floor(value / 5);
+    document.getElementById('skillDescription').textContent = description || '';
+
+    new bootstrap.Modal(document.getElementById('skillModal')).show();
+}
+
+function showAddSkillModal() {
+    const modalElement = document.getElementById('addSkillModal');
+    if (!modalElement) {
+        return;
+    }
+    new bootstrap.Modal(modalElement).show();
+}
+
+function toggleDefaultSkills() {
+    const defaultSkills = document.getElementById('default-skills');
+    const button = document.getElementById('default-skills-btn');
+    if (!defaultSkills || !button) {
+        return;
+    }
+
+    if (defaultSkills.classList.contains('show')) {
+        defaultSkills.classList.remove('show');
+        button.textContent = button.dataset.defaultText || button.textContent;
+    } else {
+        defaultSkills.classList.add('show');
+        if (!button.dataset.defaultText) {
+            button.dataset.defaultText = button.textContent;
+        }
+        button.textContent = 'Hide default skills';
+    }
+}
+
+function showCombatTips() {
+    new bootstrap.Modal(document.getElementById('combatTipsModal')).show();
+}
+
+function addCustomSkill() {
+    const name = document.getElementById('skillName').value;
+    const value = document.getElementById('skillValueInput').value;
+
+    if (name && value) {
+        alert(`Added skill: ${name} (${value}%)`);
+        bootstrap.Modal.getInstance(document.getElementById('addSkillModal')).hide();
+    }
+}
+
+(function initStatusAdjustControls() {
+    const resources = ['hp', 'mp', 'sanity', 'luck'];
+    const hiddenInputs = {
+        hp: document.getElementById('adjust_hp'),
+        mp: document.getElementById('adjust_mp'),
+        sanity: document.getElementById('adjust_sanity'),
+        luck: document.getElementById('adjust_luck'),
+    };
+    const hasControls = resources.some((key) => hiddenInputs[key]);
+    if (!hasControls) {
+        return;
+    }
+
+    function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    function updateDisplay(resourceKey, currentValue, maxValue) {
+        const fill = document.querySelector(`[data-resource-fill="${resourceKey}"]`);
+        const text = document.querySelector(`[data-resource-text="${resourceKey}"]`);
+        if (fill) {
+            fill.style.width = `${(currentValue / Math.max(maxValue, 1)) * 100}%`;
+        }
+        if (text) {
+            text.textContent = `${currentValue}/${maxValue}`;
+        }
+    }
+
+    function setResourceFromPosition(barElement, clientX) {
+        const resource = barElement.dataset.adjustTarget;
+        const input = hiddenInputs[resource];
+        const container = barElement.closest('.stat-bar-container');
+        if (!resource || !input || !container) {
+            return;
+        }
+
+        const baseCurrent = Number(container.dataset.current || 0);
+        const maxValue = Number(container.dataset.max || 0);
+        const rect = barElement.getBoundingClientRect();
+        if (rect.width <= 0) {
+            return;
+        }
+
+        const ratio = clamp((clientX - rect.left) / rect.width, 0, 1);
+        const targetCurrent = Math.round(ratio * maxValue);
+        const nextAdjustment = clamp(targetCurrent - baseCurrent, -99, 99);
+        const nextCurrent = clamp(baseCurrent + nextAdjustment, 0, maxValue);
+
+        input.value = String(nextAdjustment);
+        updateDisplay(resource, nextCurrent, maxValue);
+    }
+
+    let dragBar = null;
+
+    document.querySelectorAll('.stat-bar-adjustable').forEach((bar) => {
+        bar.addEventListener('mousedown', (event) => {
+            dragBar = bar;
+            setResourceFromPosition(bar, event.clientX);
+        });
+
+        bar.addEventListener('click', (event) => {
+            setResourceFromPosition(bar, event.clientX);
+        });
+
+        bar.addEventListener('touchstart', (event) => {
+            const touch = event.touches && event.touches[0];
+            if (!touch) {
+                return;
+            }
+            dragBar = bar;
+            setResourceFromPosition(bar, touch.clientX);
+        }, { passive: true });
+    });
+
+    document.addEventListener('mousemove', (event) => {
+        if (!dragBar) {
+            return;
+        }
+        setResourceFromPosition(dragBar, event.clientX);
+    });
+
+    document.addEventListener('touchmove', (event) => {
+        if (!dragBar) {
+            return;
+        }
+        const touch = event.touches && event.touches[0];
+        if (!touch) {
+            return;
+        }
+        setResourceFromPosition(dragBar, touch.clientX);
+    }, { passive: true });
+
+    function stopDragging() {
+        dragBar = null;
+    }
+
+    document.addEventListener('mouseup', stopDragging);
+    document.addEventListener('touchend', stopDragging);
+})();
+</script>
+
+
+
+

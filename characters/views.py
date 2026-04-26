@@ -1,8 +1,522 @@
+import json
+from pathlib import Path
+
 from django.shortcuts import render, get_object_or_404, redirect
+from django.urls import reverse
+from django.utils.text import slugify
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse
-from .models import Character, CharacterSkill, Skill
+from django.http import JsonResponse, HttpResponse
+from .models import (
+    Character,
+    CharacterChangeLog,
+    CharacterItem,
+    CharacterSkill,
+    CharacterWeapon,
+    Item,
+    Skill,
+    Weapon,
+)
+
+WIZARD_SESSION_KEY = 'character_create_draft'
+WIZARD_STEPS = ['basic', 'stats', 'skills', 'inventory', 'review']
+DEFAULT_UNARMED_WEAPON_NAME = 'Unarmed Brawl'
+DEFAULT_UNARMED_WEAPON_DAMAGE = '1D3 + DB'
+
+
+def _to_int(value, default=0, minimum=None, maximum=None):
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        parsed = default
+    if minimum is not None:
+        parsed = max(minimum, parsed)
+    if maximum is not None:
+        parsed = min(maximum, parsed)
+    return parsed
+
+
+def _default_stats():
+    return {
+        'strength': 0,
+        'constitution': 0,
+        'dexterity': 0,
+        'intelligence': 0,
+        'power': 0,
+        'size': 0,
+        'appearance': 0,
+        'education': 0,
+        'luck': 0,
+    }
+
+
+def _initialize_skill_values(education, existing=None):
+    skill_values = {} if existing is None else {str(key): int(value) for key, value in existing.items()}
+    for skill in Skill.objects.all():
+        key = str(skill.id)
+        if key not in skill_values:
+            skill_values[key] = skill.base_value
+        if skill.name in {'Own Language', 'English'}:
+            skill_values[key] = education
+        if skill.name == 'Cthulhu Mythos':
+            skill_values[key] = 0
+    return skill_values
+
+
+def _derive_secondary_stats(stats, cthulhu_mythos=0):
+    hp_max = max((_to_int(stats.get('strength')) + _to_int(stats.get('constitution'))) // 10, 1)
+    mp_max = max(_to_int(stats.get('power')) // 5, 1)
+    sanity_max = max(99 - _to_int(cthulhu_mythos, 0, 0, 99), 0)
+    return {
+        'hp_max': hp_max,
+        'hp_current': hp_max,
+        'mp_max': mp_max,
+        'mp_current': mp_max,
+        'sanity_start': sanity_max,
+        'sanity_max': sanity_max,
+        'sanity_current': sanity_max,
+    }
+
+
+def _get_default_combat_skill():
+    return (
+        Skill.objects.filter(name='Fighting (Brawl)').first()
+        or Skill.objects.filter(category='combat').order_by('name').first()
+    )
+
+
+def _ensure_default_unarmed_weapon_entry(draft):
+    inventory = draft.setdefault('inventory', {'weapons': [], 'items': []})
+    weapons = inventory.setdefault('weapons', [])
+
+    default_skill = _get_default_combat_skill()
+    default_entry = {
+        'weapon_id': 0,
+        'custom_name': DEFAULT_UNARMED_WEAPON_NAME,
+        'name': DEFAULT_UNARMED_WEAPON_NAME,
+        'damage': DEFAULT_UNARMED_WEAPON_DAMAGE,
+        'skill_id': default_skill.id if default_skill else 0,
+        'skill_name': default_skill.name if default_skill else 'Fighting (Brawl)',
+        'is_prepared': False,
+        'is_default_unarmed': True,
+    }
+
+    existing_entries = [weapon for weapon in weapons if weapon.get('is_default_unarmed')]
+    if existing_entries:
+        entry = existing_entries[0]
+        entry.update(default_entry)
+        inventory['weapons'] = [entry] + [weapon for weapon in weapons if weapon is not entry and not weapon.get('is_default_unarmed')]
+    else:
+        inventory['weapons'] = [default_entry] + weapons
+
+    return draft
+
+
+def _default_draft():
+    stats = _default_stats()
+    draft = {
+        'step': 'basic',
+        'basic': {
+            'name': '',
+            'description': '',
+            'occupation': '',
+            'age': '',
+        },
+        'stats': stats,
+        'skills': _initialize_skill_values(stats['education']),
+        'inventory': {
+            'weapons': [],
+            'items': [],
+        },
+    }
+    return _ensure_default_unarmed_weapon_entry(draft)
+
+
+def _get_draft(request):
+    draft = request.session.get(WIZARD_SESSION_KEY)
+    if not draft:
+        draft = _default_draft()
+    draft.setdefault('basic', _default_draft()['basic'])
+    draft.setdefault('stats', _default_stats())
+    draft['skills'] = _initialize_skill_values(draft['stats'].get('education', 0), draft.get('skills', {}))
+    draft.setdefault('inventory', {'weapons': [], 'items': []})
+    draft['inventory'].setdefault('weapons', [])
+    draft['inventory'].setdefault('items', [])
+    if not isinstance(draft['inventory']['weapons'], list):
+        draft['inventory']['weapons'] = []
+    if not isinstance(draft['inventory']['items'], list):
+        draft['inventory']['items'] = []
+    return _ensure_default_unarmed_weapon_entry(draft)
+
+
+def _save_draft(request, draft):
+    request.session[WIZARD_SESSION_KEY] = draft
+    request.session.modified = True
+
+
+def _export_payload_from_draft(draft):
+    basic = draft['basic']
+    return {
+        'version': 1,
+        'character_info': {
+            'name': basic.get('name', ''),
+            'occupation': basic.get('occupation', ''),
+            'age': basic.get('age', ''),
+        },
+        'description': basic.get('description', ''),
+        'characteristics': {
+            'STR': draft['stats'].get('strength', 0),
+            'CON': draft['stats'].get('constitution', 0),
+            'DEX': draft['stats'].get('dexterity', 0),
+            'INT': draft['stats'].get('intelligence', 0),
+            'APP': draft['stats'].get('appearance', 0),
+            'POW': draft['stats'].get('power', 0),
+            'SIZ': draft['stats'].get('size', 0),
+            'EDU': draft['stats'].get('education', 0),
+            'Luck': draft['stats'].get('luck', 0),
+        },
+        'skills': {
+            skill_id: value
+            for skill_id, value in draft.get('skills', {}).items()
+        },
+        'weapons': [
+            {
+                'name': w.get('name') or w.get('custom_name', ''),
+                'damage': w.get('damage', ''),
+                'is_prepared': w.get('is_prepared', False),
+            }
+            for w in draft.get('inventory', {}).get('weapons', [])
+            if not w.get('is_default_unarmed')
+        ],
+        'inventory': [
+            '{}{}'.format(
+                item.get('name') or item.get('custom_name', ''),
+                ' x{}'.format(item['quantity']) if item.get('quantity', 1) > 1 else ''
+            )
+            for item in draft.get('inventory', {}).get('items', [])
+        ],
+    }
+
+
+def _normalize_imported_skill_name(raw_name):
+    mapping = {
+        'Fighting_Brawl': 'Fighting (Brawl)',
+        'Firearms_Rifle_Shotgun': 'Firearms (Rifle/Shotgun)',
+        'Firearms_Handgun': 'Firearms (Handgun)',
+        'Firearms_Bow_Crossbow': 'Firearms (Bow/Crossbow)',
+        'Language_English_Own': 'Own Language',
+        'Language_Italian': 'Foreign Language',
+        'Repair_Electrical': 'Repair (Electrical)',
+        'Repair_Mechanical': 'Repair (Mechanical)',
+    }
+    if raw_name in mapping:
+        return mapping[raw_name]
+    return raw_name.replace('_', ' ').strip()
+
+
+def _draft_from_import(data):
+    draft = _default_draft()
+    if 'basic' in data and 'stats' in data:
+        draft['basic'].update(data.get('basic', {}))
+        draft['stats'].update(data.get('stats', {}))
+        draft['skills'] = _initialize_skill_values(draft['stats'].get('education', 0), data.get('skills', {}))
+        draft['inventory'] = data.get('inventory', draft['inventory'])
+        draft['inventory'].setdefault('weapons', [])
+        draft['inventory'].setdefault('items', [])
+        if not isinstance(draft['inventory']['weapons'], list):
+            draft['inventory']['weapons'] = []
+        if not isinstance(draft['inventory']['items'], list):
+            draft['inventory']['items'] = []
+        return _ensure_default_unarmed_weapon_entry(draft)
+
+    # Support importing sheet-shaped JSON like docs/characters/*.json.
+    info = data.get('character_info', {})
+    # Prefer top-level 'description'; fall back to assembling from legacy 'backstory' subfields.
+    backstory = data.get('backstory', {})
+    if data.get('description'):
+        description = data['description']
+    elif backstory:
+        parts = []
+        for field in ['appearance', 'ideology_beliefs', 'significant_people', 'meaningful_locations', 'treasured_possessions', 'traits']:
+            value = backstory.get(field, '').strip()
+            if value and value != 'Н/Д':
+                parts.append(value)
+        description = ' '.join(parts)
+    else:
+        description = ''
+    draft['basic'].update({
+        'name': info.get('name', ''),
+        'description': description,
+        'occupation': info.get('occupation', ''),
+        'age': info.get('age', ''),
+    })
+
+    characteristics = data.get('characteristics', {})
+    status = data.get('status', {})
+    draft['stats'].update({
+        'strength': _to_int(characteristics.get('STR', 0), 0, 0, 100),
+        'constitution': _to_int(characteristics.get('CON', 0), 0, 0, 100),
+        'dexterity': _to_int(characteristics.get('DEX', 0), 0, 0, 100),
+        'intelligence': _to_int(characteristics.get('INT', 0), 0, 0, 100),
+        'power': _to_int(characteristics.get('POW', 0), 0, 0, 100),
+        'size': _to_int(characteristics.get('SIZ', 0), 0, 0, 100),
+        'appearance': _to_int(characteristics.get('APP', 0), 0, 0, 100),
+        'education': _to_int(characteristics.get('EDU', 0), 0, 0, 100),
+        'luck': _to_int(characteristics.get('Luck', 0), 0, 0, 100),
+    })
+
+    imported_skills = {}
+    skills_by_name = {skill.name.lower(): skill for skill in Skill.objects.all()}
+    skills_by_id = {skill.id: skill for skill in Skill.objects.all()}
+    for raw_name, value in data.get('skills', {}).items():
+        # Handle both ID-based keys (exported by this app) and name-based keys (template files).
+        if str(raw_name).isdigit():
+            skill = skills_by_id.get(int(raw_name))
+        else:
+            normalized_name = _normalize_imported_skill_name(raw_name)
+            skill = skills_by_name.get(normalized_name.lower())
+        if skill:
+            imported_skills[str(skill.id)] = _to_int(value, skill.base_value, 0, 100)
+    draft['skills'] = _initialize_skill_values(draft['stats']['education'], imported_skills)
+
+    inventory = draft['inventory']
+    weapons_by_name = {weapon.name.lower(): weapon for weapon in Weapon.objects.all()}
+    items_by_name = {item.name.lower(): item for item in Item.objects.all()}
+    for weapon_payload in data.get('weapons', []):
+        weapon = weapons_by_name.get(str(weapon_payload.get('name', '')).lower())
+        if weapon:
+            selected_skill = Skill.objects.filter(name__iexact=weapon.skill_name).first() or _get_default_combat_skill()
+            inventory['weapons'].append({
+                'weapon_id': weapon.id,
+                'name': weapon.name,
+                'skill_id': selected_skill.id if selected_skill else 0,
+                'skill_name': selected_skill.name if selected_skill else weapon.skill_name,
+                'is_prepared': bool(weapon_payload.get('is_prepared', False)),
+                'damage': weapon.damage,
+            })
+        elif weapon_payload.get('name'):
+            selected_skill = _get_default_combat_skill()
+            inventory['weapons'].append({
+                'custom_name': str(weapon_payload.get('name')).strip(),
+                'name': str(weapon_payload.get('name')).strip(),
+                'damage': str(weapon_payload.get('damage') or '1D4').strip(),
+                'skill_id': selected_skill.id if selected_skill else 0,
+                'skill_name': selected_skill.name if selected_skill else 'Fighting (Brawl)',
+                'is_prepared': bool(weapon_payload.get('is_prepared', False)),
+            })
+    for item_name in data.get('inventory', []):
+        item = items_by_name.get(str(item_name).lower())
+        if item:
+            inventory['items'].append({'item_id': item.id, 'quantity': 1})
+        elif item_name:
+            inventory['items'].append({'custom_name': str(item_name).strip(), 'quantity': 1})
+
+    return _ensure_default_unarmed_weapon_entry(draft)
+
+
+def _create_character_from_draft(user, draft):
+    stats = draft['stats']
+    basic = draft['basic']
+
+    base_stats = {
+        'strength': _to_int(stats.get('strength'), 0, 0, 100),
+        'constitution': _to_int(stats.get('constitution'), 0, 0, 100),
+        'dexterity': _to_int(stats.get('dexterity'), 0, 0, 100),
+        'intelligence': _to_int(stats.get('intelligence'), 0, 0, 100),
+        'power': _to_int(stats.get('power'), 0, 0, 100),
+        'size': _to_int(stats.get('size'), 0, 0, 100),
+        'appearance': _to_int(stats.get('appearance'), 0, 0, 100),
+        'education': _to_int(stats.get('education'), 0, 0, 100),
+        'luck': _to_int(stats.get('luck'), 0, 0, 100),
+    }
+
+    skill_values = _initialize_skill_values(base_stats['education'], draft.get('skills', {}))
+    cthulhu_mythos = 0
+    for skill in Skill.objects.filter(name='Cthulhu Mythos'):
+        cthulhu_mythos = _to_int(skill_values.get(str(skill.id), 0), 0, 0, 99)
+        break
+
+    derived_stats = _derive_secondary_stats(base_stats, cthulhu_mythos)
+
+    character = Character.objects.create(
+        owner=user,
+        character_type='PC',
+        is_alive=True,
+        name=basic.get('name') or 'Unnamed Character',
+        description=basic.get('description', ''),
+        birthplace='',
+        residence='',
+        occupation=basic.get('occupation', ''),
+        gender='',
+        age=_to_int(basic.get('age'), None) if str(basic.get('age', '')).strip() else None,
+        strength=base_stats['strength'],
+        constitution=base_stats['constitution'],
+        dexterity=base_stats['dexterity'],
+        intelligence=base_stats['intelligence'],
+        power=base_stats['power'],
+        size=base_stats['size'],
+        appearance=base_stats['appearance'],
+        education=base_stats['education'],
+        hp_current=derived_stats['hp_current'],
+        hp_max=derived_stats['hp_max'],
+        mp_current=derived_stats['mp_current'],
+        mp_max=derived_stats['mp_max'],
+        sanity_current=derived_stats['sanity_current'],
+        sanity_max=derived_stats['sanity_max'],
+        sanity_start=derived_stats['sanity_start'],
+        luck=base_stats['luck'],
+        movement=0,
+        build=0,
+        damage_bonus='0',
+        cash=0,
+    )
+
+    skill_values = _initialize_skill_values(character.education, draft.get('skills', {}))
+    skills_by_id = {skill.id: skill for skill in Skill.objects.all()}
+    CharacterSkill.objects.bulk_create([
+        CharacterSkill(
+            character=character,
+            skill=skills_by_id[skill_id],
+            value=_to_int(value, skills_by_id[skill_id].base_value, 0, 100),
+        )
+        for skill_id_str, value in skill_values.items()
+        if (skill_id := _to_int(skill_id_str, None)) in skills_by_id
+    ])
+
+    inventory = draft.get('inventory', {})
+    for payload in inventory.get('weapons', []):
+        weapon = None
+        selected_skill = Skill.objects.filter(id=_to_int(payload.get('skill_id'), -1)).first()
+        selected_skill_name = selected_skill.name if selected_skill else str(payload.get('skill_name') or 'Custom').strip()
+        selected_skill_value = skill_values.get(str(selected_skill.id), 0) if selected_skill else 0
+        if payload.get('weapon_id'):
+            weapon = Weapon.objects.filter(id=_to_int(payload.get('weapon_id'), -1)).first()
+        custom_name = str(payload.get('custom_name', '')).strip()
+        if not weapon and custom_name:
+            weapon = Weapon.objects.filter(name__iexact=custom_name, skill_name=selected_skill_name).first()
+            if not weapon:
+                weapon = Weapon.objects.create(
+                    name=custom_name,
+                    skill_name=selected_skill_name,
+                    damage=str(payload.get('damage') or '1D4').strip() or '1D4',
+                )
+        elif weapon and selected_skill_name and weapon.skill_name != selected_skill_name:
+            weapon = (
+                Weapon.objects.filter(
+                    name=weapon.name,
+                    skill_name=selected_skill_name,
+                    damage=weapon.damage,
+                    attacks_per_round=weapon.attacks_per_round,
+                    range=weapon.range,
+                    ammo=weapon.ammo,
+                    malfunction=weapon.malfunction,
+                ).first()
+                or Weapon.objects.create(
+                    name=weapon.name,
+                    skill_name=selected_skill_name,
+                    damage=weapon.damage,
+                    attacks_per_round=weapon.attacks_per_round,
+                    range=weapon.range,
+                    ammo=weapon.ammo,
+                    malfunction=weapon.malfunction,
+                )
+            )
+        if weapon:
+            CharacterWeapon.objects.create(
+                character=character,
+                weapon=weapon,
+                skill_value=selected_skill_value,
+                is_prepared=bool(payload.get('is_prepared', False)),
+            )
+
+    for payload in inventory.get('items', []):
+        parsed_quantity = _to_int(payload.get('quantity'), 0, 0)
+        if parsed_quantity <= 0:
+            continue
+        item = None
+        if payload.get('item_id'):
+            item = Item.objects.filter(id=_to_int(payload.get('item_id'), -1)).first()
+        custom_name = str(payload.get('custom_name', '')).strip()
+        if not item and custom_name:
+            item, _ = Item.objects.get_or_create(name=custom_name, defaults={'description': ''})
+        if item:
+            CharacterItem.objects.create(character=character, item=item, quantity=parsed_quantity)
+
+    return character
+
+
+def _normalize_preview_weapons(weapon_entries):
+    normalized = []
+    for entry in weapon_entries or []:
+        if not isinstance(entry, dict):
+            continue
+        name = entry.get('name') or entry.get('custom_name') or DEFAULT_UNARMED_WEAPON_NAME
+        normalized.append({
+            'name': name,
+            'damage': entry.get('damage') or DEFAULT_UNARMED_WEAPON_DAMAGE,
+            'is_prepared': bool(entry.get('is_prepared', False)),
+        })
+    return normalized
+
+
+def _normalize_preview_items(item_entries):
+    normalized = []
+    item_names = {item.id: item.name for item in Item.objects.all()}
+    for entry in item_entries or []:
+        if not isinstance(entry, dict):
+            continue
+        item_id = _to_int(entry.get('item_id'), 0)
+        name = entry.get('name') or entry.get('custom_name') or item_names.get(item_id, '')
+        quantity = _to_int(entry.get('quantity'), 0, 0)
+        if name and quantity > 0:
+            normalized.append({'name': name, 'quantity': quantity})
+    return normalized
+
+
+def _build_character_sheet_context(character, skill_values=None, weapons=None, items=None, spells=None, can_add_custom_skill=False):
+    education = getattr(character, 'education', 0)
+    dexterity = getattr(character, 'dexterity', 0)
+    skill_values = {} if skill_values is None else {int(key): int(value) for key, value in skill_values.items()}
+
+    def serialize_skill(skill):
+        value = skill_values.get(skill.id, skill.base_value)
+        if skill.name in {'Own Language', 'English'}:
+            value = education
+        return {
+            'id': skill.id,
+            'name': skill.name,
+            'description': skill.description,
+            'value': value,
+            'base_value': skill.base_value,
+            'is_default': value == skill.base_value,
+        }
+
+    non_combat_skills = [
+        serialize_skill(skill)
+        for skill in Skill.objects.exclude(category='combat').order_by('name')
+    ]
+    non_combat_skills.sort(key=lambda skill: (-skill['value'], skill['name']))
+    combat_skills = [
+        serialize_skill(skill)
+        for skill in Skill.objects.filter(category='combat').order_by('name')
+    ]
+    combat_skills.sort(key=lambda skill: (-skill['value'], skill['name']))
+
+    visible_non_combat_skills = [skill for skill in non_combat_skills if not skill['is_default']]
+    default_non_combat_skills = [skill for skill in non_combat_skills if skill['is_default']]
+    default_non_combat_skills.sort(key=lambda skill: skill['name'].lower())
+
+    return {
+        'character': character,
+        'skills': visible_non_combat_skills,
+        'default_skills': default_non_combat_skills,
+        'combat_skills': combat_skills,
+        'dodge_value': dexterity // 2,
+        'weapons': weapons or [],
+        'items': items or [],
+        'spells': spells or [],
+        'can_add_custom_skill': can_add_custom_skill,
+    }
 
 
 @login_required
@@ -31,55 +545,36 @@ def character_detail(request, character_id):
         messages.success(request, 'Notes saved.')
         return redirect('characters:detail', character_id=character.id)
 
-    character_skills = CharacterSkill.objects.filter(character=character).select_related('skill')
-    character_skills_by_skill_id = {char_skill.skill_id: char_skill for char_skill in character_skills}
-
-    def serialize_skill(skill):
-        char_skill = character_skills_by_skill_id.get(skill.id)
-        value = char_skill.value if char_skill else skill.base_value
-        # Native language is always derived from EDU on the character sheet.
-        if skill.name in {'Own Language', 'English'}:
-            value = character.education
-        return {
-            'id': skill.id,
-            'name': skill.name,
-            'description': skill.description,
-            'value': value,
-            'base_value': skill.base_value,
-            'is_default': value == skill.base_value,
-        }
-
-    non_combat_skills = [
-        serialize_skill(skill)
-        for skill in Skill.objects.exclude(category='combat').order_by('name')
+    skill_values = {
+        char_skill.skill_id: char_skill.value
+        for char_skill in CharacterSkill.objects.filter(character=character).select_related('skill')
+    }
+    weapons = [
+        {'name': weapon.weapon.name, 'damage': weapon.weapon.damage, 'is_prepared': weapon.is_prepared}
+        for weapon in character.weapons.select_related('weapon').all()
     ]
-    non_combat_skills.sort(key=lambda skill: (-skill['value'], skill['name']))
-
-    combat_skills = [
-        serialize_skill(skill)
-        for skill in Skill.objects.filter(category='combat').order_by('name')
+    items = [
+        {'name': item.item.name, 'quantity': item.quantity}
+        for item in character.items.select_related('item').all()
     ]
-    combat_skills.sort(key=lambda skill: (-skill['value'], skill['name']))
-
-    visible_non_combat_skills = [skill for skill in non_combat_skills if not skill['is_default']]
-    default_non_combat_skills = [skill for skill in non_combat_skills if skill['is_default']]
-    default_non_combat_skills.sort(key=lambda skill: skill['name'].lower())
-
-    def get_success_levels(value):
-        return {
-            'regular': value,
-            'hard': value // 2,
-            'extreme': value // 5
-        }
+    spells = [
+        {'name': spell.spell.name, 'mana_cost': spell.spell.mana_cost}
+        for spell in character.spells.select_related('spell').all()
+    ]
+    sheet = _build_character_sheet_context(
+        character=character,
+        skill_values=skill_values,
+        weapons=weapons,
+        items=items,
+        spells=spells,
+        can_add_custom_skill=request.user.is_keeper() or request.GET.get('creation') == '1',
+    )
 
     context = {
-        'character': character,
-        'skills': visible_non_combat_skills,
-        'default_skills': default_non_combat_skills,
-        'combat_skills': combat_skills,
-        'dodge_value': character.dexterity // 2,
-        'can_add_custom_skill': request.user.is_keeper() or request.GET.get('creation') == '1',
-        'get_success_levels': get_success_levels,
+        'sheet': sheet,
+        'show_notes': True,
+        'notes_editable': True,
+        'show_actions': True,
     }
 
     return render(request, 'characters/detail.html', context)
@@ -123,16 +618,480 @@ def character_edit(request, character_id):
 
 @login_required
 def character_create(request):
-    """Create new character"""
-    # TODO: Implement character creation form
-    return render(request, 'characters/create.html')
+    """Create new character with a multi-step wizard."""
+    draft = _get_draft(request)
+    template_meta = request.session.get(TEMPLATE_WIZARD_META_KEY)
+    template_mode = bool(template_meta and _can_manage_templates(request.user))
+    template_edit_mode = bool(template_mode and template_meta.get('mode') == 'edit')
+
+    if template_meta and not template_mode:
+        request.session.pop(TEMPLATE_WIZARD_META_KEY, None)
+        request.session.modified = True
+        template_meta = None
+
+    if request.method == 'POST':
+        action = request.POST.get('action', 'next')
+        step = request.POST.get('step', draft.get('step', WIZARD_STEPS[0]))
+        if step not in WIZARD_STEPS:
+            step = draft.get('step', WIZARD_STEPS[0])
+
+        if action == 'reset':
+            request.session.pop(WIZARD_SESSION_KEY, None)
+            messages.success(request, 'Character draft reset.')
+            return redirect('characters:create')
+
+        if step == 'basic':
+            draft['basic'].update({
+                'name': request.POST.get('name', '').strip(),
+                'description': request.POST.get('description', '').strip(),
+                'occupation': request.POST.get('occupation', '').strip(),
+                'age': request.POST.get('age', '').strip(),
+            })
+        elif step == 'stats':
+            stats = draft['stats']
+            for field in ['strength', 'constitution', 'dexterity', 'intelligence', 'power', 'size', 'appearance', 'education', 'luck']:
+                stats[field] = _to_int(request.POST.get(field), stats.get(field, 0), 0, 100)
+            draft['skills'] = _initialize_skill_values(stats['education'], draft.get('skills', {}))
+        elif step == 'skills':
+            updated = {}
+            editable_skills = Skill.objects.exclude(name__in=['Cthulhu Mythos', 'Own Language', 'English'])
+            for skill in editable_skills:
+                updated[str(skill.id)] = _to_int(request.POST.get(f'skill_{skill.id}'), skill.base_value, 0, 100)
+            for skill_name in ['Cthulhu Mythos', 'Own Language', 'English']:
+                skill = Skill.objects.filter(name=skill_name).first()
+                if skill:
+                    updated[str(skill.id)] = draft['skills'].get(str(skill.id), skill.base_value)
+            draft['skills'] = _initialize_skill_values(draft['stats']['education'], updated)
+        elif step == 'inventory':
+            inventory = draft['inventory']
+            try:
+                weapons_payload = json.loads(request.POST.get('weapons_json', '[]'))
+            except json.JSONDecodeError:
+                weapons_payload = []
+            try:
+                items_payload = json.loads(request.POST.get('items_json', '[]'))
+            except json.JSONDecodeError:
+                items_payload = []
+
+            inventory['weapons'] = []
+            for payload in weapons_payload:
+                if not isinstance(payload, dict):
+                    continue
+                weapon_entry = {
+                    'weapon_id': _to_int(payload.get('weapon_id'), 0),
+                    'custom_name': str(payload.get('custom_name', '')).strip(),
+                    'name': str(payload.get('name', '')).strip(),
+                    'damage': str(payload.get('damage', '')).strip(),
+                    'skill_id': _to_int(payload.get('skill_id'), 0),
+                    'skill_name': str(payload.get('skill_name', '')).strip(),
+                    'is_prepared': bool(payload.get('is_prepared', False)),
+                    'is_default_unarmed': bool(payload.get('is_default_unarmed', False)),
+                }
+                if weapon_entry['weapon_id'] or weapon_entry['custom_name']:
+                    inventory['weapons'].append(weapon_entry)
+
+            inventory['items'] = []
+            for payload in items_payload:
+                if not isinstance(payload, dict):
+                    continue
+                item_entry = {
+                    'item_id': _to_int(payload.get('item_id'), 0),
+                    'custom_name': str(payload.get('custom_name', '')).strip(),
+                    'quantity': _to_int(payload.get('quantity'), 0, 0),
+                }
+                if item_entry['quantity'] > 0 and (item_entry['item_id'] or item_entry['custom_name']):
+                    inventory['items'].append(item_entry)
+
+            _ensure_default_unarmed_weapon_entry(draft)
+
+        current_index = WIZARD_STEPS.index(step)
+        if action == 'prev':
+            draft['step'] = WIZARD_STEPS[max(current_index - 1, 0)]
+        elif action == 'save':
+            if template_mode:
+                if template_edit_mode:
+                    filename = template_meta.get('filename', '')
+                    template_path = _safe_template_filename(filename)
+                    if not template_path:
+                        messages.error(request, 'Template filename is invalid.')
+                        return redirect('characters:templates')
+                else:
+                    filename = _next_template_filename(draft.get('basic', {}).get('name', 'template'))
+                    template_path = _safe_template_filename(filename)
+
+                if not template_path:
+                    messages.error(request, 'Cannot save template.')
+                    return redirect('characters:templates')
+
+                try:
+                    with open(template_path, 'w', encoding='utf-8') as file_obj:
+                        json.dump(_template_payload_from_draft(draft), file_obj, indent=2, ensure_ascii=False)
+                    request.session.pop(WIZARD_SESSION_KEY, None)
+                    request.session.pop(TEMPLATE_WIZARD_META_KEY, None)
+                    request.session.modified = True
+                    messages.success(request, f'Template "{filename}" saved successfully.')
+                    return redirect('characters:templates')
+                except OSError:
+                    messages.error(request, 'Failed to save template file.')
+                    return redirect('characters:templates')
+
+            character = _create_character_from_draft(request.user, draft)
+            request.session.pop(WIZARD_SESSION_KEY, None)
+            messages.success(request, f'Character "{character.name}" created successfully.')
+            return redirect('characters:detail', character_id=character.id)
+        else:
+            draft['step'] = WIZARD_STEPS[min(current_index + 1, len(WIZARD_STEPS) - 1)]
+
+        _save_draft(request, draft)
+        return redirect('characters:create')
+
+    requested_step = request.GET.get('step')
+    if requested_step in WIZARD_STEPS:
+        draft['step'] = requested_step
+        _save_draft(request, draft)
+
+    skills = list(
+        Skill.objects.exclude(name__in=['Cthulhu Mythos', 'Own Language', 'English']).order_by('category', 'name')
+    )
+    existing_categories = []
+    for category_key, category_label in [('mutual', 'Mutual'), ('general', 'General'), ('combat', 'Combat'), ('language', 'Language')]:
+        if any(skill.category == category_key for skill in skills):
+            existing_categories.append((category_key, category_label))
+
+    mythos_skill = Skill.objects.filter(name='Cthulhu Mythos').first()
+    mythos_value = draft['skills'].get(str(mythos_skill.id), 0) if mythos_skill else 0
+    derived_stats = _derive_secondary_stats(draft['stats'], mythos_value)
+    combat_skill_options = [
+        {
+            'id': skill.id,
+            'name': skill.name,
+            'value': draft['skills'].get(str(skill.id), skill.base_value),
+        }
+        for skill in Skill.objects.filter(category='combat').order_by('name')
+    ]
+    preview_character = type('PreviewCharacter', (), {
+        'id': None,
+        'name': draft['basic'].get('name') or 'Unnamed Character',
+        'occupation': draft['basic'].get('occupation', ''),
+        'age': draft['basic'].get('age') or None,
+        'description': draft['basic'].get('description', ''),
+        'cash': 0,
+        'is_alive': True,
+        'hp_current': derived_stats['hp_current'],
+        'hp_max': derived_stats['hp_max'],
+        'mp_current': derived_stats['mp_current'],
+        'mp_max': derived_stats['mp_max'],
+        'sanity_current': derived_stats['sanity_current'],
+        'sanity_max': derived_stats['sanity_max'],
+        'luck': draft['stats'].get('luck', 0),
+        'strength': draft['stats'].get('strength', 0),
+        'constitution': draft['stats'].get('constitution', 0),
+        'dexterity': draft['stats'].get('dexterity', 0),
+        'intelligence': draft['stats'].get('intelligence', 0),
+        'power': draft['stats'].get('power', 0),
+        'size': draft['stats'].get('size', 0),
+        'appearance': draft['stats'].get('appearance', 0),
+        'education': draft['stats'].get('education', 0),
+        'player_notes': '',
+    })()
+    preview_sheet = _build_character_sheet_context(
+        character=preview_character,
+        skill_values={int(key): value for key, value in draft['skills'].items()},
+        weapons=_normalize_preview_weapons(draft['inventory']['weapons']),
+        items=_normalize_preview_items(draft['inventory']['items']),
+        spells=[],
+        can_add_custom_skill=False,
+    )
+
+    context = {
+        'wizard_steps': WIZARD_STEPS,
+        'current_step': draft['step'],
+        'current_step_index': WIZARD_STEPS.index(draft['step']),
+        'draft': draft,
+        'skill_options': [
+            {
+                'id': skill.id,
+                'name': skill.name,
+                'category': skill.category,
+                'value': draft['skills'].get(str(skill.id), skill.base_value),
+                'base_value': skill.base_value,
+            }
+            for skill in skills
+        ],
+        'weapon_templates': list(Weapon.objects.order_by('name').values('id', 'name', 'damage', 'skill_name')),
+        'item_templates': list(Item.objects.order_by('name').values('id', 'name')),
+        'combat_skill_options': combat_skill_options,
+        'skill_categories': existing_categories,
+        'derived_stats': derived_stats,
+        'preview_sheet': preview_sheet,
+        # wizard URL context
+        'wizard_form_url': reverse('characters:create'),
+        'wizard_export_url': reverse('characters:create_export_json'),
+        'wizard_import_url': reverse('characters:create_import_json'),
+        'wizard_back_url': reverse('characters:templates') if template_mode else reverse('characters:list'),
+        'edit_mode': template_edit_mode,
+        'show_reset': not template_mode,
+        'wizard_title': 'Edit Template' if template_edit_mode else ('Create Template' if template_mode else 'Character Creation Wizard'),
+        'wizard_back_text': 'Back to Templates' if template_mode else 'Back to List',
+        'show_change_history': False,
+        'enable_status_adjustments': False,
+    }
+    return render(request, 'characters/create.html', context)
+
+
+@login_required
+def character_import_json(request):
+    """Import character draft JSON into the creation wizard."""
+    if request.method != 'POST':
+        return redirect('characters:create')
+
+    uploaded_file = request.FILES.get('json_file')
+    if not uploaded_file:
+        messages.error(request, 'Please choose a JSON file to import.')
+        return redirect('characters:create')
+
+    try:
+        payload = json.loads(uploaded_file.read().decode('utf-8'))
+        draft = _draft_from_import(payload)
+        draft['step'] = 'review'
+        _save_draft(request, draft)
+        messages.success(request, 'Character draft imported successfully.')
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        messages.error(request, 'Invalid JSON file.')
+
+    return redirect('characters:create')
+
+
+@login_required
+def character_export_json(request):
+    """Export current character draft JSON from the creation wizard."""
+    draft = _get_draft(request)
+    response = HttpResponse(
+        json.dumps(_export_payload_from_draft(draft), indent=2, ensure_ascii=False),
+        content_type='application/json',
+    )
+    response['Content-Disposition'] = 'attachment; filename="character_draft.json"'
+    return response
+
+
+_TEMPLATES_DIR = Path(__file__).parent.parent / 'docs' / 'characters'
+TEMPLATE_WIZARD_META_KEY = 'template_wizard_meta'
+
+
+def _can_manage_templates(user):
+    return bool(
+        getattr(user, 'is_superuser', False)
+        or (hasattr(user, 'is_keeper') and user.is_keeper())
+    )
+
+
+def _safe_template_filename(filename):
+    if not filename or '/' in filename or '\\' in filename or not filename.endswith('.json'):
+        return None
+    path = (_TEMPLATES_DIR / filename).resolve()
+    if path.parent != _TEMPLATES_DIR.resolve():
+        return None
+    return path
+
+
+def _skill_name_to_export_key(skill_name):
+    mapping = {
+        'Fighting (Brawl)': 'Fighting_Brawl',
+        'Firearms (Rifle/Shotgun)': 'Firearms_Rifle_Shotgun',
+        'Firearms (Handgun)': 'Firearms_Handgun',
+        'Firearms (Bow/Crossbow)': 'Firearms_Bow_Crossbow',
+        'Own Language': 'Language_English_Own',
+        'Foreign Language': 'Language_Italian',
+        'Repair (Electrical)': 'Repair_Electrical',
+        'Repair (Mechanical)': 'Repair_Mechanical',
+        'Cthulhu Mythos': 'Cthulhu_Mythos',
+    }
+    if skill_name in mapping:
+        return mapping[skill_name]
+    normalized = skill_name.replace('(', '').replace(')', '').replace('/', ' ').replace('-', ' ')
+    return '_'.join(normalized.split())
+
+
+def _template_payload_from_draft(draft):
+    stats = draft.get('stats', {})
+    skills = draft.get('skills', {})
+    basic = draft.get('basic', {})
+    skills_by_id = {str(skill.id): skill for skill in Skill.objects.all()}
+    exported_skills = {}
+    for skill_id, value in skills.items():
+        skill = skills_by_id.get(str(skill_id))
+        if not skill:
+            continue
+        exported_skills[_skill_name_to_export_key(skill.name)] = _to_int(value, skill.base_value, 0, 100)
+
+    return {
+        'character_info': {
+            'name': basic.get('name', ''),
+            'occupation': basic.get('occupation', ''),
+            'age': basic.get('age', ''),
+        },
+        'characteristics': {
+            'STR': _to_int(stats.get('strength'), 0, 0, 100),
+            'CON': _to_int(stats.get('constitution'), 0, 0, 100),
+            'DEX': _to_int(stats.get('dexterity'), 0, 0, 100),
+            'INT': _to_int(stats.get('intelligence'), 0, 0, 100),
+            'APP': _to_int(stats.get('appearance'), 0, 0, 100),
+            'POW': _to_int(stats.get('power'), 0, 0, 100),
+            'SIZ': _to_int(stats.get('size'), 0, 0, 100),
+            'EDU': _to_int(stats.get('education'), 0, 0, 100),
+            'Luck': _to_int(stats.get('luck'), 0, 0, 100),
+        },
+        'skills': exported_skills,
+        'weapons': [
+            {
+                'name': w.get('name') or w.get('custom_name', ''),
+                'damage': w.get('damage', ''),
+                'is_prepared': bool(w.get('is_prepared', False)),
+            }
+            for w in draft.get('inventory', {}).get('weapons', [])
+            if not w.get('is_default_unarmed')
+        ],
+        'description': basic.get('description', ''),
+        'inventory': [
+            item.get('name') or item.get('custom_name', '')
+            for item in draft.get('inventory', {}).get('items', [])
+            if (item.get('name') or item.get('custom_name'))
+        ],
+    }
+
+
+def _next_template_filename(name):
+    base_slug = slugify(name or 'template') or 'template'
+    candidate = f'{base_slug}.json'
+    suffix = 2
+    while (_TEMPLATES_DIR / candidate).exists():
+        candidate = f'{base_slug}-{suffix}.json'
+        suffix += 1
+    return candidate
+
+
+def _load_character_templates():
+    """Read all JSON character templates from docs/characters/."""
+    templates = []
+    for json_file in sorted(_TEMPLATES_DIR.glob('*.json')):
+        try:
+            with open(json_file, encoding='utf-8') as f:
+                data = json.load(f)
+            info = data.get('character_info', {})
+            chars = data.get('characteristics', {})
+            skills = data.get('skills', {})
+            hp_max = max((chars.get('STR', 0) + chars.get('CON', 0)) // 10, 1)
+            mp_max = max(chars.get('POW', 0) // 5, 1)
+            # top non-default skills for preview
+            top_skills = sorted(
+                [(name.replace('_', ' '), val) for name, val in skills.items() if val > 25],
+                key=lambda x: -x[1]
+            )[:6]
+            templates.append({
+                'filename': json_file.name,
+                'name': info.get('name', json_file.stem),
+                'occupation': info.get('occupation', ''),
+                'age': info.get('age', ''),
+                'description': data.get('description', ''),
+                'STR': chars.get('STR', 0),
+                'CON': chars.get('CON', 0),
+                'DEX': chars.get('DEX', 0),
+                'INT': chars.get('INT', 0),
+                'APP': chars.get('APP', 0),
+                'POW': chars.get('POW', 0),
+                'SIZ': chars.get('SIZ', 0),
+                'EDU': chars.get('EDU', 0),
+                'luck': chars.get('Luck', 0),
+                'hp_max': hp_max,
+                'mp_max': mp_max,
+                'sanity': chars.get('POW', 50),
+                'top_skills': top_skills,
+                'weapons': [w.get('name', '') for w in data.get('weapons', [])],
+            })
+        except (json.JSONDecodeError, KeyError, OSError):
+            continue
+    return templates
 
 
 @login_required
 def character_templates(request):
-    """Character templates page"""
-    # TODO: Implement character templates
-    return render(request, 'characters/templates.html')
+    """Show pre-made character templates."""
+    if request.session.get(TEMPLATE_WIZARD_META_KEY):
+        request.session.pop(TEMPLATE_WIZARD_META_KEY, None)
+        request.session.pop(WIZARD_SESSION_KEY, None)
+        request.session.modified = True
+
+    return render(request, 'characters/templates.html', {
+        'templates': _load_character_templates(),
+        'can_manage_templates': _can_manage_templates(request.user),
+    })
+
+
+@login_required
+def character_use_template(request, filename):
+    """Load a template JSON into the creation wizard draft and redirect to wizard."""
+    if request.method != 'POST':
+        return redirect('characters:templates')
+
+    # Security: only allow plain filenames within the templates dir
+    if '/' in filename or '\\' in filename or not filename.endswith('.json'):
+        return redirect('characters:templates')
+
+    json_file = _TEMPLATES_DIR / filename
+    if not json_file.resolve().parent == _TEMPLATES_DIR.resolve() or not json_file.exists():
+        messages.error(request, 'Template not found.')
+        return redirect('characters:templates')
+
+    try:
+        with open(json_file, encoding='utf-8') as f:
+            payload = json.load(f)
+        draft = _draft_from_import(payload)
+        draft['step'] = 'basic'
+        _save_draft(request, draft)
+        messages.success(request, 'Template loaded! Customize your character below.')
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        messages.error(request, 'Failed to load template.')
+
+    return redirect('characters:create')
+
+
+@login_required
+def template_create_wizard(request):
+    """Start template creation flow for keepers/admins using the shared wizard."""
+    if not _can_manage_templates(request.user):
+        messages.error(request, 'Only keepers/admins can manage templates.')
+        return redirect('characters:templates')
+
+    request.session[WIZARD_SESSION_KEY] = _default_draft()
+    request.session[TEMPLATE_WIZARD_META_KEY] = {'mode': 'create'}
+    request.session.modified = True
+    return redirect('characters:create')
+
+
+@login_required
+def template_edit_wizard(request, filename):
+    """Start template edit flow for keepers/admins using the shared wizard."""
+    if not _can_manage_templates(request.user):
+        messages.error(request, 'Only keepers/admins can manage templates.')
+        return redirect('characters:templates')
+
+    template_path = _safe_template_filename(filename)
+    if not template_path or not template_path.exists():
+        messages.error(request, 'Template not found.')
+        return redirect('characters:templates')
+
+    try:
+        with open(template_path, encoding='utf-8') as file_obj:
+            payload = json.load(file_obj)
+        draft = _draft_from_import(payload)
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        messages.error(request, 'Template file is invalid.')
+        return redirect('characters:templates')
+
+    request.session[WIZARD_SESSION_KEY] = draft
+    request.session[TEMPLATE_WIZARD_META_KEY] = {'mode': 'edit', 'filename': filename}
+    request.session.modified = True
+    return redirect('characters:create')
 
 
 @login_required
@@ -144,3 +1103,581 @@ def character_cemetery(request):
         character_type='PC'
     )
     return render(request, 'characters/cemetery.html', {'characters': dead_characters})
+
+
+# ── Edit Wizard ───────────────────────────────────────────────────────────────
+
+EDIT_WIZARD_STEPS = ['basic', 'stats', 'skills', 'inventory', 'review']
+
+
+def _edit_session_key(character_id):
+    return f'character_edit_draft_{character_id}'
+
+
+def _normalize_weapon_entry_for_diff(entry):
+    return {
+        'name': str(entry.get('name') or entry.get('custom_name') or '').strip(),
+        'damage': str(entry.get('damage') or '').strip(),
+        'skill': str(entry.get('skill_name') or '').strip(),
+        'prepared': bool(entry.get('is_prepared', False)),
+    }
+
+
+def _normalize_item_entry_for_diff(entry):
+    return {
+        'name': str(entry.get('name') or entry.get('custom_name') or '').strip(),
+        'quantity': _to_int(entry.get('quantity'), 0, 0),
+    }
+
+
+def _build_edit_change_entries(character, draft):
+    """Compute character changes for history log, excluding HP/MP/SAN adjustments."""
+    changes = []
+    basic = draft.get('basic', {})
+    stats = draft.get('stats', {})
+
+    def add_change(label, before, after):
+        before_text = '' if before is None else str(before)
+        after_text = '' if after is None else str(after)
+        if before_text != after_text:
+            changes.append({'field': label, 'before': before_text, 'after': after_text})
+
+    add_change('Name', character.name, basic.get('name') or character.name)
+    add_change('Description', character.description or '', basic.get('description', ''))
+    add_change('Occupation', character.occupation or '', basic.get('occupation', ''))
+    add_change('Age', character.age, _to_int(basic.get('age'), None) if str(basic.get('age', '')).strip() else None)
+
+    stat_mappings = [
+        ('STR', 'strength'),
+        ('CON', 'constitution'),
+        ('DEX', 'dexterity'),
+        ('INT', 'intelligence'),
+        ('POW', 'power'),
+        ('SIZ', 'size'),
+        ('APP', 'appearance'),
+        ('EDU', 'education'),
+        ('LCK', 'luck'),
+    ]
+    for label, field in stat_mappings:
+        add_change(label, getattr(character, field), _to_int(stats.get(field), getattr(character, field), 0, 100))
+
+    skills_by_id = {skill.id: skill for skill in Skill.objects.all()}
+    current_skills = {cs.skill_id: cs.value for cs in CharacterSkill.objects.filter(character=character)}
+    next_skills = {
+        int(skill_id): _to_int(value, 0, 0, 100)
+        for skill_id, value in _initialize_skill_values(
+            _to_int(stats.get('education'), character.education, 0, 100),
+            draft.get('skills', {}),
+        ).items()
+        if str(skill_id).isdigit()
+    }
+    for skill_id, next_value in next_skills.items():
+        before_value = current_skills.get(skill_id)
+        if before_value != next_value and skill_id in skills_by_id:
+            add_change(f"Skill: {skills_by_id[skill_id].name}", before_value, next_value)
+
+    current_weapons = sorted([
+        _normalize_weapon_entry_for_diff({
+            'name': cw.weapon.name,
+            'damage': cw.weapon.damage,
+            'skill_name': cw.weapon.skill_name,
+            'is_prepared': cw.is_prepared,
+        })
+        for cw in character.weapons.select_related('weapon').all()
+    ], key=lambda w: (w['name'], w['damage'], w['skill'], w['prepared']))
+    draft_weapons = sorted([
+        _normalize_weapon_entry_for_diff(w)
+        for w in draft.get('inventory', {}).get('weapons', [])
+    ], key=lambda w: (w['name'], w['damage'], w['skill'], w['prepared']))
+    if current_weapons != draft_weapons:
+        add_change('Weapons', len(current_weapons), len(draft_weapons))
+
+    current_items = sorted([
+        _normalize_item_entry_for_diff({'name': ci.item.name, 'quantity': ci.quantity})
+        for ci in character.items.select_related('item').all()
+    ], key=lambda i: (i['name'], i['quantity']))
+    draft_items = sorted([
+        _normalize_item_entry_for_diff(i)
+        for i in draft.get('inventory', {}).get('items', [])
+    ], key=lambda i: (i['name'], i['quantity']))
+    if current_items != draft_items:
+        add_change('Inventory', len(current_items), len(draft_items))
+
+    return changes
+
+
+def _load_edit_draft_from_character(character):
+    """Build a wizard draft from an existing Character instance."""
+    skill_values = {
+        str(cs.skill_id): cs.value
+        for cs in CharacterSkill.objects.filter(character=character)
+    }
+    # Keep full stats so preview sheet renders correctly
+    stats = {
+        'strength': character.strength,
+        'constitution': character.constitution,
+        'dexterity': character.dexterity,
+        'intelligence': character.intelligence,
+        'power': character.power,
+        'size': character.size,
+        'appearance': character.appearance,
+        'education': character.education,
+        'luck': character.luck,
+    }
+
+    weapons = []
+    for cw in character.weapons.select_related('weapon').all():
+        skill = Skill.objects.filter(name__iexact=cw.weapon.skill_name, category='combat').first()
+        weapons.append({
+            'weapon_id': cw.weapon.id,
+            'custom_name': '',
+            'name': cw.weapon.name,
+            'damage': cw.weapon.damage,
+            'skill_id': skill.id if skill else 0,
+            'skill_name': cw.weapon.skill_name,
+            'is_prepared': cw.is_prepared,
+            'is_default_unarmed': cw.weapon.name == DEFAULT_UNARMED_WEAPON_NAME,
+        })
+
+    items = [
+        {
+            'item_id': ci.item.id,
+            'custom_name': ci.item.name,
+            'name': ci.item.name,
+            'quantity': ci.quantity,
+        }
+        for ci in character.items.select_related('item').all()
+    ]
+
+    draft = {
+        'step': EDIT_WIZARD_STEPS[0],
+        'basic': {
+            'name': character.name,
+            'description': character.description or '',
+            'occupation': character.occupation or '',
+            'age': str(character.age) if character.age is not None else '',
+        },
+        'stats': stats,
+        'skills': skill_values,
+        'inventory': {'weapons': weapons, 'items': items},
+        'adjustments': {
+            'hp': 0,
+            'mp': 0,
+            'sanity': 0,
+            'luck': 0,
+        },
+    }
+    return _ensure_default_unarmed_weapon_entry(draft)
+
+
+def _apply_edit_draft_to_character(character, draft):
+    """Apply all wizard draft data to an existing Character."""
+    basic = draft['basic']
+    stats = draft.get('stats', {})
+
+    # Basic info
+    character.name = basic.get('name') or character.name
+    character.description = basic.get('description', '')
+    character.occupation = basic.get('occupation', character.occupation)
+    raw_age = str(basic.get('age', '')).strip()
+    character.age = _to_int(raw_age, None) if raw_age else None
+
+    # Stats
+    character.strength = _to_int(stats.get('strength'), character.strength, 0, 100)
+    character.constitution = _to_int(stats.get('constitution'), character.constitution, 0, 100)
+    character.dexterity = _to_int(stats.get('dexterity'), character.dexterity, 0, 100)
+    character.intelligence = _to_int(stats.get('intelligence'), character.intelligence, 0, 100)
+    character.power = _to_int(stats.get('power'), character.power, 0, 100)
+    character.size = _to_int(stats.get('size'), character.size, 0, 100)
+    character.appearance = _to_int(stats.get('appearance'), character.appearance, 0, 100)
+    character.education = _to_int(stats.get('education'), character.education, 0, 100)
+    character.luck = _to_int(stats.get('luck'), character.luck, 0, 100)
+
+    # Recalculate derived stats
+    skill_values_draft = _initialize_skill_values(character.education, draft.get('skills', {}))
+    cthulhu_mythos = 0
+    for skill in Skill.objects.filter(name='Cthulhu Mythos'):
+        cthulhu_mythos = _to_int(skill_values_draft.get(str(skill.id), 0), 0, 0, 99)
+        break
+    derived = _derive_secondary_stats(stats, cthulhu_mythos)
+    adjustments = draft.get('adjustments', {})
+    hp_delta = _to_int(adjustments.get('hp'), 0, -99, 99)
+    mp_delta = _to_int(adjustments.get('mp'), 0, -99, 99)
+    sanity_delta = _to_int(adjustments.get('sanity'), 0, -99, 99)
+    luck_delta = _to_int(adjustments.get('luck'), 0, -99, 99)
+
+    hp_base = min(character.hp_current, derived['hp_max'])
+    mp_base = min(character.mp_current, derived['mp_max'])
+    sanity_base = min(character.sanity_current, derived['sanity_max'])
+
+    character.hp_max = derived['hp_max']
+    character.hp_current = _to_int(hp_base + hp_delta, hp_base, 0, derived['hp_max'])
+    character.mp_max = derived['mp_max']
+    character.mp_current = _to_int(mp_base + mp_delta, mp_base, 0, derived['mp_max'])
+    character.sanity_max = derived['sanity_max']
+    character.sanity_start = derived['sanity_start']
+    character.sanity_current = _to_int(sanity_base + sanity_delta, sanity_base, 0, derived['sanity_max'])
+    character.luck = _to_int(character.luck + luck_delta, character.luck, 0, 100)
+
+    character.save(update_fields=[
+        'name', 'description', 'occupation', 'age',
+        'strength', 'constitution', 'dexterity', 'intelligence', 'power',
+        'size', 'appearance', 'education', 'luck',
+        'hp_max', 'hp_current', 'mp_max', 'mp_current',
+        'sanity_max', 'sanity_start', 'sanity_current', 'updated_at',
+    ])
+
+    # Rebuild skills
+    skills_by_id = {skill.id: skill for skill in Skill.objects.all()}
+    CharacterSkill.objects.filter(character=character).delete()
+    CharacterSkill.objects.bulk_create([
+        CharacterSkill(
+            character=character,
+            skill=skills_by_id[skill_id],
+            value=_to_int(value, skills_by_id[skill_id].base_value, 0, 100),
+        )
+        for skill_id_str, value in skill_values_draft.items()
+        if (skill_id := _to_int(skill_id_str, None)) in skills_by_id
+    ])
+
+    # Rebuild weapons
+    character.weapons.all().delete()
+    refreshed_skill_values = {cs.skill_id: cs.value for cs in CharacterSkill.objects.filter(character=character)}
+    for payload in draft.get('inventory', {}).get('weapons', []):
+        selected_skill = Skill.objects.filter(id=_to_int(payload.get('skill_id'), -1)).first()
+        selected_skill_name = selected_skill.name if selected_skill else str(payload.get('skill_name') or '').strip()
+        selected_skill_value = refreshed_skill_values.get(selected_skill.id, 0) if selected_skill else 0
+        weapon = None
+        if payload.get('weapon_id'):
+            weapon = Weapon.objects.filter(id=_to_int(payload.get('weapon_id'), -1)).first()
+        custom_name = str(payload.get('custom_name', '')).strip()
+        if not weapon and custom_name:
+            weapon, _ = Weapon.objects.get_or_create(
+                name=custom_name,
+                skill_name=selected_skill_name,
+                defaults={'damage': str(payload.get('damage') or '1D4').strip()},
+            )
+        elif weapon and selected_skill_name and weapon.skill_name != selected_skill_name:
+            weapon = (
+                Weapon.objects.filter(name=weapon.name, skill_name=selected_skill_name, damage=weapon.damage).first()
+                or Weapon.objects.create(name=weapon.name, skill_name=selected_skill_name, damage=weapon.damage)
+            )
+        if weapon:
+            CharacterWeapon.objects.create(
+                character=character,
+                weapon=weapon,
+                skill_value=selected_skill_value,
+                is_prepared=bool(payload.get('is_prepared', False)),
+            )
+
+    # Rebuild items
+    character.items.all().delete()
+    for payload in draft.get('inventory', {}).get('items', []):
+        qty = _to_int(payload.get('quantity'), 0, 0)
+        if qty <= 0:
+            continue
+        item = None
+        if payload.get('item_id'):
+            item = Item.objects.filter(id=_to_int(payload.get('item_id'), -1)).first()
+        custom_name = str(payload.get('custom_name', '')).strip()
+        if not item and custom_name:
+            item, _ = Item.objects.get_or_create(name=custom_name, defaults={'description': ''})
+        if item:
+            CharacterItem.objects.create(character=character, item=item, quantity=qty)
+
+
+def _build_edit_wizard_context(request, character, draft):
+    """Build the template context shared by GET and POST for the edit wizard."""
+    current_step = draft['step']
+    draft_stats = draft.get('stats', {})
+    draft_skills = draft.get('skills', {})
+    draft_adjustments = draft.get('adjustments', {'hp': 0, 'mp': 0, 'sanity': 0, 'luck': 0})
+
+    combat_skill_options = [
+        {
+            'id': skill.id,
+            'name': skill.name,
+            'value': draft_skills.get(str(skill.id), skill.base_value),
+        }
+        for skill in Skill.objects.filter(category='combat').order_by('name')
+    ]
+    mythos_skill = Skill.objects.filter(name='Cthulhu Mythos').first()
+    mythos_value = draft_skills.get(str(mythos_skill.id), 0) if mythos_skill else 0
+    derived_stats = _derive_secondary_stats(draft_stats, mythos_value)
+
+    hp_delta = _to_int(draft_adjustments.get('hp'), 0, -99, 99)
+    mp_delta = _to_int(draft_adjustments.get('mp'), 0, -99, 99)
+    sanity_delta = _to_int(draft_adjustments.get('sanity'), 0, -99, 99)
+    luck_delta = _to_int(draft_adjustments.get('luck'), 0, -99, 99)
+
+    hp_base = min(character.hp_current, derived_stats['hp_max'])
+    mp_base = min(character.mp_current, derived_stats['mp_max'])
+    sanity_base = min(character.sanity_current, derived_stats['sanity_max'])
+    luck_base = _to_int(draft_stats.get('luck', character.luck), character.luck, 0, 100)
+
+    review_current_values = {
+        'hp': _to_int(hp_base + hp_delta, hp_base, 0, derived_stats['hp_max']),
+        'hp_max': derived_stats['hp_max'],
+        'mp': _to_int(mp_base + mp_delta, mp_base, 0, derived_stats['mp_max']),
+        'mp_max': derived_stats['mp_max'],
+        'sanity': _to_int(sanity_base + sanity_delta, sanity_base, 0, derived_stats['sanity_max']),
+        'sanity_max': derived_stats['sanity_max'],
+        'luck': _to_int(luck_base + luck_delta, luck_base, 0, 100),
+    }
+
+    preview_character = type('PreviewCharacter', (), {
+        'id': character.id,
+        'name': draft['basic'].get('name') or character.name,
+        'occupation': draft['basic'].get('occupation', ''),
+        'age': draft['basic'].get('age') or None,
+        'description': draft['basic'].get('description', ''),
+        'cash': character.cash,
+        'is_alive': character.is_alive,
+        'hp_current': review_current_values['hp'],
+        'hp_max': derived_stats['hp_max'],
+        'mp_current': review_current_values['mp'],
+        'mp_max': derived_stats['mp_max'],
+        'sanity_current': review_current_values['sanity'],
+        'sanity_max': derived_stats['sanity_max'],
+        'luck': review_current_values['luck'],
+        'strength': draft_stats.get('strength', character.strength),
+        'constitution': draft_stats.get('constitution', character.constitution),
+        'dexterity': draft_stats.get('dexterity', character.dexterity),
+        'intelligence': draft_stats.get('intelligence', character.intelligence),
+        'power': draft_stats.get('power', character.power),
+        'size': draft_stats.get('size', character.size),
+        'appearance': draft_stats.get('appearance', character.appearance),
+        'education': draft_stats.get('education', character.education),
+        'player_notes': character.player_notes,
+    })()
+    preview_sheet = _build_character_sheet_context(
+        character=preview_character,
+        skill_values={int(k): v for k, v in draft_skills.items() if str(k).isdigit()},
+        weapons=_normalize_preview_weapons(draft['inventory']['weapons']),
+        items=_normalize_preview_items(draft['inventory']['items']),
+        spells=[],
+        can_add_custom_skill=False,
+    )
+
+    skills = list(
+        Skill.objects.exclude(name__in=['Cthulhu Mythos', 'Own Language', 'English']).order_by('category', 'name')
+    )
+    existing_categories = []
+    for category_key, category_label in [('mutual', 'Mutual'), ('general', 'General'), ('combat', 'Combat'), ('language', 'Language')]:
+        if any(s.category == category_key for s in skills):
+            existing_categories.append((category_key, category_label))
+
+    return {
+        'wizard_steps': EDIT_WIZARD_STEPS,
+        'current_step': current_step,
+        'current_step_index': EDIT_WIZARD_STEPS.index(current_step),
+        'draft': draft,
+        'weapon_templates': list(Weapon.objects.order_by('name').values('id', 'name', 'damage', 'skill_name')),
+        'item_templates': list(Item.objects.order_by('name').values('id', 'name')),
+        'combat_skill_options': combat_skill_options,
+        'derived_stats': derived_stats,
+        'preview_sheet': preview_sheet,
+        'skill_options': [
+            {
+                'id': skill.id,
+                'name': skill.name,
+                'category': skill.category,
+                'value': draft_skills.get(str(skill.id), skill.base_value),
+                'base_value': skill.base_value,
+            }
+            for skill in skills
+        ],
+        'skill_categories': existing_categories,
+        'wizard_form_url': reverse('characters:edit_wizard', args=[character.id]),
+        'wizard_export_url': reverse('characters:edit_wizard_export', args=[character.id]),
+        'wizard_import_url': reverse('characters:edit_wizard_import', args=[character.id]),
+        'wizard_back_url': reverse('characters:detail', args=[character.id]),
+        'edit_mode': True,
+        'show_reset': False,
+        'wizard_title': 'Edit Character',
+        'wizard_back_text': 'Back to Character',
+        'show_change_history': True,
+        'enable_status_adjustments': True,
+        'review_current_values': review_current_values,
+        'character_change_logs': CharacterChangeLog.objects.filter(character=character).select_related('changed_by')[:50],
+    }
+
+
+@login_required
+def character_edit_wizard(request, character_id):
+    """Multi-step wizard for editing an existing character's basic info and inventory."""
+    character = get_object_or_404(Character, id=character_id)
+    if character.owner != request.user and not request.user.is_keeper():
+        messages.error(request, "You don't have permission to edit this character.")
+        return redirect('characters:detail', character_id=character_id)
+
+    session_key = _edit_session_key(character_id)
+
+    def get_draft():
+        draft = request.session.get(session_key)
+        if not draft:
+            draft = _load_edit_draft_from_character(character)
+        draft.setdefault('basic', {'name': character.name, 'description': '', 'occupation': '', 'age': ''})
+        draft.setdefault('stats', {})
+        draft.setdefault('skills', {})
+        draft.setdefault('inventory', {'weapons': [], 'items': []})
+        draft.setdefault('adjustments', {'hp': 0, 'mp': 0, 'sanity': 0, 'luck': 0})
+        draft['inventory'].setdefault('weapons', [])
+        draft['inventory'].setdefault('items', [])
+        return _ensure_default_unarmed_weapon_entry(draft)
+
+    def save_draft(draft):
+        request.session[session_key] = draft
+        request.session.modified = True
+
+    if request.method == 'POST':
+        action = request.POST.get('action', 'next')
+        draft = get_draft()
+        step = request.POST.get('step', draft.get('step', EDIT_WIZARD_STEPS[0]))
+        if step not in EDIT_WIZARD_STEPS:
+            step = draft.get('step', EDIT_WIZARD_STEPS[0])
+
+        if action == 'reset':
+            request.session.pop(session_key, None)
+            return redirect('characters:edit_wizard', character_id=character_id)
+
+        if step == 'basic':
+            draft['basic'].update({
+                'name': request.POST.get('name', '').strip(),
+                'description': request.POST.get('description', '').strip(),
+                'occupation': request.POST.get('occupation', '').strip(),
+                'age': request.POST.get('age', '').strip(),
+            })
+        elif step == 'stats':
+            stats = draft['stats']
+            for field in ['strength', 'constitution', 'dexterity', 'intelligence', 'power', 'size', 'appearance', 'education', 'luck']:
+                stats[field] = _to_int(request.POST.get(field), stats.get(field, 0), 0, 100)
+            draft['skills'] = _initialize_skill_values(stats['education'], draft.get('skills', {}))
+        elif step == 'skills':
+            updated = {}
+            editable_skills = Skill.objects.exclude(name__in=['Cthulhu Mythos', 'Own Language', 'English'])
+            for skill in editable_skills:
+                updated[str(skill.id)] = _to_int(request.POST.get(f'skill_{skill.id}'), skill.base_value, 0, 100)
+            for skill_name in ['Cthulhu Mythos', 'Own Language', 'English']:
+                skill = Skill.objects.filter(name=skill_name).first()
+                if skill:
+                    updated[str(skill.id)] = draft['skills'].get(str(skill.id), skill.base_value)
+            draft['skills'] = _initialize_skill_values(draft['stats']['education'], updated)
+        elif step == 'inventory':
+            inventory = draft['inventory']
+            try:
+                weapons_payload = json.loads(request.POST.get('weapons_json', '[]'))
+            except json.JSONDecodeError:
+                weapons_payload = []
+            try:
+                items_payload = json.loads(request.POST.get('items_json', '[]'))
+            except json.JSONDecodeError:
+                items_payload = []
+
+            inventory['weapons'] = []
+            for payload in weapons_payload:
+                if not isinstance(payload, dict):
+                    continue
+                entry = {
+                    'weapon_id': _to_int(payload.get('weapon_id'), 0),
+                    'custom_name': str(payload.get('custom_name', '')).strip(),
+                    'name': str(payload.get('name', '')).strip(),
+                    'damage': str(payload.get('damage', '')).strip(),
+                    'skill_id': _to_int(payload.get('skill_id'), 0),
+                    'skill_name': str(payload.get('skill_name', '')).strip(),
+                    'is_prepared': bool(payload.get('is_prepared', False)),
+                    'is_default_unarmed': bool(payload.get('is_default_unarmed', False)),
+                }
+                if entry['weapon_id'] or entry['custom_name']:
+                    inventory['weapons'].append(entry)
+
+            inventory['items'] = []
+            for payload in items_payload:
+                if not isinstance(payload, dict):
+                    continue
+                entry = {
+                    'item_id': _to_int(payload.get('item_id'), 0),
+                    'custom_name': str(payload.get('custom_name', '')).strip(),
+                    'quantity': _to_int(payload.get('quantity'), 0, 0),
+                }
+                if entry['quantity'] > 0 and (entry['item_id'] or entry['custom_name']):
+                    inventory['items'].append(entry)
+
+            _ensure_default_unarmed_weapon_entry(draft)
+        elif step == 'review':
+            draft['adjustments'] = {
+                'hp': _to_int(request.POST.get('adjust_hp'), draft.get('adjustments', {}).get('hp', 0), -99, 99),
+                'mp': _to_int(request.POST.get('adjust_mp'), draft.get('adjustments', {}).get('mp', 0), -99, 99),
+                'sanity': _to_int(request.POST.get('adjust_sanity'), draft.get('adjustments', {}).get('sanity', 0), -99, 99),
+                'luck': _to_int(request.POST.get('adjust_luck'), draft.get('adjustments', {}).get('luck', 0), -99, 99),
+            }
+
+        current_index = EDIT_WIZARD_STEPS.index(step)
+        if action == 'prev':
+            draft['step'] = EDIT_WIZARD_STEPS[max(current_index - 1, 0)]
+        elif action == 'save':
+            change_entries = _build_edit_change_entries(character, draft)
+            _apply_edit_draft_to_character(character, draft)
+            if change_entries:
+                CharacterChangeLog.objects.create(
+                    character=character,
+                    changed_by=request.user,
+                    changes=change_entries,
+                )
+            request.session.pop(session_key, None)
+            messages.success(request, f'Character "{character.name}" updated successfully.')
+            return redirect('characters:detail', character_id=character.id)
+        else:
+            draft['step'] = EDIT_WIZARD_STEPS[min(current_index + 1, len(EDIT_WIZARD_STEPS) - 1)]
+
+        save_draft(draft)
+        return redirect('characters:edit_wizard', character_id=character_id)
+
+    # GET
+    requested_step = request.GET.get('step')
+    draft = get_draft()
+    if requested_step in EDIT_WIZARD_STEPS:
+        draft['step'] = requested_step
+        save_draft(draft)
+
+    context = _build_edit_wizard_context(request, character, draft)
+    return render(request, 'characters/create.html', context)
+
+
+@login_required
+def character_edit_wizard_export(request, character_id):
+    """Export edit-wizard draft as JSON."""
+    character = get_object_or_404(Character, id=character_id, owner=request.user)
+    draft = request.session.get(_edit_session_key(character_id)) or _load_edit_draft_from_character(character)
+    response = HttpResponse(
+        json.dumps(_export_payload_from_draft(draft), indent=2, ensure_ascii=False),
+        content_type='application/json',
+    )
+    name_slug = character.name.replace(' ', '_').lower()
+    response['Content-Disposition'] = f'attachment; filename="{name_slug}.json"'
+    return response
+
+
+@login_required
+def character_edit_wizard_import(request, character_id):
+    """Import JSON into edit-wizard draft."""
+    if request.method != 'POST':
+        return redirect('characters:edit_wizard', character_id=character_id)
+    character = get_object_or_404(Character, id=character_id, owner=request.user)
+    uploaded_file = request.FILES.get('json_file')
+    if not uploaded_file:
+        messages.error(request, 'Please choose a JSON file to import.')
+        return redirect('characters:edit_wizard', character_id=character_id)
+    try:
+        payload = json.loads(uploaded_file.read().decode('utf-8'))
+        draft = _draft_from_import(payload)
+        draft.setdefault('adjustments', {'hp': 0, 'mp': 0, 'sanity': 0, 'luck': 0})
+        draft['step'] = 'review'
+        request.session[_edit_session_key(character_id)] = draft
+        request.session.modified = True
+        messages.success(request, 'Draft imported successfully.')
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        messages.error(request, 'Invalid JSON file.')
+    return redirect('characters:edit_wizard', character_id=character_id)
+
+

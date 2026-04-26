@@ -1,0 +1,107 @@
+<!-- Stat Modal -->
+<div class="modal fade" id="statModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="statModalTitle">Characteristic</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center">
+                    <h3 id="statValue">0</h3>
+                    <hr>
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <strong>Regular</strong><br>
+                            <span id="statRegular">0</span>
+                        </div>
+                        <div class="col-4">
+                            <strong>Hard</strong><br>
+                            <span id="statHard">0</span>
+                        </div>
+                        <div class="col-4">
+                            <strong>Extreme</strong><br>
+                            <span id="statExtreme">0</span>
+                        </div>
+                    </div>
+                </div>
+                <p class="mt-3 text-muted" id="statDescription"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Skill Modal -->
+<div class="modal fade" id="skillModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="skillModalTitle">Skill</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center">
+                    <h3 id="skillValue">0%</h3>
+                    <hr>
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <strong>Regular</strong><br>
+                            <span id="skillRegular">0</span>
+                        </div>
+                        <div class="col-4">
+                            <strong>Hard</strong><br>
+                            <span id="skillHard">0</span>
+                        </div>
+                        <div class="col-4">
+                            <strong>Extreme</strong><br>
+                            <span id="skillExtreme">0</span>
+                        </div>
+                    </div>
+                </div>
+                <p class="mt-3 text-muted" id="skillDescription"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if sheet.can_add_custom_skill %}
+<div class="modal fade" id="addSkillModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Custom Skill</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="skillName" class="form-label">Skill Name</label>
+                    <input type="text" class="form-control" id="skillName" placeholder="e.g., Computer Use">
+                </div>
+                <div class="mb-3">
+                    <label for="skillValueInput" class="form-label">Skill Value (%)</label>
+                    <input type="number" class="form-control" id="skillValueInput" min="0" max="100" value="20">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="addCustomSkill()">Add Skill</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="modal fade" id="combatTipsModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Combat Tips</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-0">Combat tips placeholder. You can add your final tips text here later.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
