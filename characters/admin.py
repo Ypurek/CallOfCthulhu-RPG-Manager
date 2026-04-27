@@ -2,7 +2,8 @@ from django.contrib import admin
 from .models import (
     Character, Skill, CharacterSkill, Weapon, CharacterWeapon,
     Item, CharacterItem, Spell, CharacterSpell, StatusEffect,
-    CharacterStatusEffect, MentalDisorder, CharacterMentalDisorder
+    CharacterStatusEffect, MentalDisorder, CharacterMentalDisorder,
+    CharacterChangeLog, CharacterTemplate, NPCTemplate
 )
 
 
@@ -74,3 +75,27 @@ class StatusEffectAdmin(admin.ModelAdmin):
 class MentalDisorderAdmin(admin.ModelAdmin):
     list_display = ['name']
     search_fields = ['name']
+
+
+@admin.register(CharacterChangeLog)
+class CharacterChangeLogAdmin(admin.ModelAdmin):
+    list_display = ['character', 'changed_by', 'created_at']
+    list_filter = ['created_at', 'character']
+    search_fields = ['character__name', 'changed_by__username']
+    readonly_fields = ['created_at']
+
+
+@admin.register(CharacterTemplate)
+class CharacterTemplateAdmin(admin.ModelAdmin):
+    list_display = ['name', 'created_by', 'created_at', 'updated_at']
+    list_filter = ['created_at', 'created_by']
+    search_fields = ['name']
+    readonly_fields = ['created_at', 'updated_at']
+
+
+@admin.register(NPCTemplate)
+class NPCTemplateAdmin(admin.ModelAdmin):
+    list_display = ['name', 'created_by', 'created_at', 'updated_at']
+    list_filter = ['created_at', 'created_by']
+    search_fields = ['name']
+    readonly_fields = ['created_at', 'updated_at']

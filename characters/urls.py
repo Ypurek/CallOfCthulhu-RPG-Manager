@@ -20,4 +20,13 @@ urlpatterns = [
     path('templates/<int:template_id>/delete/', views.template_delete, name='template_delete'),
     path('templates/<int:template_id>/use/', views.character_use_template, name='use_template'),
     path('cemetery/', views.character_cemetery, name='cemetery'),
+    # NPC Templates
+    path('npc/templates/', views.npc_templates, name='npc_templates'),
+    path('npc/templates/create/', views.npc_template_create_wizard, name='npc_template_create'),
+    path('npc/templates/<int:template_id>/edit/', views.npc_template_edit_wizard, name='npc_template_edit'),
+    path('npc/templates/<int:template_id>/delete/', views.npc_template_delete, name='npc_template_delete'),
+    path('npc/templates/<int:template_id>/use/', views.npc_use_template, name='npc_use_template'),
+    path('npc/create/', views.npc_create, name='npc_create'),
+    path('npc/create/import/', views.npc_import_json, name='npc_import_json'),
+    path('npc/create/export/', views.npc_export_json, name='npc_export_json'),
 ]

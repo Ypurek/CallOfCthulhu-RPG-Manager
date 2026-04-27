@@ -15,6 +15,7 @@ from .models import (
     CharacterTemplate,
     CharacterWeapon,
     Item,
+    NPCTemplate,
     Skill,
     Weapon,
 )
@@ -25,6 +26,11 @@ DEFAULT_UNARMED_WEAPON_NAME = 'Unarmed Brawl'
 DEFAULT_UNARMED_WEAPON_DAMAGE = '1D3 + DB'
 NON_EDITABLE_SKILL_NAMES = ['Cthulhu Mythos', 'Own Language', 'English', 'Dodge']
 CUSTOM_SKILL_DESCRIPTION_PREFIXES = ('Custom skill:', 'Imported custom skill:')
+
+# NPC wizard constants
+NPC_WIZARD_SESSION_KEY = 'npc_create_draft'
+NPC_WIZARD_STEPS = ['basic', 'stats', 'skills', 'inventory', 'review']
+NPC_TEMPLATE_WIZARD_META_KEY = 'npc_template_wizard_meta'
 
 
 def _to_int(value, default=0, minimum=None, maximum=None):
@@ -454,6 +460,19 @@ def _draft_from_import(data):
         'luck': _to_int(characteristics.get('Luck', 0), 0, 0, 100),
     })
 
+    # Preserve optional status values (HP/MP/SAN/LCK) for wizards that support bar adjustments.
+    derived_stats = _derive_secondary_stats(draft['stats'], 0)
+    status_payload = data.get('status', {}) if isinstance(data.get('status'), dict) else {}
+    hp_payload = status_payload.get('HP', {}) if isinstance(status_payload.get('HP'), dict) else {}
+    mp_payload = status_payload.get('MP', {}) if isinstance(status_payload.get('MP'), dict) else {}
+    sanity_payload = status_payload.get('Sanity', {}) if isinstance(status_payload.get('Sanity'), dict) else {}
+    draft['adjustments'] = {
+        'hp': _to_int(hp_payload.get('current'), derived_stats['hp_current'], 0) - derived_stats['hp_current'],
+        'mp': _to_int(mp_payload.get('current'), derived_stats['mp_current'], 0) - derived_stats['mp_current'],
+        'sanity': _to_int(sanity_payload.get('current'), derived_stats['sanity_current'], 0) - derived_stats['sanity_current'],
+        'luck': 0,
+    }
+
     imported_skills = {}
     custom_skills = {}
     skills_by_name = {skill.name.lower(): skill for skill in Skill.objects.all() if not _is_custom_skill_record(skill)}
@@ -837,6 +856,17 @@ def character_detail(request, character_id):
 
 
 @login_required
+def character_cemetery(request):
+    """Show user's dead characters"""
+    dead_characters = Character.objects.filter(
+        owner=request.user,
+        is_alive=False,
+        character_type='PC'
+    )
+    return render(request, 'characters/cemetery.html', {'characters': dead_characters})
+
+
+@login_required
 def character_delete(request, character_id):
     """Delete a character after confirmation."""
     if request.method != 'POST':
@@ -1197,6 +1227,135 @@ def _can_manage_templates(user):
     )
 
 
+def _load_character_templates():
+    """Read character templates from the database for template cards."""
+    templates = []
+    for template in CharacterTemplate.objects.order_by('name', 'id'):
+        data = template.payload if isinstance(template.payload, dict) else {}
+        try:
+            info = data.get('character_info', {})
+            chars = data.get('characteristics', {})
+            skills = data.get('skills', {})
+            hp_max = max((_to_int(chars.get('STR')) + _to_int(chars.get('CON'))) // 10, 1)
+            mp_max = max(_to_int(chars.get('POW')) // 5, 1)
+            sanity = max(99 - _to_int(skills.get('Cthulhu_Mythos'), 0, 0, 99), 0)
+            top_skills = sorted(
+                [(name.replace('_', ' '), _to_int(value)) for name, value in skills.items() if _to_int(value) > 25],
+                key=lambda x: -x[1],
+            )[:6]
+            templates.append({
+                'id': template.id,
+                'name': info.get('name', template.name),
+                'occupation': info.get('occupation', ''),
+                'age': info.get('age', ''),
+                'description': data.get('description', ''),
+                'STR': _to_int(chars.get('STR')),
+                'CON': _to_int(chars.get('CON')),
+                'DEX': _to_int(chars.get('DEX')),
+                'INT': _to_int(chars.get('INT')),
+                'APP': _to_int(chars.get('APP')),
+                'POW': _to_int(chars.get('POW')),
+                'SIZ': _to_int(chars.get('SIZ')),
+                'EDU': _to_int(chars.get('EDU')),
+                'luck': _to_int(chars.get('Luck')),
+                'hp_max': hp_max,
+                'mp_max': mp_max,
+                'sanity': sanity,
+                'top_skills': top_skills,
+                'weapons': [w.get('name', '') for w in data.get('weapons', []) if isinstance(w, dict)],
+            })
+        except (TypeError, ValueError, KeyError):
+            continue
+    return templates
+
+
+@login_required
+def character_templates(request):
+    """Show character templates list for all users."""
+    if request.session.get(TEMPLATE_WIZARD_META_KEY):
+        request.session.pop(TEMPLATE_WIZARD_META_KEY, None)
+        request.session.pop(WIZARD_SESSION_KEY, None)
+        request.session.modified = True
+
+    return render(request, 'characters/templates.html', {
+        'templates': _load_character_templates(),
+        'can_manage_templates': _can_manage_templates(request.user),
+    })
+
+
+@login_required
+def character_use_template(request, template_id):
+    """Load a character template into the character creation wizard draft."""
+    if request.method != 'POST':
+        return redirect('characters:templates')
+
+    template = get_object_or_404(CharacterTemplate, id=template_id)
+    payload = template.payload if isinstance(template.payload, dict) else {}
+    draft = _draft_from_import(payload)
+    draft['step'] = 'basic'
+
+    request.session[WIZARD_SESSION_KEY] = draft
+    request.session.pop(TEMPLATE_WIZARD_META_KEY, None)
+    request.session.modified = True
+    messages.success(request, f'Template "{template.name}" loaded!')
+    return redirect('characters:create')
+
+
+@login_required
+def template_create_wizard(request):
+    """Start character template creation flow for keepers/admins."""
+    if not _can_manage_templates(request.user):
+        messages.error(request, 'Only keepers/admins can manage templates.')
+        return redirect('characters:templates')
+
+    request.session[WIZARD_SESSION_KEY] = _default_draft()
+    request.session[TEMPLATE_WIZARD_META_KEY] = {'mode': 'create'}
+    request.session.modified = True
+    return redirect('characters:create')
+
+
+@login_required
+def template_edit_wizard(request, template_id):
+    """Start character template edit flow for keepers/admins."""
+    if not _can_manage_templates(request.user):
+        messages.error(request, 'Only keepers/admins can manage templates.')
+        return redirect('characters:templates')
+
+    template = CharacterTemplate.objects.filter(id=template_id).first()
+    if not template:
+        messages.error(request, 'Template not found.')
+        return redirect('characters:templates')
+
+    payload = template.payload if isinstance(template.payload, dict) else {}
+    draft = _draft_from_import(payload)
+    draft['step'] = 'basic'
+    request.session[WIZARD_SESSION_KEY] = draft
+    request.session[TEMPLATE_WIZARD_META_KEY] = {'mode': 'edit', 'template_id': template.id}
+    request.session.modified = True
+    return redirect('characters:create')
+
+
+@login_required
+def template_delete(request, template_id):
+    """Delete a character template for keepers/admins."""
+    if request.method != 'POST':
+        return redirect('characters:templates')
+
+    if not _can_manage_templates(request.user):
+        messages.error(request, 'Only keepers/admins can manage templates.')
+        return redirect('characters:templates')
+
+    template = CharacterTemplate.objects.filter(id=template_id).first()
+    if not template:
+        messages.error(request, 'Template not found.')
+        return redirect('characters:templates')
+
+    template_name = template.name
+    template.delete()
+    messages.success(request, f'Template "{template_name}" deleted successfully.')
+    return redirect('characters:templates')
+
+
 def _skill_name_to_export_key(skill_name, category=None):
     mapping = {
         'Fighting (Brawl)': 'Fighting_Brawl',
@@ -1275,17 +1434,54 @@ def _template_payload_from_draft(draft):
     }
 
 
-def _load_character_templates():
-    """Read character templates from the database."""
+def _status_from_draft(draft):
+    """Compute status values from stats plus optional review-step adjustments."""
+    draft_stats = draft.get('stats', {})
+    draft_adjustments = draft.get('adjustments', {})
+    mythos_skill = Skill.objects.filter(name='Cthulhu Mythos').first()
+    mythos_value = draft.get('skills', {}).get(str(mythos_skill.id), 0) if mythos_skill else 0
+    derived = _derive_secondary_stats(draft_stats, mythos_value)
+
+    hp = _to_int(
+        derived['hp_current'] + _to_int(draft_adjustments.get('hp'), 0, -99, 99),
+        derived['hp_current'],
+        0,
+        derived['hp_max'],
+    )
+    mp = _to_int(
+        derived['mp_current'] + _to_int(draft_adjustments.get('mp'), 0, -99, 99),
+        derived['mp_current'],
+        0,
+        derived['mp_max'],
+    )
+    sanity = _to_int(
+        derived['sanity_current'] + _to_int(draft_adjustments.get('sanity'), 0, -99, 99),
+        derived['sanity_current'],
+        0,
+        derived['sanity_max'],
+    )
+
+    return {
+        'HP': {'max': derived['hp_max'], 'current': hp},
+        'MP': {'max': derived['mp_max'], 'current': mp},
+        'Sanity': {'max': derived['sanity_max'], 'current': sanity},
+    }
+
+
+def _load_npc_templates():
+    """Read NPC templates from the database."""
     templates = []
-    for template in CharacterTemplate.objects.order_by('name', 'id'):
+    for template in NPCTemplate.objects.order_by('name', 'id'):
         data = template.payload if isinstance(template.payload, dict) else {}
         try:
             info = data.get('character_info', {})
             chars = data.get('characteristics', {})
             skills = data.get('skills', {})
-            hp_max = max((chars.get('STR', 0) + chars.get('CON', 0)) // 10, 1)
-            mp_max = max(chars.get('POW', 0) // 5, 1)
+            status_data = data.get('status', {}) if isinstance(data.get('status'), dict) else {}
+            hp_data = status_data.get('HP', {}) if isinstance(status_data.get('HP'), dict) else {}
+            mp_data = status_data.get('MP', {}) if isinstance(status_data.get('MP'), dict) else {}
+            hp_max = _to_int(hp_data.get('max'), max((_to_int(chars.get('STR')) + _to_int(chars.get('CON'))) // 10, 1), 1)
+            mp_max = _to_int(mp_data.get('max'), max(_to_int(chars.get('POW')) // 5, 1), 1)
             top_skills = sorted(
                 [(name.replace('_', ' '), val) for name, val in skills.items() if val > 25],
                 key=lambda x: -x[1],
@@ -1317,108 +1513,400 @@ def _load_character_templates():
 
 
 @login_required
-def character_templates(request):
-    """Show pre-made character templates."""
-    if request.session.get(TEMPLATE_WIZARD_META_KEY):
-        request.session.pop(TEMPLATE_WIZARD_META_KEY, None)
-        request.session.pop(WIZARD_SESSION_KEY, None)
+def npc_templates(request):
+    """Show NPC templates for admins/keepers."""
+    if not _can_manage_templates(request.user):
+        messages.error(request, 'Only keepers/admins can view NPC templates.')
+        return redirect('characters:templates')
+
+    if request.session.get(NPC_TEMPLATE_WIZARD_META_KEY):
+        request.session.pop(NPC_TEMPLATE_WIZARD_META_KEY, None)
+        request.session.pop(NPC_WIZARD_SESSION_KEY, None)
         request.session.modified = True
 
-    return render(request, 'characters/templates.html', {
-        'templates': _load_character_templates(),
+    return render(request, 'characters/npc_templates.html', {
+        'templates': _load_npc_templates(),
         'can_manage_templates': _can_manage_templates(request.user),
     })
 
 
 @login_required
-def character_use_template(request, template_id):
-    """Load a DB template into the creation wizard draft and redirect to wizard."""
-    if request.method != 'POST':
-        return redirect('characters:templates')
+def npc_use_template(request, template_id):
+    """Load an NPC DB template into the creation wizard draft and redirect to NPC wizard."""
+    if not _can_manage_templates(request.user):
+        messages.error(request, 'Only keepers/admins can use NPC templates.')
+        return redirect('characters:npc_templates')
 
-    template = get_object_or_404(CharacterTemplate, id=template_id)
+    if request.method != 'POST':
+        return redirect('characters:npc_templates')
+
+    template = get_object_or_404(NPCTemplate, id=template_id)
     payload = template.payload if isinstance(template.payload, dict) else {}
 
     try:
         draft = _draft_from_import(payload)
         draft['step'] = 'basic'
-        _save_draft(request, draft)
-        messages.success(request, f'Template "{template.name}" loaded! Customize your character below.')
+        request.session[NPC_WIZARD_SESSION_KEY] = draft
+        request.session.modified = True
+        messages.success(request, f'NPC template "{template.name}" loaded! Customize below.')
     except (TypeError, ValueError):
-        messages.error(request, 'Failed to load template.')
+        messages.error(request, 'Failed to load NPC template.')
 
-    return redirect('characters:create')
+    return redirect('characters:npc_create')
 
 
 @login_required
-def template_create_wizard(request):
-    """Start template creation flow for keepers/admins using the shared wizard."""
+def npc_template_create_wizard(request):
+    """Start NPC template creation flow for keepers/admins."""
     if not _can_manage_templates(request.user):
-        messages.error(request, 'Only keepers/admins can manage templates.')
-        return redirect('characters:templates')
+        messages.error(request, 'Only keepers/admins can manage NPC templates.')
+        return redirect('characters:npc_templates')
 
-    request.session[WIZARD_SESSION_KEY] = _default_draft()
-    request.session[TEMPLATE_WIZARD_META_KEY] = {'mode': 'create'}
+    request.session[NPC_WIZARD_SESSION_KEY] = _default_draft()
+    request.session[NPC_TEMPLATE_WIZARD_META_KEY] = {'mode': 'create'}
     request.session.modified = True
-    return redirect('characters:create')
+    return redirect('characters:npc_create')
 
 
 @login_required
-def template_edit_wizard(request, template_id):
-    """Start template edit flow for keepers/admins using the shared wizard."""
+def npc_template_edit_wizard(request, template_id):
+    """Start NPC template edit flow for keepers/admins."""
     if not _can_manage_templates(request.user):
-        messages.error(request, 'Only keepers/admins can manage templates.')
-        return redirect('characters:templates')
+        messages.error(request, 'Only keepers/admins can manage NPC templates.')
+        return redirect('characters:npc_templates')
 
-    template = CharacterTemplate.objects.filter(id=template_id).first()
+    template = NPCTemplate.objects.filter(id=template_id).first()
     if not template:
-        messages.error(request, 'Template not found.')
-        return redirect('characters:templates')
+        messages.error(request, 'NPC template not found.')
+        return redirect('characters:npc_templates')
 
     payload = template.payload if isinstance(template.payload, dict) else {}
     try:
         draft = _draft_from_import(payload)
     except (TypeError, ValueError):
-        messages.error(request, 'Template data is invalid.')
-        return redirect('characters:templates')
+        messages.error(request, 'NPC template data is invalid.')
+        return redirect('characters:npc_templates')
 
-    request.session[WIZARD_SESSION_KEY] = draft
-    request.session[TEMPLATE_WIZARD_META_KEY] = {'mode': 'edit', 'template_id': template.id}
+    request.session[NPC_WIZARD_SESSION_KEY] = draft
+    request.session[NPC_TEMPLATE_WIZARD_META_KEY] = {'mode': 'edit', 'template_id': template.id}
     request.session.modified = True
-    return redirect('characters:create')
+    return redirect('characters:npc_create')
 
 
 @login_required
-def template_delete(request, template_id):
-    """Delete a DB template for keepers/admins."""
+def npc_template_delete(request, template_id):
+    """Delete an NPC DB template for keepers/admins."""
     if request.method != 'POST':
-        return redirect('characters:templates')
+        return redirect('characters:npc_templates')
 
     if not _can_manage_templates(request.user):
-        messages.error(request, 'Only keepers/admins can manage templates.')
-        return redirect('characters:templates')
+        messages.error(request, 'Only keepers/admins can manage NPC templates.')
+        return redirect('characters:npc_templates')
 
-    template = CharacterTemplate.objects.filter(id=template_id).first()
+    template = NPCTemplate.objects.filter(id=template_id).first()
     if not template:
-        messages.error(request, 'Template not found.')
-        return redirect('characters:templates')
+        messages.error(request, 'NPC template not found.')
+        return redirect('characters:npc_templates')
 
     template_name = template.name
     template.delete()
-    messages.success(request, f'Template "{template_name}" deleted successfully.')
-    return redirect('characters:templates')
+    messages.success(request, f'NPC template "{template_name}" deleted successfully.')
+    return redirect('characters:npc_templates')
 
 
 @login_required
-def character_cemetery(request):
-    """Show user's dead characters"""
-    dead_characters = Character.objects.filter(
-        owner=request.user,
-        is_alive=False,
-        character_type='PC'
-    )
-    return render(request, 'characters/cemetery.html', {'characters': dead_characters})
+def npc_create(request):
+    """Shared NPC creation wizard for keepers/admins."""
+    if not _can_manage_templates(request.user):
+        messages.error(request, 'Only keepers/admins can create NPCs.')
+        return redirect('characters:templates')
 
+    draft = request.session.get(NPC_WIZARD_SESSION_KEY)
+    template_meta = request.session.get(NPC_TEMPLATE_WIZARD_META_KEY)
+    template_mode = bool(template_meta)
+    template_edit_mode = bool(template_mode and template_meta.get('mode') == 'edit')
+
+    if not draft:
+        draft = _default_draft()
+    draft.setdefault('adjustments', {'hp': 0, 'mp': 0, 'sanity': 0, 'luck': 0})
+
+    if request.method == 'POST':
+        action = request.POST.get('action', 'next')
+        step = request.POST.get('step', draft.get('step', NPC_WIZARD_STEPS[0]))
+        if step not in NPC_WIZARD_STEPS:
+            step = draft.get('step', NPC_WIZARD_STEPS[0])
+
+        if action == 'reset':
+            request.session.pop(NPC_WIZARD_SESSION_KEY, None)
+            request.session.pop(NPC_TEMPLATE_WIZARD_META_KEY, None)
+            request.session.modified = True
+            messages.success(request, 'NPC draft cleared.')
+            return redirect('characters:npc_create')
+
+        # Process step data
+        if step == 'basic':
+            draft['basic'].update({
+                'name': request.POST.get('name', '').strip(),
+                'description': request.POST.get('description', '').strip(),
+                'occupation': request.POST.get('occupation', '').strip(),
+                'age': request.POST.get('age', '').strip(),
+            })
+        elif step == 'stats':
+            stats = draft['stats']
+            for field in ['strength', 'constitution', 'dexterity', 'intelligence', 'power', 'size', 'appearance', 'education', 'luck']:
+                stats[field] = _to_int(request.POST.get(field), stats.get(field, 0), 0, 100)
+            draft['skills'] = _initialize_skill_values(stats['education'], draft.get('skills', {}))
+            _sync_custom_skill_values(draft)
+        elif step == 'skills':
+            updated = {}
+            editable_skills = _built_in_skill_queryset()
+            try:
+                draft['custom_skills'] = _normalize_custom_skills(json.loads(request.POST.get('custom_skills_json', '{}') or '{}'))
+            except json.JSONDecodeError:
+                draft['custom_skills'] = _normalize_custom_skills(draft.get('custom_skills', {}))
+            for skill in editable_skills:
+                updated[str(skill.id)] = _to_int(request.POST.get(f'skill_{skill.id}'), skill.base_value, 0, 100)
+            for custom_skill_id, payload in draft['custom_skills'].items():
+                updated[custom_skill_id] = _to_int(
+                    request.POST.get(f'skill_{custom_skill_id}'),
+                    draft['skills'].get(custom_skill_id, max(payload.get('base_value', 1), 1)),
+                    0,
+                    100,
+                )
+            for skill_name in NON_EDITABLE_SKILL_NAMES:
+                skill = Skill.objects.filter(name=skill_name).first()
+                if skill:
+                    updated[str(skill.id)] = draft['skills'].get(str(skill.id), skill.base_value)
+            draft['skills'] = _initialize_skill_values(draft['stats']['education'], updated)
+            _sync_custom_skill_values(draft)
+        elif step == 'inventory':
+            inventory = draft['inventory']
+            try:
+                weapons_payload = json.loads(request.POST.get('weapons_json', '[]'))
+            except json.JSONDecodeError:
+                weapons_payload = []
+            try:
+                items_payload = json.loads(request.POST.get('items_json', '[]'))
+            except json.JSONDecodeError:
+                items_payload = []
+
+            inventory['weapons'] = []
+            for payload in weapons_payload:
+                if not isinstance(payload, dict):
+                    continue
+                entry = {
+                    'weapon_id': _to_int(payload.get('weapon_id'), 0),
+                    'custom_name': str(payload.get('custom_name', '')).strip(),
+                    'name': str(payload.get('name', '')).strip(),
+                    'damage': str(payload.get('damage', '')).strip(),
+                    'skill_id': _to_int(payload.get('skill_id'), 0),
+                    'skill_name': str(payload.get('skill_name', '')).strip(),
+                    'is_prepared': bool(payload.get('is_prepared', False)),
+                    'is_default_unarmed': bool(payload.get('is_default_unarmed', False)),
+                }
+                if entry['weapon_id'] or entry['custom_name']:
+                    inventory['weapons'].append(entry)
+
+            inventory['items'] = []
+            for payload in items_payload:
+                if not isinstance(payload, dict):
+                    continue
+                entry = {
+                    'item_id': _to_int(payload.get('item_id'), 0),
+                    'custom_name': str(payload.get('custom_name', '')).strip(),
+                    'quantity': _to_int(payload.get('quantity'), 0, 0),
+                }
+                if entry['quantity'] > 0 and (entry['item_id'] or entry['custom_name']):
+                    inventory['items'].append(entry)
+
+            _ensure_default_unarmed_weapon_entry(draft)
+        elif step == 'review':
+            draft['adjustments'] = {
+                'hp': _to_int(request.POST.get('adjust_hp'), draft.get('adjustments', {}).get('hp', 0), -99, 99),
+                'mp': _to_int(request.POST.get('adjust_mp'), draft.get('adjustments', {}).get('mp', 0), -99, 99),
+                'sanity': _to_int(request.POST.get('adjust_sanity'), draft.get('adjustments', {}).get('sanity', 0), -99, 99),
+                'luck': _to_int(request.POST.get('adjust_luck'), draft.get('adjustments', {}).get('luck', 0), -99, 99),
+            }
+
+        current_index = NPC_WIZARD_STEPS.index(step)
+        if action == 'prev':
+            draft['step'] = NPC_WIZARD_STEPS[max(current_index - 1, 0)]
+        elif action == 'save':
+            try:
+                payload = _template_payload_from_draft(draft)
+                payload['status'] = _status_from_draft(draft)
+                template_id = (template_meta or {}).get('template_id')
+                template_name = str(draft.get('basic', {}).get('name', '')).strip() or 'Unnamed NPC'
+                if template_id:
+                    template = NPCTemplate.objects.get(id=template_id)
+                    template.name = template_name
+                    template.payload = payload
+                    template.updated_by = request.user
+                    template.save()
+                    messages.success(request, f'NPC template "{template.name}" updated successfully.')
+                else:
+                    NPCTemplate.objects.create(
+                        name=template_name,
+                        payload=payload,
+                        created_by=request.user,
+                        updated_by=request.user,
+                    )
+                    messages.success(request, 'NPC template created successfully.')
+                request.session.pop(NPC_WIZARD_SESSION_KEY, None)
+                request.session.pop(NPC_TEMPLATE_WIZARD_META_KEY, None)
+                request.session.modified = True
+                return redirect('characters:npc_templates')
+            except (ValueError, KeyError, NPCTemplate.DoesNotExist) as e:
+                messages.error(request, f'Failed to save NPC template: {str(e)}')
+                return redirect('characters:npc_templates')
+        else:
+            draft['step'] = NPC_WIZARD_STEPS[min(current_index + 1, len(NPC_WIZARD_STEPS) - 1)]
+
+        request.session[NPC_WIZARD_SESSION_KEY] = draft
+        request.session.modified = True
+        return redirect('characters:npc_create')
+
+    # GET request
+    requested_step = request.GET.get('step')
+    if requested_step in NPC_WIZARD_STEPS:
+        draft['step'] = requested_step
+
+    request.session[NPC_WIZARD_SESSION_KEY] = draft
+    request.session.modified = True
+
+    skill_options = _build_skill_options_from_draft(draft)
+    existing_categories = []
+    for category_key, category_label in [('mutual', 'Mutual'), ('general', 'General'), ('combat', 'Combat'), ('language', 'Language')]:
+        if any(skill['category'] == category_key for skill in skill_options):
+            existing_categories.append((category_key, category_label))
+
+    mythos_skill = Skill.objects.filter(name='Cthulhu Mythos').first()
+    mythos_value = draft['skills'].get(str(mythos_skill.id), 0) if mythos_skill else 0
+    derived_stats = _derive_secondary_stats(draft['stats'], mythos_value)
+    hp_current = _to_int(
+        derived_stats['hp_current'] + _to_int(draft.get('adjustments', {}).get('hp'), 0, -99, 99),
+        derived_stats['hp_current'],
+        0,
+        derived_stats['hp_max'],
+    )
+    mp_current = _to_int(
+        derived_stats['mp_current'] + _to_int(draft.get('adjustments', {}).get('mp'), 0, -99, 99),
+        derived_stats['mp_current'],
+        0,
+        derived_stats['mp_max'],
+    )
+    sanity_current = _to_int(
+        derived_stats['sanity_current'] + _to_int(draft.get('adjustments', {}).get('sanity'), 0, -99, 99),
+        derived_stats['sanity_current'],
+        0,
+        derived_stats['sanity_max'],
+    )
+    combat_skill_options = _build_combat_skill_options_from_draft(draft)
+    preview_character = type('PreviewCharacter', (), {
+        'id': None,
+        'name': draft['basic'].get('name') or 'Unnamed NPC',
+        'occupation': draft['basic'].get('occupation', ''),
+        'age': draft['basic'].get('age') or None,
+        'description': draft['basic'].get('description', ''),
+        'cash': 0,
+        'is_alive': True,
+        'hp_current': hp_current,
+        'hp_max': derived_stats['hp_max'],
+        'mp_current': mp_current,
+        'mp_max': derived_stats['mp_max'],
+        'sanity_current': sanity_current,
+        'sanity_max': derived_stats['sanity_max'],
+        'luck': draft['stats'].get('luck', 0),
+        'strength': draft['stats'].get('strength', 0),
+        'constitution': draft['stats'].get('constitution', 0),
+        'dexterity': draft['stats'].get('dexterity', 0),
+        'intelligence': draft['stats'].get('intelligence', 0),
+        'power': draft['stats'].get('power', 0),
+        'size': draft['stats'].get('size', 0),
+        'appearance': draft['stats'].get('appearance', 0),
+        'education': draft['stats'].get('education', 0),
+        'player_notes': '',
+    })()
+    preview_sheet = _build_character_sheet_context(
+        character=preview_character,
+        skill_values={int(key): value for key, value in draft['skills'].items()},
+        weapons=_normalize_preview_weapons(draft['inventory']['weapons']),
+        items=_normalize_preview_items(draft['inventory']['items']),
+        spells=[],
+        can_add_custom_skill=False,
+        custom_skills=draft.get('custom_skills', {}),
+    )
+
+    return render(request, 'characters/create.html', {
+        'wizard_steps': NPC_WIZARD_STEPS,
+        'current_step': draft['step'],
+        'current_step_index': NPC_WIZARD_STEPS.index(draft['step']),
+        'draft': draft,
+        'skill_options': skill_options,
+        'weapon_templates': list(Weapon.objects.order_by('name').values('id', 'name', 'damage', 'skill_name')),
+        'item_templates': list(Item.objects.order_by('name').values('id', 'name')),
+        'combat_skill_options': combat_skill_options,
+        'skill_categories': existing_categories,
+        'derived_stats': derived_stats,
+        'preview_sheet': preview_sheet,
+        'wizard_form_url': reverse('characters:npc_create'),
+        'wizard_export_url': reverse('characters:npc_export_json'),
+        'wizard_import_url': reverse('characters:npc_import_json'),
+        'wizard_back_url': reverse('characters:npc_templates'),
+        'edit_mode': template_edit_mode,
+        'show_reset': True,
+        'wizard_title': 'Edit NPC Template' if template_edit_mode else 'NPC Template Wizard',
+        'wizard_back_text': 'Back to NPC Templates',
+        'show_change_history': False,
+        'enable_status_adjustments': True,
+    })
+
+
+@login_required
+def npc_import_json(request):
+    """Import NPC JSON file into wizard draft."""
+    if not _can_manage_templates(request.user):
+        messages.error(request, 'Only keepers/admins can import NPCs.')
+        return redirect('characters:npc_templates')
+
+    if request.method != 'POST':
+        return redirect('characters:npc_create')
+
+    uploaded_file = request.FILES.get('json_file')
+    if not uploaded_file:
+        messages.error(request, 'Please choose a JSON file to import.')
+        return redirect('characters:npc_create')
+
+    try:
+        payload = json.loads(uploaded_file.read().decode('utf-8'))
+        draft = _draft_from_import(payload)
+        draft['step'] = 'basic'
+        request.session[NPC_WIZARD_SESSION_KEY] = draft
+        request.session.modified = True
+        messages.success(request, 'NPC imported successfully.')
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        messages.error(request, 'Invalid JSON file.')
+    return redirect('characters:npc_create')
+
+
+@login_required
+def npc_export_json(request):
+    """Export NPC wizard draft as JSON."""
+    if not _can_manage_templates(request.user):
+        messages.error(request, 'Only keepers/admins can export NPCs.')
+        return redirect('characters:npc_create')
+
+    draft = request.session.get(NPC_WIZARD_SESSION_KEY, _default_draft())
+    payload = _export_payload_from_draft(draft)
+    payload['status'] = _status_from_draft(draft)
+
+    response = HttpResponse(
+        json.dumps(payload, indent=2, ensure_ascii=False),
+        content_type='application/json',
+    )
+    name = draft.get('basic', {}).get('name', 'npc').replace(' ', '_').lower()
+    response['Content-Disposition'] = f'attachment; filename="{name}.json"'
+    return response
 
 
 # ── Edit Wizard ───────────────────────────────────────────────────────────────
@@ -1683,11 +2171,13 @@ def _apply_edit_draft_to_character(character, draft):
             weapon = Weapon.objects.filter(id=_to_int(payload.get('weapon_id'), -1)).first()
         custom_name = str(payload.get('custom_name', '')).strip()
         if not weapon and custom_name:
-            weapon, _ = Weapon.objects.get_or_create(
-                name=custom_name,
-                skill_name=selected_skill_name,
-                defaults={'damage': str(payload.get('damage') or '1D4').strip()},
-            )
+            weapon = Weapon.objects.filter(name__iexact=custom_name, skill_name=selected_skill_name).first()
+            if not weapon:
+                weapon = Weapon.objects.create(
+                    name=custom_name,
+                    skill_name=selected_skill_name,
+                    damage=str(payload.get('damage') or '1D4').strip() or '1D4',
+                )
         elif weapon and selected_skill_name and weapon.skill_name != selected_skill_name:
             weapon = (
                 Weapon.objects.filter(name=weapon.name, skill_name=selected_skill_name, damage=weapon.damage).first()

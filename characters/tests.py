@@ -24,6 +24,7 @@ from characters.models import (
     CharacterItem,
     CharacterSkill,
     CharacterTemplate,
+    NPCTemplate,
     CharacterWeapon,
     Item,
     Skill,
@@ -32,6 +33,8 @@ from characters.models import (
 from characters.views import (
     DEFAULT_UNARMED_WEAPON_NAME,
     DEFAULT_UNARMED_WEAPON_DAMAGE,
+    NPC_TEMPLATE_WIZARD_META_KEY,
+    NPC_WIZARD_SESSION_KEY,
     TEMPLATE_WIZARD_META_KEY,
     WIZARD_SESSION_KEY,
     _derive_secondary_stats,
@@ -761,6 +764,109 @@ class UseTemplateViewTests(TestCase):
     def test_unauthenticated_redirects(self):
         response = self.client.post(reverse('characters:use_template', args=[self.template.id]))
         self.assertEqual(response.status_code, 302)
+
+
+class NPCTemplateViewTests(TestCase):
+
+    def setUp(self):
+        self.player = User.objects.create_user(username='p_npc', password='x', role='PLAYER')
+        self.keeper = User.objects.create_user(username='k_npc', password='x', role='KEEPER')
+        Skill.objects.create(name='Fighting (Brawl)', category='combat', base_value=25, description='')
+        self.template = NPCTemplate.objects.create(
+            name='Dock Guard',
+            payload={
+                'character_info': {'name': 'Dock Guard', 'occupation': 'Guard', 'age': 34},
+                'characteristics': {'STR': 60, 'CON': 55, 'DEX': 45, 'INT': 40,
+                                    'APP': 35, 'POW': 50, 'SIZ': 60, 'EDU': 45, 'Luck': 40},
+                'skills': {'Fighting_Brawl': 45},
+                'weapons': [],
+                'inventory': [],
+            },
+        )
+
+    def test_player_cannot_view_npc_templates(self):
+        self.client.login(username='p_npc', password='x')
+        response = self.client.get(reverse('characters:npc_templates'))
+        self.assertRedirects(response, reverse('characters:templates'))
+
+    def test_keeper_can_view_npc_templates(self):
+        self.client.login(username='k_npc', password='x')
+        response = self.client.get(reverse('characters:npc_templates'))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(self.template.id, [t['id'] for t in response.context['templates']])
+
+    def test_npc_create_wizard_bootstrap_sets_session(self):
+        self.client.login(username='k_npc', password='x')
+        response = self.client.get(reverse('characters:npc_template_create'))
+        self.assertRedirects(response, reverse('characters:npc_create'))
+        self.assertIn(NPC_WIZARD_SESSION_KEY, self.client.session)
+        self.assertEqual(self.client.session[NPC_TEMPLATE_WIZARD_META_KEY]['mode'], 'create')
+
+    def test_keeper_can_load_npc_template_into_wizard(self):
+        self.client.login(username='k_npc', password='x')
+        response = self.client.post(reverse('characters:npc_use_template', args=[self.template.id]))
+        self.assertRedirects(response, reverse('characters:npc_create'))
+        draft = self.client.session[NPC_WIZARD_SESSION_KEY]
+        self.assertEqual(draft['basic']['name'], 'Dock Guard')
+        self.assertEqual(draft['stats']['strength'], 60)
+
+    def test_npc_next_moves_to_step_two_not_back_to_basic(self):
+        self.client.login(username='k_npc', password='x')
+        self.client.get(reverse('characters:npc_template_create'))
+        response = self.client.post(reverse('characters:npc_create'), {
+            'step': 'basic',
+            'action': 'next',
+            'name': 'Step Test NPC',
+            'description': 'x',
+            'occupation': 'Guard',
+            'age': '30',
+        })
+        self.assertRedirects(response, reverse('characters:npc_create'))
+        draft = self.client.session[NPC_WIZARD_SESSION_KEY]
+        self.assertEqual(draft['step'], 'stats')
+
+    def test_npc_review_adjust_hp_mp_saved_to_payload_status(self):
+        self.client.login(username='k_npc', password='x')
+        self.client.get(reverse('characters:npc_template_create'))
+        self.client.post(reverse('characters:npc_create'), {
+            'step': 'stats',
+            'action': 'next',
+            'strength': 60,
+            'constitution': 40,
+            'dexterity': 50,
+            'intelligence': 50,
+            'power': 60,
+            'size': 50,
+            'appearance': 50,
+            'education': 50,
+            'luck': 50,
+        })
+        response = self.client.post(reverse('characters:npc_create'), {
+            'step': 'review',
+            'action': 'save',
+            'adjust_hp': '-2',
+            'adjust_mp': '-3',
+            'adjust_sanity': '0',
+            'adjust_luck': '0',
+        })
+        self.assertRedirects(response, reverse('characters:npc_templates'))
+        template = NPCTemplate.objects.exclude(id=self.template.id).latest('id')
+        self.assertEqual(template.payload['status']['HP']['max'], 10)
+        self.assertEqual(template.payload['status']['HP']['current'], 8)
+        self.assertEqual(template.payload['status']['MP']['max'], 12)
+        self.assertEqual(template.payload['status']['MP']['current'], 9)
+
+    def test_nonexistent_npc_template_delete_redirects(self):
+        self.client.login(username='k_npc', password='x')
+        response = self.client.post(reverse('characters:npc_template_delete', args=[99999]))
+        self.assertRedirects(response, reverse('characters:npc_templates'))
+
+    def test_keeper_can_save_npc_template_from_wizard(self):
+        self.client.login(username='k_npc', password='x')
+        self.client.get(reverse('characters:npc_template_create'))
+        response = self.client.post(reverse('characters:npc_create'), {'step': 'review', 'action': 'save'})
+        self.assertRedirects(response, reverse('characters:npc_templates'))
+        self.assertEqual(NPCTemplate.objects.count(), 2)
 
 
 # ===========================================================================

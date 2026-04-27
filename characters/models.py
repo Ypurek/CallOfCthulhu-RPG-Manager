@@ -303,3 +303,32 @@ class CharacterTemplate(models.Model):
     def __str__(self):
         return self.name
 
+
+class NPCTemplate(models.Model):
+    """Keeper-managed NPC templates persisted in the database."""
+
+    name = models.CharField(max_length=150)
+    payload = models.JSONField(default=dict)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_npc_templates',
+    )
+    updated_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='updated_npc_templates',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name', 'id']
+
+    def __str__(self):
+        return self.name
+
