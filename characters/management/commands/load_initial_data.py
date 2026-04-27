@@ -4,7 +4,7 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from characters.models import (
     Character, Skill, CharacterSkill, Weapon, CharacterWeapon,
-    Item, CharacterItem
+    Item, CharacterItem, CharacterTemplate
 )
 
 User = get_user_model()
@@ -65,6 +65,28 @@ class Command(BaseCommand):
             )
             if created:
                 self.stdout.write(f'Created weapon: {weapon_name}')
+
+        # Load DB-backed character templates from docs/characters (seed source only)
+        self.stdout.write('Loading character templates...')
+        templates_dir = Path('docs/characters')
+        for template_file in sorted(templates_dir.glob('*.json')):
+            try:
+                with open(template_file, 'r', encoding='utf-8') as f:
+                    template_payload = json.load(f)
+            except (OSError, json.JSONDecodeError):
+                self.stdout.write(f'Warning: Failed to read template seed {template_file.name}')
+                continue
+
+            template_name = (
+                template_payload.get('character_info', {}).get('name')
+                or template_file.stem.replace('_', ' ').title()
+            )
+            template, created = CharacterTemplate.objects.get_or_create(
+                name=template_name,
+                defaults={'payload': template_payload},
+            )
+            if created:
+                self.stdout.write(f'Created template: {template_name}')
 
         # Create a test user
         self.stdout.write('Creating test users...')

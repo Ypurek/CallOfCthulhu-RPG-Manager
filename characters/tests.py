@@ -9,6 +9,7 @@ from characters.models import (
 	Character,
 	CharacterItem,
 	CharacterSkill,
+	CharacterTemplate,
 	CharacterWeapon,
 	Item,
 	Skill,
@@ -427,4 +428,51 @@ class CharacterCreateWizardTests(TestCase):
 		response = self.client.post(reverse('characters:delete', args=[character.id]))
 		self.assertRedirects(response, reverse('characters:list'))
 		self.assertFalse(Character.objects.filter(id=character.id).exists())
+
+
+class CharacterTemplateDeleteTests(TestCase):
+	def setUp(self):
+		user_model = get_user_model()
+		self.player = user_model.objects.create_user(username='tpl_player', password='secret', role='PLAYER')
+		self.keeper = user_model.objects.create_user(username='tpl_keeper', password='secret', role='KEEPER')
+		self.admin = user_model.objects.create_user(
+			username='tpl_admin',
+			password='secret',
+			role='KEEPER',
+			is_superuser=True,
+			is_staff=True,
+		)
+		self.template = CharacterTemplate.objects.create(
+			name='Test Template',
+			payload={'character_info': {'name': 'Temp Name'}, 'characteristics': {}, 'skills': {}},
+		)
+
+	def test_keeper_can_delete_template(self):
+		self.client.login(username='tpl_keeper', password='secret')
+		response = self.client.post(reverse('characters:template_delete', args=[self.template.id]))
+
+		self.assertRedirects(response, reverse('characters:templates'))
+		self.assertFalse(CharacterTemplate.objects.filter(id=self.template.id).exists())
+
+	def test_admin_can_delete_template(self):
+		self.client.login(username='tpl_admin', password='secret')
+		response = self.client.post(reverse('characters:template_delete', args=[self.template.id]))
+
+		self.assertRedirects(response, reverse('characters:templates'))
+		self.assertFalse(CharacterTemplate.objects.filter(id=self.template.id).exists())
+
+	def test_player_cannot_delete_template(self):
+		self.client.login(username='tpl_player', password='secret')
+		response = self.client.post(reverse('characters:template_delete', args=[self.template.id]))
+
+		self.assertRedirects(response, reverse('characters:templates'))
+		self.assertTrue(CharacterTemplate.objects.filter(id=self.template.id).exists())
+
+	def test_get_request_does_not_delete_template(self):
+		self.client.login(username='tpl_keeper', password='secret')
+		response = self.client.get(reverse('characters:template_delete', args=[self.template.id]))
+
+		self.assertRedirects(response, reverse('characters:templates'))
+		self.assertTrue(CharacterTemplate.objects.filter(id=self.template.id).exists())
+
 

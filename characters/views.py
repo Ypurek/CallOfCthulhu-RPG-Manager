@@ -1,17 +1,18 @@
 import json
-from pathlib import Path
+import re
 
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
-from django.utils.text import slugify
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
+from django.db import DatabaseError
 from .models import (
     Character,
     CharacterChangeLog,
     CharacterItem,
     CharacterSkill,
+    CharacterTemplate,
     CharacterWeapon,
     Item,
     Skill,
@@ -504,12 +505,26 @@ def _draft_from_import(data):
                 'skill_name': selected_skill.name if selected_skill else 'Fighting (Brawl)',
                 'is_prepared': bool(weapon_payload.get('is_prepared', False)),
             })
-    for item_name in data.get('inventory', []):
-        item = items_by_name.get(str(item_name).lower())
+    for item_entry in data.get('inventory', []):
+        # Inventory entries may be plain strings (template format) or dicts (export format).
+        if isinstance(item_entry, dict):
+            raw_name = str(item_entry.get('name') or item_entry.get('custom_name') or '').strip()
+            qty = _to_int(item_entry.get('quantity'), 1, 1)
+        else:
+            raw_name = str(item_entry).strip()
+            qty = 1
+        if not raw_name:
+            continue
+        # Strip trailing " xN" quantity suffix that _export_payload_from_draft adds.
+        match = re.match(r'^(.+?)\s+x(\d+)$', raw_name)
+        if match:
+            raw_name = match.group(1).strip()
+            qty = int(match.group(2))
+        item = items_by_name.get(raw_name.lower())
         if item:
-            inventory['items'].append({'item_id': item.id, 'quantity': 1})
-        elif item_name:
-            inventory['items'].append({'custom_name': str(item_name).strip(), 'quantity': 1})
+            inventory['items'].append({'item_id': item.id, 'name': item.name, 'custom_name': item.name, 'quantity': qty})
+        else:
+            inventory['items'].append({'item_id': 0, 'custom_name': raw_name, 'name': raw_name, 'quantity': qty})
 
     return _sync_custom_skill_values(_ensure_default_unarmed_weapon_entry(draft))
 
@@ -1019,30 +1034,35 @@ def character_create(request):
             draft['step'] = WIZARD_STEPS[max(current_index - 1, 0)]
         elif action == 'save':
             if template_mode:
-                if template_edit_mode:
-                    filename = template_meta.get('filename', '')
-                    template_path = _safe_template_filename(filename)
-                    if not template_path:
-                        messages.error(request, 'Template filename is invalid.')
-                        return redirect('characters:templates')
-                else:
-                    filename = _next_template_filename(draft.get('basic', {}).get('name', 'template'))
-                    template_path = _safe_template_filename(filename)
-
-                if not template_path:
-                    messages.error(request, 'Cannot save template.')
-                    return redirect('characters:templates')
+                payload = _template_payload_from_draft(draft)
+                template_name = str(draft.get('basic', {}).get('name', '')).strip() or 'Unnamed Template'
 
                 try:
-                    with open(template_path, 'w', encoding='utf-8') as file_obj:
-                        json.dump(_template_payload_from_draft(draft), file_obj, indent=2, ensure_ascii=False)
+                    if template_edit_mode:
+                        template_id = template_meta.get('template_id')
+                        template_record = CharacterTemplate.objects.filter(id=template_id).first()
+                        if not template_record:
+                            messages.error(request, 'Template not found.')
+                            return redirect('characters:templates')
+                        template_record.name = template_name
+                        template_record.payload = payload
+                        template_record.updated_by = request.user
+                        template_record.save(update_fields=['name', 'payload', 'updated_by', 'updated_at'])
+                    else:
+                        template_record = CharacterTemplate.objects.create(
+                            name=template_name,
+                            payload=payload,
+                            created_by=request.user,
+                            updated_by=request.user,
+                        )
+
                     request.session.pop(WIZARD_SESSION_KEY, None)
                     request.session.pop(TEMPLATE_WIZARD_META_KEY, None)
                     request.session.modified = True
-                    messages.success(request, f'Template "{filename}" saved successfully.')
+                    messages.success(request, f'Template "{template_record.name}" saved successfully.')
                     return redirect('characters:templates')
-                except OSError:
-                    messages.error(request, 'Failed to save template file.')
+                except DatabaseError:
+                    messages.error(request, 'Failed to save template in database.')
                     return redirect('characters:templates')
 
             character = _create_character_from_draft(request.user, draft)
@@ -1167,7 +1187,6 @@ def character_export_json(request):
     return response
 
 
-_TEMPLATES_DIR = Path(__file__).parent.parent / 'docs' / 'characters'
 TEMPLATE_WIZARD_META_KEY = 'template_wizard_meta'
 
 
@@ -1176,15 +1195,6 @@ def _can_manage_templates(user):
         getattr(user, 'is_superuser', False)
         or (hasattr(user, 'is_keeper') and user.is_keeper())
     )
-
-
-def _safe_template_filename(filename):
-    if not filename or '/' in filename or '\\' in filename or not filename.endswith('.json'):
-        return None
-    path = (_TEMPLATES_DIR / filename).resolve()
-    if path.parent != _TEMPLATES_DIR.resolve():
-        return None
-    return path
 
 
 def _skill_name_to_export_key(skill_name, category=None):
@@ -1265,36 +1275,24 @@ def _template_payload_from_draft(draft):
     }
 
 
-def _next_template_filename(name):
-    base_slug = slugify(name or 'template') or 'template'
-    candidate = f'{base_slug}.json'
-    suffix = 2
-    while (_TEMPLATES_DIR / candidate).exists():
-        candidate = f'{base_slug}-{suffix}.json'
-        suffix += 1
-    return candidate
-
-
 def _load_character_templates():
-    """Read all JSON character templates from docs/characters/."""
+    """Read character templates from the database."""
     templates = []
-    for json_file in sorted(_TEMPLATES_DIR.glob('*.json')):
+    for template in CharacterTemplate.objects.order_by('name', 'id'):
+        data = template.payload if isinstance(template.payload, dict) else {}
         try:
-            with open(json_file, encoding='utf-8') as f:
-                data = json.load(f)
             info = data.get('character_info', {})
             chars = data.get('characteristics', {})
             skills = data.get('skills', {})
             hp_max = max((chars.get('STR', 0) + chars.get('CON', 0)) // 10, 1)
             mp_max = max(chars.get('POW', 0) // 5, 1)
-            # top non-default skills for preview
             top_skills = sorted(
                 [(name.replace('_', ' '), val) for name, val in skills.items() if val > 25],
-                key=lambda x: -x[1]
+                key=lambda x: -x[1],
             )[:6]
             templates.append({
-                'filename': json_file.name,
-                'name': info.get('name', json_file.stem),
+                'id': template.id,
+                'name': info.get('name', template.name),
                 'occupation': info.get('occupation', ''),
                 'age': info.get('age', ''),
                 'description': data.get('description', ''),
@@ -1313,7 +1311,7 @@ def _load_character_templates():
                 'top_skills': top_skills,
                 'weapons': [w.get('name', '') for w in data.get('weapons', [])],
             })
-        except (json.JSONDecodeError, KeyError, OSError):
+        except (TypeError, ValueError, KeyError):
             continue
     return templates
 
@@ -1333,28 +1331,20 @@ def character_templates(request):
 
 
 @login_required
-def character_use_template(request, filename):
-    """Load a template JSON into the creation wizard draft and redirect to wizard."""
+def character_use_template(request, template_id):
+    """Load a DB template into the creation wizard draft and redirect to wizard."""
     if request.method != 'POST':
         return redirect('characters:templates')
 
-    # Security: only allow plain filenames within the templates dir
-    if '/' in filename or '\\' in filename or not filename.endswith('.json'):
-        return redirect('characters:templates')
-
-    json_file = _TEMPLATES_DIR / filename
-    if not json_file.resolve().parent == _TEMPLATES_DIR.resolve() or not json_file.exists():
-        messages.error(request, 'Template not found.')
-        return redirect('characters:templates')
+    template = get_object_or_404(CharacterTemplate, id=template_id)
+    payload = template.payload if isinstance(template.payload, dict) else {}
 
     try:
-        with open(json_file, encoding='utf-8') as f:
-            payload = json.load(f)
         draft = _draft_from_import(payload)
         draft['step'] = 'basic'
         _save_draft(request, draft)
-        messages.success(request, 'Template loaded! Customize your character below.')
-    except (json.JSONDecodeError, UnicodeDecodeError):
+        messages.success(request, f'Template "{template.name}" loaded! Customize your character below.')
+    except (TypeError, ValueError):
         messages.error(request, 'Failed to load template.')
 
     return redirect('characters:create')
@@ -1374,29 +1364,49 @@ def template_create_wizard(request):
 
 
 @login_required
-def template_edit_wizard(request, filename):
+def template_edit_wizard(request, template_id):
     """Start template edit flow for keepers/admins using the shared wizard."""
     if not _can_manage_templates(request.user):
         messages.error(request, 'Only keepers/admins can manage templates.')
         return redirect('characters:templates')
 
-    template_path = _safe_template_filename(filename)
-    if not template_path or not template_path.exists():
+    template = CharacterTemplate.objects.filter(id=template_id).first()
+    if not template:
         messages.error(request, 'Template not found.')
         return redirect('characters:templates')
 
+    payload = template.payload if isinstance(template.payload, dict) else {}
     try:
-        with open(template_path, encoding='utf-8') as file_obj:
-            payload = json.load(file_obj)
         draft = _draft_from_import(payload)
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
-        messages.error(request, 'Template file is invalid.')
+    except (TypeError, ValueError):
+        messages.error(request, 'Template data is invalid.')
         return redirect('characters:templates')
 
     request.session[WIZARD_SESSION_KEY] = draft
-    request.session[TEMPLATE_WIZARD_META_KEY] = {'mode': 'edit', 'filename': filename}
+    request.session[TEMPLATE_WIZARD_META_KEY] = {'mode': 'edit', 'template_id': template.id}
     request.session.modified = True
     return redirect('characters:create')
+
+
+@login_required
+def template_delete(request, template_id):
+    """Delete a DB template for keepers/admins."""
+    if request.method != 'POST':
+        return redirect('characters:templates')
+
+    if not _can_manage_templates(request.user):
+        messages.error(request, 'Only keepers/admins can manage templates.')
+        return redirect('characters:templates')
+
+    template = CharacterTemplate.objects.filter(id=template_id).first()
+    if not template:
+        messages.error(request, 'Template not found.')
+        return redirect('characters:templates')
+
+    template_name = template.name
+    template.delete()
+    messages.success(request, f'Template "{template_name}" deleted successfully.')
+    return redirect('characters:templates')
 
 
 @login_required
@@ -1408,6 +1418,7 @@ def character_cemetery(request):
         character_type='PC'
     )
     return render(request, 'characters/cemetery.html', {'characters': dead_characters})
+
 
 
 # ── Edit Wizard ───────────────────────────────────────────────────────────────

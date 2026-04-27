@@ -273,3 +273,33 @@ class CharacterMentalDisorder(models.Model):
 
     def __str__(self):
         return f"{self.character.name} - {self.disorder.name}"
+
+
+class CharacterTemplate(models.Model):
+    """Keeper-managed character templates persisted in the database."""
+
+    name = models.CharField(max_length=150)
+    payload = models.JSONField(default=dict)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_character_templates',
+    )
+    updated_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='updated_character_templates',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name', 'id']
+
+    def __str__(self):
+        return self.name
+

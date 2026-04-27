@@ -16,7 +16,8 @@ urlpatterns = [
     path('create/export/', views.character_export_json, name='create_export_json'),
     path('templates/', views.character_templates, name='templates'),
     path('templates/create/', views.template_create_wizard, name='template_create'),
-    path('templates/<str:filename>/edit/', views.template_edit_wizard, name='template_edit'),
-    path('templates/<str:filename>/use/', views.character_use_template, name='use_template'),
+    path('templates/<int:template_id>/edit/', views.template_edit_wizard, name='template_edit'),
+    path('templates/<int:template_id>/delete/', views.template_delete, name='template_delete'),
+    path('templates/<int:template_id>/use/', views.character_use_template, name='use_template'),
     path('cemetery/', views.character_cemetery, name='cemetery'),
 ]
