@@ -159,6 +159,38 @@
         transform: translateY(-1px);
     }
 
+    #weaponModal .modal-content {
+        background: rgba(30, 30, 30, 0.96);
+        border: 1px solid var(--gold);
+        color: var(--cream);
+    }
+
+    #weaponModal .modal-header,
+    #weaponModal .modal-footer {
+        border-color: rgba(212, 175, 55, 0.45);
+    }
+
+    #weaponModal .modal-title,
+    #weaponModal .form-label {
+        color: var(--gold);
+        font-weight: 600;
+    }
+
+    #weaponModal .form-control,
+    #weaponModal .form-select {
+        background: rgba(44, 44, 44, 0.9);
+        border: 1px solid rgba(212, 175, 55, 0.55);
+        color: var(--cream);
+    }
+
+    #weaponModal .form-control::placeholder {
+        color: rgba(245, 245, 220, 0.55);
+    }
+
+    #weaponModal .btn-close {
+        filter: invert(1) grayscale(100%) brightness(200%);
+    }
+
     @media (max-width: 576px) {
         .wizard-stat-grid,
         .skill-editor-list {
@@ -556,7 +588,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="weaponModalTitle">{% trans "Add Weapon" %}</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <label for="weapon-template-select" class="form-label">{% trans "From templates" %}</label>
@@ -571,7 +603,7 @@
                 <label for="weapon-custom-damage" class="form-label">{% trans "Damage" %}</label>
                 <input id="weapon-custom-damage" class="form-control mb-2" type="text" placeholder="{% trans 'e.g., 1D6 + DB' %}">
                 <div class="row g-2">
-                    <div class="col-8">
+                    <div class="col-12">
                         <label for="weapon-skill-select" class="form-label">{% trans "Combat skill" %}</label>
                         <select id="weapon-skill-select" class="form-select">
                             <option value="">{% trans "Choose combat skill" %}</option>
@@ -579,12 +611,6 @@
                             <option value="{{ skill.id }}" data-name="{{ skill.name }}">{{ skill.name }} ({{ skill.value }}%)</option>
                             {% endfor %}
                         </select>
-                    </div>
-                    <div class="col-4 d-flex align-items-end">
-                        <div class="form-check mb-2">
-                            <input id="weapon-prepared" class="form-check-input" type="checkbox">
-                            <label class="form-check-label" for="weapon-prepared">{% trans "Prepared" %}</label>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -755,7 +781,6 @@ function editWeapon(index) {
     document.getElementById('weapon-template-select').value = entry.weapon_id || '';
     document.getElementById('weapon-custom-name').value = entry.custom_name || entry.name || '';
     document.getElementById('weapon-custom-damage').value = entry.damage || '';
-    document.getElementById('weapon-prepared').checked = !!entry.is_prepared;
 
     const skillSelect = document.getElementById('weapon-skill-select');
     const matchedOption = Array.from(skillSelect.options).find(o => Number(o.value) === entry.skill_id);
@@ -797,7 +822,6 @@ function resetWeaponModal() {
     document.getElementById('weapon-custom-name').value = '';
     document.getElementById('weapon-custom-damage').value = '';
     document.getElementById('weapon-skill-select').value = '';
-    document.getElementById('weapon-prepared').checked = false;
 }
 
 document.getElementById('weaponModal').addEventListener('hidden.bs.modal', resetWeaponModal);
@@ -822,7 +846,6 @@ document.getElementById('confirm-weapon-btn').addEventListener('click', () => {
     const customDamage = document.getElementById('weapon-custom-damage').value.trim();
     const skillSelect = document.getElementById('weapon-skill-select');
     const selectedSkill = skillSelect.options[skillSelect.selectedIndex];
-    const isPrepared = document.getElementById('weapon-prepared').checked;
 
     const entry = {
         weapon_id: selected.value ? Number(selected.value) : 0,
@@ -831,7 +854,7 @@ document.getElementById('confirm-weapon-btn').addEventListener('click', () => {
         damage: selected.dataset.damage || customDamage || '1D4',
         skill_id: selectedSkill.value ? Number(selectedSkill.value) : 0,
         skill_name: selectedSkill.dataset.name || '',
-        is_prepared: isPrepared,
+        is_prepared: false,
         is_default_unarmed: false,
     };
 

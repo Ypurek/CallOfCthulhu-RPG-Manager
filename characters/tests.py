@@ -933,6 +933,12 @@ class CharacterCreateWizardTests(TestCase):
         response = self.client.get(reverse('characters:create') + '?step=stats')
         self.assertContains(response, "showWizardStatModal('STR'", html=False)
 
+    def test_inventory_step_weapon_modal_has_no_prepared_checkbox(self):
+        self.client.login(username='player', password='secret')
+        response = self.client.get(reverse('characters:create') + '?step=inventory')
+        self.assertContains(response, 'id="weaponModal"', html=False)
+        self.assertNotContains(response, 'id="weapon-prepared"', html=False)
+
     # ── full happy path ──
 
     def test_full_creation_stores_character_and_relations(self):

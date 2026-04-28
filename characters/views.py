@@ -2263,7 +2263,7 @@ def _load_edit_draft_from_character(character):
         'stats': stats,
         'skills': skill_values,
         'custom_skills': custom_skills,
-        'inventory': {'weapons': weapons, 'items': items, 'cash': character.cash},
+        'inventory': {'weapons': weapons, 'items': items, 'cash': int(character.cash or 0)},
         'adjustments': {
             'hp': 0,
             'mp': 0,
