@@ -40,6 +40,41 @@
   .session-message-item { border: 1px solid rgba(212,175,55,.2); border-left: 3px solid rgba(212,175,55,.7); border-radius: .45rem; background: rgba(255,255,255,.04); }
   .session-message-meta { font-size: .78rem; color: rgba(245,245,220,.72); }
   .session-message-content { white-space: pre-wrap; color: var(--cream); }
+  .fight-controls { border: 1px solid rgba(212,175,55,.25); border-radius: .5rem; background: rgba(0,0,0,.16); padding: .75rem; }
+  .fight-list { max-height: calc(100vh - 280px); overflow-y: auto; justify-content: center; }
+  .fight-card-col { max-width: 360px; }
+  .fight-participant { border: 1px solid rgba(212,175,55,.25); border-radius: .5rem; background: rgba(0,0,0,.2); }
+  .fight-header { display:flex; justify-content:space-between; align-items:center; gap:.5rem; flex-wrap:wrap; padding:.55rem .7rem; border-bottom: 1px solid rgba(212,175,55,.2); }
+  .fight-dex { font-size: .78rem; color: rgba(245,245,220,.85); }
+  .fight-round-chip { border: 1px solid rgba(212,175,55,.35); border-radius: 999px; padding: .22rem .6rem; font-size: .78rem; color: rgba(245,245,220,.9); background: rgba(0,0,0,.25); }
+  #tab-fight .character-sheet { max-width: 100%; padding: 3px 3px; }
+  #tab-fight .character-name { font-size: 1.02rem; margin-bottom: 0; }
+  #tab-fight .character-effects { margin-bottom: 6px; min-height: 18px; }
+  #tab-fight .stat-container { gap: 5px; margin-bottom: 8px; }
+  #tab-fight .stat-bar-container { margin-bottom: 3px; }
+  #tab-fight .stat-bar { height: 14px; }
+  #tab-fight .stat-label { font-size: 0.64rem; }
+  #tab-fight .stat-text { font-size: 0.7rem; padding: 0 4px; }
+  #tab-fight .characteristics { margin-bottom: 6px; gap: 3px; grid-template-columns: repeat(5, 1fr); }
+  #tab-fight .characteristic { padding: 3px 3px; }
+  #tab-fight .characteristic .stat-name { font-size: 0.58rem; }
+  #tab-fight .characteristic .stat-value { font-size: 0.82rem; }
+  #tab-fight .characteristic-fight-extra {
+    background: linear-gradient(145deg, rgba(108, 185, 133, 0.34), rgba(140, 216, 164, 0.38));
+    border-color: rgba(138, 217, 165, 0.85);
+    box-shadow: 0 2px 6px rgba(88, 156, 112, 0.28);
+  }
+  #tab-fight .characteristic-fight-extra .stat-name { color: #e8ffe9; text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.55); }
+  #tab-fight .characteristic-fight-extra .stat-value { color: #d8ffe4; text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.62); }
+  #tab-fight .skills-container { margin-bottom: 6px; }
+  #tab-fight .section-header { padding: 4px 6px; font-size: 0.72rem; margin-bottom: 1px; }
+  #tab-fight .compact-section { padding: 5px; margin: 4px 0; }
+  #tab-fight .skills-grid { gap: 2px; margin: 4px 0; }
+  #tab-fight .skill-item { padding: 3px 5px; font-size: 0.7rem; }
+  #tab-fight .item-badge { padding: 2px 5px; font-size: 0.64rem; }
+  #tab-fight .weapon-item { padding: 3px; font-size: 0.68rem; margin: 1px 0; }
+  #tab-fight .card-sheet-wrap .section-content { display: none; }
+  #tab-fight .card-sheet-wrap .section-content.show { display: block; }
 </style>
 {% include 'characters/_character_sheet_styles.html' %}
 {% endblock %}
@@ -154,6 +189,7 @@
 <!-- Tabs -->
 <ul class="nav nav-tabs" id="manageTabs">
   <li class="nav-item"><a class="nav-link active text-warning" data-bs-toggle="tab" href="#tab-cast"><i class="fas fa-users me-1"></i>Cast <span class="badge bg-secondary">{{ players.count|add:npcs.count }}</span></a></li>
+  <li class="nav-item"><a class="nav-link text-warning" data-bs-toggle="tab" href="#tab-fight"><i class="fas fa-fist-raised me-1"></i>Fight</a></li>
   <li class="nav-item"><a class="nav-link text-warning" data-bs-toggle="tab" href="#tab-notes"><i class="fas fa-book me-1"></i>Notes</a></li>
   <li class="nav-item"><a class="nav-link text-warning" data-bs-toggle="tab" href="#tab-messages"><i class="fas fa-comments me-1"></i>Messages</a></li>
 </ul>
@@ -316,6 +352,39 @@
       </div>
     </div>
   </div><!-- /cast -->
+
+  <div class="tab-pane fade" id="tab-fight">
+    <div class="fight-controls mb-3">
+      <div class="row g-2 align-items-end">
+        <div class="col-lg-6">
+          <label for="fight-add-character" class="form-label small effects-manager-label">Add character/NPC from session</label>
+          <select id="fight-add-character" class="form-select form-select-sm">
+            <option value="">Choose participant...</option>
+          </select>
+        </div>
+        <div class="col-auto">
+          <button type="button" id="fight-add-btn" class="btn btn-sm btn-warning"><i class="fas fa-plus me-1"></i>Add to fight</button>
+        </div>
+        <div class="col-auto">
+          <button type="button" id="fight-start-btn" class="btn btn-sm btn-outline-warning"><i class="fas fa-play me-1"></i>Start fight</button>
+        </div>
+        <div class="col-auto">
+          <button type="button" id="fight-end-btn" class="btn btn-sm btn-outline-danger"><i class="fas fa-stop me-1"></i>End fight</button>
+        </div>
+        <div class="col-auto d-flex align-items-center gap-2">
+          <span id="fight-round-chip" class="fight-round-chip">Round 0</span>
+          <button type="button" id="fight-next-round-btn" class="btn btn-sm btn-outline-light" title="Next round"><i class="fas fa-forward-step"></i></button>
+          <button type="button" id="fight-reset-rounds-btn" class="btn btn-sm btn-outline-secondary" title="Reset rounds"><i class="fas fa-rotate-left"></i></button>
+        </div>
+        <div class="col-12 col-lg">
+          <small id="fight-status" class="text-muted"></small>
+        </div>
+      </div>
+    </div>
+
+    <div id="fight-empty" class="text-center text-muted py-4">No active fight. Start encounter and add participants.</div>
+    <div id="fight-list" class="fight-list row g-2"></div>
+  </div><!-- /fight -->
 
   <!-- ====== NOTES TAB ====== -->
   <div class="tab-pane fade" id="tab-notes">
@@ -864,13 +933,20 @@ if (modalAddBtn) {
     dragPending = { sheet, resource, val };
   }
 
-  document.querySelectorAll('.character-sheet[data-adjust-url] .stat-bar-adjustable').forEach(bar => {
-    bar.style.cursor = 'ew-resize';
-    bar.addEventListener('mousedown', e => { dragBar = bar; handleDrag(bar, e.clientX); e.preventDefault(); });
-    bar.addEventListener('touchstart', e => {
-      const t = e.touches[0]; if (t) { dragBar = bar; handleDrag(bar, t.clientX); }
-    }, { passive: true });
-  });
+  function bindAdjustableBars(root) {
+    (root || document).querySelectorAll('.character-sheet[data-adjust-url] .stat-bar-adjustable').forEach((bar) => {
+      if (bar.dataset.adjustBound === '1') return;
+      bar.dataset.adjustBound = '1';
+      bar.style.cursor = 'ew-resize';
+      bar.addEventListener('mousedown', e => { dragBar = bar; handleDrag(bar, e.clientX); e.preventDefault(); });
+      bar.addEventListener('touchstart', e => {
+        const t = e.touches[0]; if (t) { dragBar = bar; handleDrag(bar, t.clientX); }
+      }, { passive: true });
+    });
+  }
+
+  bindAdjustableBars(document);
+  window.initAdjustableStatBars = bindAdjustableBars;
 
   document.addEventListener('mousemove', e => { if (dragBar) handleDrag(dragBar, e.clientX); });
   document.addEventListener('touchmove', e => {
@@ -922,6 +998,248 @@ if (modalAddBtn) {
       }
     });
   });
+})();
+
+// ---- Fight tab ----
+(function initFightTab() {
+  const addSelect = document.getElementById('fight-add-character');
+  const addBtn = document.getElementById('fight-add-btn');
+  const startBtn = document.getElementById('fight-start-btn');
+  const endBtn = document.getElementById('fight-end-btn');
+  const nextRoundBtn = document.getElementById('fight-next-round-btn');
+  const resetRoundsBtn = document.getElementById('fight-reset-rounds-btn');
+  const roundChip = document.getElementById('fight-round-chip');
+  const statusEl = document.getElementById('fight-status');
+  const listEl = document.getElementById('fight-list');
+  const emptyEl = document.getElementById('fight-empty');
+  if (!addSelect || !addBtn || !startBtn || !endBtn || !nextRoundBtn || !resetRoundsBtn || !roundChip || !listEl || !emptyEl) return;
+
+  const CSRF = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+  const stateUrl = "{% url 'scenarios:fight_state' scenario.id %}";
+  const startUrl = "{% url 'scenarios:fight_start' scenario.id %}";
+  const endUrl = "{% url 'scenarios:fight_end' scenario.id %}";
+  const addUrl = "{% url 'scenarios:fight_add_participant' scenario.id %}";
+  const removeUrlTemplate = "{% url 'scenarios:fight_remove_participant' scenario.id 0 %}";
+  const preparedUrlTemplate = "{% url 'scenarios:fight_set_prepared' scenario.id 0 %}";
+  const nextTurnUrl = "{% url 'scenarios:fight_advance_turn' scenario.id %}";
+  const resetTurnsUrl = "{% url 'scenarios:fight_reset_turns' scenario.id %}";
+  const toggleAliveUrlTemplate = "{% url 'scenarios:character_toggle_alive' scenario.id 0 %}";
+
+  function setStatus(msg, isError = false) {
+    statusEl.textContent = msg || '';
+    statusEl.classList.toggle('text-danger', !!isError);
+  }
+
+  function participantUrl(template, participantId) {
+    return template.replace('/0/', `/${participantId}/`);
+  }
+
+  function characterUrl(template, characterId) {
+    return template.replace('/0/', `/${characterId}/`);
+  }
+
+  function applyFightSheetMode(participantId) {
+    const skillsContent = document.getElementById(`fight-sheet-${participantId}-skills-content`);
+    const skillsIcon = document.getElementById(`fight-sheet-${participantId}-skills-icon`);
+    const combatContent = document.getElementById(`fight-sheet-${participantId}-combat-content`);
+    const combatIcon = document.getElementById(`fight-sheet-${participantId}-combat-icon`);
+
+    if (skillsContent) skillsContent.classList.remove('show');
+    if (skillsIcon) {
+      skillsIcon.classList.remove('fa-chevron-up');
+      skillsIcon.classList.add('fa-chevron-down');
+    }
+
+    if (combatContent) combatContent.classList.add('show');
+    if (combatIcon) {
+      combatIcon.classList.remove('fa-chevron-down');
+      combatIcon.classList.add('fa-chevron-up');
+    }
+  }
+
+  function renderFightState(state) {
+    const active = !!state.active;
+    const participants = Array.isArray(state.participants) ? state.participants : [];
+    const available = Array.isArray(state.available) ? state.available : [];
+    const roundNumber = Number(state.round_number || 0);
+
+    addSelect.innerHTML = '<option value="">Choose participant...</option>' + available
+      .map((entry) => `<option value="${entry.character_id}">${escapeHtmlAttr(entry.label)}</option>`)
+      .join('');
+    addBtn.disabled = !active || available.length === 0;
+    startBtn.disabled = active;
+    endBtn.disabled = !active;
+    nextRoundBtn.disabled = !active;
+    resetRoundsBtn.disabled = !active;
+    roundChip.textContent = `Round ${roundNumber}`;
+
+    emptyEl.style.display = active && participants.length ? 'none' : '';
+    listEl.innerHTML = participants.map((participant) => `
+      <div class="col-12 col-md-6 col-lg-4 col-xxl-3 fight-card-col" data-fight-participant-id="${participant.participant_id}">
+      <div class="fight-participant ${participant.is_alive ? '' : 'dead-card'}">
+        <div class="fight-header">
+          <div>
+            <div class="text-warning fw-bold">${escapeHtmlAttr(participant.display_name)}</div>
+            <div class="fight-dex">DEX ${participant.dex_base} · Effective ${participant.dex_effective}</div>
+          </div>
+          <div class="d-flex gap-2 align-items-center flex-wrap">
+            <label class="form-check-label small d-flex align-items-center gap-1 text-muted">
+              <input type="checkbox" class="form-check-input mt-0 fight-prepared-checkbox" data-participant-id="${participant.participant_id}" ${participant.is_weapon_prepared ? 'checked' : ''} ${participant.is_alive ? '' : 'disabled'}>
+              Prepared weapon
+            </label>
+            <button type="button" class="btn btn-sm btn-outline-warning manage-effects-btn"
+              data-character-id="${participant.character_id}"
+              data-character-name="${escapeHtmlAttr(participant.display_name)}"
+              data-bs-toggle="modal" data-bs-target="#effectsManagerModal"
+              title="Manage effects"><i class="fas fa-heartbeat"></i></button>
+            <button type="button" class="btn btn-sm ${participant.is_alive ? 'btn-outline-danger' : 'btn-outline-success'} fight-toggle-alive-btn"
+              data-character-id="${participant.character_id}"
+              title="${participant.is_alive ? 'Mark dead' : 'Mark alive'}"><i class="fas fa-${participant.is_alive ? 'skull-crossbones' : 'heart'}"></i></button>
+            <button type="button" class="btn btn-sm btn-outline-light fight-remove-btn" data-participant-id="${participant.participant_id}" title="Remove from fight">
+              <i class="fas fa-user-minus"></i>
+            </button>
+          </div>
+        </div>
+        <div class="p-1 card-sheet-wrap">${participant.card_html}</div>
+      </div>
+      </div>
+    `).join('');
+
+    participants.forEach((participant) => applyFightSheetMode(participant.participant_id));
+    if (typeof window.initAdjustableStatBars === 'function') window.initAdjustableStatBars(listEl);
+  }
+
+  async function postAndRender(url, extraFormData) {
+    const body = extraFormData || new FormData();
+    if (CSRF && !body.get('csrfmiddlewaretoken')) body.append('csrfmiddlewaretoken', CSRF);
+    const res = await fetch(url, { method: 'POST', body, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Request failed');
+    renderFightState(data);
+    return data;
+  }
+
+  async function loadState() {
+    try {
+      const res = await fetch(stateUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      const data = await res.json();
+      if (!data.ok) return;
+      renderFightState(data);
+    } catch (err) {
+      setStatus('Failed to load fight state.', true);
+    }
+  }
+
+  startBtn.addEventListener('click', async () => {
+    setStatus('Starting fight...');
+    try {
+      await postAndRender(startUrl);
+      setStatus('Fight mode started.');
+    } catch (err) {
+      setStatus(err.message, true);
+    }
+  });
+
+  endBtn.addEventListener('click', async () => {
+    if (!confirm('End fight and remove all participants?')) return;
+    setStatus('Ending fight...');
+    try {
+      await postAndRender(endUrl);
+      setStatus('Fight ended.');
+    } catch (err) {
+      setStatus(err.message, true);
+    }
+  });
+
+  nextRoundBtn.addEventListener('click', async () => {
+    try {
+      await postAndRender(nextTurnUrl);
+      setStatus('Round advanced.');
+    } catch (err) {
+      setStatus(err.message, true);
+    }
+  });
+
+  resetRoundsBtn.addEventListener('click', async () => {
+    try {
+      await postAndRender(resetTurnsUrl);
+      setStatus('Round counter reset.');
+    } catch (err) {
+      setStatus(err.message, true);
+    }
+  });
+
+  addBtn.addEventListener('click', async () => {
+    const characterId = Number(addSelect.value || 0);
+    if (!characterId) {
+      setStatus('Select a participant first.', true);
+      return;
+    }
+    const body = new FormData();
+    body.append('character_id', String(characterId));
+    setStatus('Adding participant...');
+    try {
+      await postAndRender(addUrl, body);
+      addSelect.value = '';
+      setStatus('Participant added.');
+    } catch (err) {
+      setStatus(err.message, true);
+    }
+  });
+
+  listEl.addEventListener('change', async (event) => {
+    const checkbox = event.target.closest('.fight-prepared-checkbox');
+    if (!checkbox) return;
+    const participantId = Number(checkbox.dataset.participantId || 0);
+    if (!participantId) return;
+    const body = new FormData();
+    body.append('is_prepared', checkbox.checked ? '1' : '0');
+    try {
+      await postAndRender(participantUrl(preparedUrlTemplate, participantId), body);
+      setStatus('Initiative updated.');
+    } catch (err) {
+      setStatus(err.message, true);
+    }
+  });
+
+  listEl.addEventListener('click', async (event) => {
+    const removeBtn = event.target.closest('.fight-remove-btn');
+    if (removeBtn) {
+      const participantId = Number(removeBtn.dataset.participantId || 0);
+      if (!participantId) return;
+      try {
+        await postAndRender(participantUrl(removeUrlTemplate, participantId));
+        setStatus('Participant removed from fight.');
+      } catch (err) {
+        setStatus(err.message, true);
+      }
+      return;
+    }
+
+    const toggleAliveBtn = event.target.closest('.fight-toggle-alive-btn');
+    if (toggleAliveBtn) {
+      const characterId = Number(toggleAliveBtn.dataset.characterId || 0);
+      if (!characterId) return;
+      try {
+        const body = new FormData();
+        if (CSRF) body.append('csrfmiddlewaretoken', CSRF);
+        const res = await fetch(characterUrl(toggleAliveUrlTemplate, characterId), {
+          method: 'POST',
+          body,
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || 'Failed to toggle state.');
+        await loadState();
+        setStatus('Character state updated.');
+      } catch (err) {
+        setStatus(err.message, true);
+      }
+    }
+  });
+
+  window.refreshFightState = loadState;
+  loadState();
 })();
 
 // ---- Status effects manager ----
@@ -1040,6 +1358,7 @@ if (modalAddBtn) {
       }
       customNameEl.value = '';
       await loadEffects();
+      if (typeof window.refreshFightState === 'function') window.refreshFightState();
       setStatus('Effect updated.');
     } catch (e) {
       setStatus('Failed to add effect.', true);
@@ -1059,19 +1378,20 @@ if (modalAddBtn) {
         return;
       }
       await loadEffects();
+      if (typeof window.refreshFightState === 'function') window.refreshFightState();
       setStatus('Effect removed.');
     } catch (e) {
       setStatus('Failed to remove effect.', true);
     }
   }
 
-  document.querySelectorAll('.manage-effects-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      activeCharacterId = Number(btn.dataset.characterId);
-      activeCharacterName = btn.dataset.characterName || 'Character';
-      titleEl.innerHTML = `<i class="fas fa-heartbeat me-2"></i>Manage effects - ${activeCharacterName}`;
-      loadEffects();
-    });
+  document.addEventListener('click', (event) => {
+    const btn = event.target.closest('.manage-effects-btn');
+    if (!btn) return;
+    activeCharacterId = Number(btn.dataset.characterId);
+    activeCharacterName = btn.dataset.characterName || 'Character';
+    titleEl.innerHTML = `<i class="fas fa-heartbeat me-2"></i>Manage effects - ${activeCharacterName}`;
+    loadEffects();
   });
 
   addSelectedBtn?.addEventListener('click', () => {

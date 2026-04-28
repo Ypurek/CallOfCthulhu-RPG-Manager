@@ -118,7 +118,8 @@ class FightParticipant(models.Model):
     character = models.ForeignKey(Character, on_delete=models.CASCADE)
     initiative_order = models.IntegerField()
     is_active = models.BooleanField(default=True)
-    dexterity_with_bonus = models.IntegerField()  # DEX + 50 if weapon prepared
+    is_weapon_prepared = models.BooleanField(default=False)
+    dexterity_with_bonus = models.IntegerField()  # Effective DEX (doubled when weapon is prepared)
 
     class Meta:
         ordering = ['-dexterity_with_bonus', 'initiative_order']

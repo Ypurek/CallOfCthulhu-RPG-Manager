@@ -23,6 +23,14 @@ urlpatterns = [
     # Keeper management
     path('<int:scenario_id>/manage/', views.scenario_manage, name='manage'),
     path('<int:scenario_id>/fight/', views.fight_encounter, name='fight'),
+    path('<int:scenario_id>/fight/state/', views.scenario_fight_state, name='fight_state'),
+    path('<int:scenario_id>/fight/start/', views.scenario_fight_start, name='fight_start'),
+    path('<int:scenario_id>/fight/end/', views.scenario_fight_end, name='fight_end'),
+    path('<int:scenario_id>/fight/add/', views.scenario_fight_add_participant, name='fight_add_participant'),
+    path('<int:scenario_id>/fight/participant/<int:participant_id>/remove/', views.scenario_fight_remove_participant, name='fight_remove_participant'),
+    path('<int:scenario_id>/fight/participant/<int:participant_id>/prepared/', views.scenario_fight_set_prepared, name='fight_set_prepared'),
+    path('<int:scenario_id>/fight/turn/next/', views.scenario_fight_advance_turn, name='fight_advance_turn'),
+    path('<int:scenario_id>/fight/turn/reset/', views.scenario_fight_reset_turns, name='fight_reset_turns'),
 
     # Status
     path('<int:scenario_id>/status/', views.scenario_update_status, name='update_status'),

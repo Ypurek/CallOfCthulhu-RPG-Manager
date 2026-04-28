@@ -6,6 +6,8 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.db.models import Q as _Q
@@ -16,6 +18,7 @@ from core.models import User as _User
 from .services import apply_daily_hp_restore, apply_hourly_mp_restore, get_character_status_effects_display
 from .models import (
     FightEncounter,
+    FightParticipant,
     Invitation,
     Message,
     MessageReceipt,
@@ -206,6 +209,108 @@ def _get_unread_message_count(scenario: Scenario, user: _User) -> int:
         user=user,
         read_at__isnull=True,
     ).count()
+
+
+def _get_active_fight_encounter(scenario: Scenario):
+    return FightEncounter.objects.filter(scenario=scenario, is_active=True).order_by('-started_at').first()
+
+
+def _fight_effective_dex(character: Character, is_weapon_prepared: bool) -> int:
+    base = max(0, character.dexterity)
+    return base * 2 if is_weapon_prepared else base
+
+
+def _sync_fight_participant_order(encounter: FightEncounter):
+    participants = list(
+        FightParticipant.objects.filter(encounter=encounter, is_active=True)
+        .select_related('character')
+        .order_by('-dexterity_with_bonus', '-character__dexterity', 'id')
+    )
+    for idx, participant in enumerate(participants, start=1):
+        participant.initiative_order = idx
+    if participants:
+        FightParticipant.objects.bulk_update(participants, ['initiative_order'])
+    return participants
+
+
+def _serialize_fight_participant(scenario: Scenario, participant: FightParticipant, npc_display_name_map: dict[int, str]):
+    sheet = _build_session_sheet(participant.character)
+    display_name = npc_display_name_map.get(participant.character_id)
+    if display_name:
+        sheet['display_name'] = display_name
+
+    card_html = render_to_string(
+        'characters/_character_sheet.html',
+        {
+            'sheet': sheet,
+            'sheet_id': f'fight-sheet-{participant.id}',
+            'show_fight_extras': True,
+            'show_notes': False,
+            'notes_editable': False,
+            'show_actions': False,
+            'status_adjustable': True,
+            'adjust_url': reverse('scenarios:character_adjust_stats', args=[scenario.id, participant.character.id]),
+        },
+    )
+
+    return {
+        'participant_id': participant.id,
+        'character_id': participant.character.id,
+        'display_name': display_name or participant.character.name,
+        'is_npc': participant.character_id in npc_display_name_map,
+        'is_alive': participant.character.is_alive,
+        'is_weapon_prepared': participant.is_weapon_prepared,
+        'dex_base': participant.character.dexterity,
+        'dex_effective': participant.dexterity_with_bonus,
+        'card_html': card_html,
+    }
+
+
+def _build_fight_state(scenario: Scenario):
+    encounter = _get_active_fight_encounter(scenario)
+    npc_display_name_map = {
+        snpc.npc_id: snpc.get_display_name()
+        for snpc in ScenarioNPC.objects.filter(scenario=scenario).select_related('npc')
+    }
+
+    participants = []
+    active_character_ids = set()
+    if encounter:
+        ordered_participants = _sync_fight_participant_order(encounter)
+        for participant in ordered_participants:
+            participants.append(_serialize_fight_participant(scenario, participant, npc_display_name_map))
+            active_character_ids.add(participant.character_id)
+
+    available = []
+    for sp in ScenarioPlayer.objects.filter(scenario=scenario, is_active=True).select_related('player', 'character'):
+        if not sp.character or not sp.character.is_alive or sp.character_id in active_character_ids:
+            continue
+        available.append({
+            'character_id': sp.character_id,
+            'type': 'PC',
+            'label': f"{sp.character.name} (PC) - {sp.player.username}",
+        })
+
+    for snpc in ScenarioNPC.objects.filter(scenario=scenario, is_active=True).select_related('npc'):
+        if not snpc.npc or not snpc.npc.is_alive or snpc.npc_id in active_character_ids:
+            continue
+        available.append({
+            'character_id': snpc.npc_id,
+            'type': 'NPC',
+            'label': f"{snpc.get_display_name()} (NPC)",
+        })
+
+    round_number = 0
+    if encounter:
+        round_number = max(1, encounter.round_number)
+
+    return {
+        'active': bool(encounter),
+        'encounter_id': encounter.id if encounter else None,
+        'round_number': round_number,
+        'participants': participants,
+        'available': available,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -961,6 +1066,131 @@ def fight_encounter(request, scenario_id):
         encounter = FightEncounter.objects.create(scenario=scenario)
         messages.success(request, "Fight encounter started!")
     return render(request, "scenarios/fight.html", {"scenario": scenario, "encounter": encounter})
+
+
+@_keeper_required
+def scenario_fight_state(request, scenario_id):
+    scenario = _get_scenario_for_keeper(request, scenario_id)
+    return JsonResponse({"ok": True, **_build_fight_state(scenario)})
+
+
+@require_POST
+@_keeper_required
+def scenario_fight_start(request, scenario_id):
+    scenario = _get_scenario_for_keeper(request, scenario_id)
+    encounter = _get_active_fight_encounter(scenario)
+    if not encounter:
+        encounter = FightEncounter.objects.create(scenario=scenario, is_active=True)
+    return JsonResponse({"ok": True, **_build_fight_state(scenario)})
+
+
+@require_POST
+@_keeper_required
+def scenario_fight_end(request, scenario_id):
+    scenario = _get_scenario_for_keeper(request, scenario_id)
+    encounter = _get_active_fight_encounter(scenario)
+    if encounter:
+        FightParticipant.objects.filter(encounter=encounter).delete()
+        encounter.is_active = False
+        encounter.ended_at = timezone.now()
+        encounter.save(update_fields=['is_active', 'ended_at'])
+    return JsonResponse({"ok": True, **_build_fight_state(scenario)})
+
+
+@require_POST
+@_keeper_required
+def scenario_fight_add_participant(request, scenario_id):
+    scenario = _get_scenario_for_keeper(request, scenario_id)
+    encounter = _get_active_fight_encounter(scenario) or FightEncounter.objects.create(scenario=scenario, is_active=True)
+
+    try:
+        character_id = int(request.POST.get('character_id', 0))
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "error": "Invalid character id."}, status=400)
+
+    character = get_object_or_404(Character, id=character_id)
+    in_as_pc = ScenarioPlayer.objects.filter(scenario=scenario, character=character, is_active=True).exists()
+    in_as_npc = ScenarioNPC.objects.filter(scenario=scenario, npc=character, is_active=True).exists()
+    if not (in_as_pc or in_as_npc):
+        return JsonResponse({"ok": False, "error": "Character not in this scenario."}, status=403)
+
+    participant, created = FightParticipant.objects.get_or_create(
+        encounter=encounter,
+        character=character,
+        defaults={
+            'initiative_order': 999,
+            'is_active': True,
+            'is_weapon_prepared': False,
+            'dexterity_with_bonus': _fight_effective_dex(character, False),
+        },
+    )
+    if not created and not participant.is_active:
+        participant.is_active = True
+        participant.is_weapon_prepared = False
+        participant.dexterity_with_bonus = _fight_effective_dex(character, False)
+        participant.save(update_fields=['is_active', 'is_weapon_prepared', 'dexterity_with_bonus'])
+
+    _sync_fight_participant_order(encounter)
+    return JsonResponse({"ok": True, **_build_fight_state(scenario)})
+
+
+@require_POST
+@_keeper_required
+def scenario_fight_remove_participant(request, scenario_id, participant_id):
+    scenario = _get_scenario_for_keeper(request, scenario_id)
+    encounter = _get_active_fight_encounter(scenario)
+    if encounter:
+        FightParticipant.objects.filter(encounter=encounter, id=participant_id).delete()
+        _sync_fight_participant_order(encounter)
+    return JsonResponse({"ok": True, **_build_fight_state(scenario)})
+
+
+@require_POST
+@_keeper_required
+def scenario_fight_set_prepared(request, scenario_id, participant_id):
+    scenario = _get_scenario_for_keeper(request, scenario_id)
+    encounter = _get_active_fight_encounter(scenario)
+    if not encounter:
+        return JsonResponse({"ok": False, "error": "No active encounter."}, status=400)
+
+    participant = get_object_or_404(FightParticipant, id=participant_id, encounter=encounter)
+    is_prepared = request.POST.get('is_prepared') in {'1', 'true', 'True', 'on'}
+    participant.is_weapon_prepared = is_prepared
+    participant.dexterity_with_bonus = _fight_effective_dex(participant.character, is_prepared)
+    participant.save(update_fields=['is_weapon_prepared', 'dexterity_with_bonus'])
+    _sync_fight_participant_order(encounter)
+
+    return JsonResponse({"ok": True, **_build_fight_state(scenario)})
+
+
+@require_POST
+@_keeper_required
+def scenario_fight_advance_turn(request, scenario_id):
+    scenario = _get_scenario_for_keeper(request, scenario_id)
+    encounter = _get_active_fight_encounter(scenario)
+    if not encounter:
+        return JsonResponse({"ok": False, "error": "No active encounter."}, status=400)
+
+    encounter.round_number = max(1, encounter.round_number) + 1
+    encounter.current_turn_index = 0
+    encounter.save(update_fields=['current_turn_index', 'round_number'])
+
+    return JsonResponse({"ok": True, **_build_fight_state(scenario)})
+
+
+@require_POST
+@_keeper_required
+def scenario_fight_reset_turns(request, scenario_id):
+    scenario = _get_scenario_for_keeper(request, scenario_id)
+    encounter = _get_active_fight_encounter(scenario)
+    if not encounter:
+        return JsonResponse({"ok": False, "error": "No active encounter."}, status=400)
+
+    encounter.current_turn_index = 0
+    encounter.round_number = 1
+    encounter.save(update_fields=['current_turn_index', 'round_number'])
+
+    return JsonResponse({"ok": True, **_build_fight_state(scenario)})
 
 
 # ---------------------------------------------------------------------------

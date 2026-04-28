@@ -22,6 +22,7 @@ from django.utils import timezone
 from characters.models import Character, CharacterStatusEffect, NPCTemplate, StatusEffect
 from scenarios.models import (
     FightEncounter,
+    FightParticipant,
     Invitation,
     Message,
     MessageReceipt,
@@ -1301,7 +1302,107 @@ class ScenarioManageTest(TestCase):
 
 
 # ===========================================================================
-# XV. FIGHT ENCOUNTER TESTS
+# XV. FIGHT TAB MODE TESTS
+# ===========================================================================
+
+class ScenarioFightModeTest(TestCase):
+
+    def setUp(self):
+        self.keeper = make_user('kfight', is_keeper=True)
+        self.scenario = make_scenario(self.keeper)
+        self.client.force_login(self.keeper)
+
+        self.player_a = make_user('fight_a')
+        self.player_b = make_user('fight_b')
+        self.char_a = make_character(self.player_a, name='Alice', dexterity=40)
+        self.char_b = make_character(self.player_b, name='Bob', dexterity=70)
+        ScenarioPlayer.objects.create(scenario=self.scenario, player=self.player_a, character=self.char_a)
+        ScenarioPlayer.objects.create(scenario=self.scenario, player=self.player_b, character=self.char_b)
+
+        self.npc = make_character(self.keeper, character_type='NPC', name='Ghoul', dexterity=55)
+        self.snpc = ScenarioNPC.objects.create(scenario=self.scenario, npc=self.npc, display_name='Ghoul #1')
+
+    def _state(self):
+        return self.client.get(reverse('scenarios:fight_state', kwargs={'scenario_id': self.scenario.id})).json()
+
+    def test_manage_page_has_fight_tab(self):
+        r = self.client.get(reverse('scenarios:manage', kwargs={'scenario_id': self.scenario.id}))
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'Fight')
+        self.assertContains(r, 'Add to fight')
+
+    def test_fight_start_and_add_participants_sorted_by_dex(self):
+        self.client.post(reverse('scenarios:fight_start', kwargs={'scenario_id': self.scenario.id}))
+        self.client.post(reverse('scenarios:fight_add_participant', kwargs={'scenario_id': self.scenario.id}), {'character_id': self.char_a.id})
+        self.client.post(reverse('scenarios:fight_add_participant', kwargs={'scenario_id': self.scenario.id}), {'character_id': self.char_b.id})
+        self.client.post(reverse('scenarios:fight_add_participant', kwargs={'scenario_id': self.scenario.id}), {'character_id': self.npc.id})
+
+        state = self._state()
+        self.assertTrue(state['active'])
+        self.assertEqual([p['character_id'] for p in state['participants']], [self.char_b.id, self.npc.id, self.char_a.id])
+
+    def test_prepared_weapon_doubles_dex_and_resorts(self):
+        self.client.post(reverse('scenarios:fight_start', kwargs={'scenario_id': self.scenario.id}))
+        self.client.post(reverse('scenarios:fight_add_participant', kwargs={'scenario_id': self.scenario.id}), {'character_id': self.char_a.id})
+        self.client.post(reverse('scenarios:fight_add_participant', kwargs={'scenario_id': self.scenario.id}), {'character_id': self.char_b.id})
+
+        state = self._state()
+        participant_for_a = next(p for p in state['participants'] if p['character_id'] == self.char_a.id)
+        self.client.post(
+            reverse('scenarios:fight_set_prepared', kwargs={'scenario_id': self.scenario.id, 'participant_id': participant_for_a['participant_id']}),
+            {'is_prepared': '1'},
+        )
+
+        state = self._state()
+        self.assertEqual(state['participants'][0]['character_id'], self.char_a.id)
+        self.assertEqual(state['participants'][0]['dex_effective'], self.char_a.dexterity * 2)
+
+    def test_fight_end_clears_all_participants(self):
+        self.client.post(reverse('scenarios:fight_start', kwargs={'scenario_id': self.scenario.id}))
+        self.client.post(reverse('scenarios:fight_add_participant', kwargs={'scenario_id': self.scenario.id}), {'character_id': self.char_a.id})
+        self.client.post(reverse('scenarios:fight_add_participant', kwargs={'scenario_id': self.scenario.id}), {'character_id': self.char_b.id})
+        self.assertTrue(FightParticipant.objects.exists())
+
+        self.client.post(reverse('scenarios:fight_end', kwargs={'scenario_id': self.scenario.id}))
+        self.assertFalse(FightParticipant.objects.exists())
+        self.assertFalse(FightEncounter.objects.filter(scenario=self.scenario, is_active=True).exists())
+
+    def test_fight_round_counter_advances(self):
+        self.client.post(reverse('scenarios:fight_start', kwargs={'scenario_id': self.scenario.id}))
+        self.client.post(reverse('scenarios:fight_add_participant', kwargs={'scenario_id': self.scenario.id}), {'character_id': self.char_a.id})
+        self.client.post(reverse('scenarios:fight_add_participant', kwargs={'scenario_id': self.scenario.id}), {'character_id': self.char_b.id})
+
+        self.client.post(reverse('scenarios:fight_advance_turn', kwargs={'scenario_id': self.scenario.id}))
+        state = self._state()
+        self.assertEqual(state['round_number'], 2)
+
+        self.client.post(reverse('scenarios:fight_advance_turn', kwargs={'scenario_id': self.scenario.id}))
+        state = self._state()
+        self.assertEqual(state['round_number'], 3)
+
+    def test_fight_round_counter_reset(self):
+        self.client.post(reverse('scenarios:fight_start', kwargs={'scenario_id': self.scenario.id}))
+        self.client.post(reverse('scenarios:fight_add_participant', kwargs={'scenario_id': self.scenario.id}), {'character_id': self.char_a.id})
+        self.client.post(reverse('scenarios:fight_add_participant', kwargs={'scenario_id': self.scenario.id}), {'character_id': self.char_b.id})
+        self.client.post(reverse('scenarios:fight_advance_turn', kwargs={'scenario_id': self.scenario.id}))
+
+        self.client.post(reverse('scenarios:fight_reset_turns', kwargs={'scenario_id': self.scenario.id}))
+        state = self._state()
+        self.assertEqual(state['round_number'], 1)
+
+    def test_fight_cards_show_build_and_bonus_damage_boxes(self):
+        self.client.post(reverse('scenarios:fight_start', kwargs={'scenario_id': self.scenario.id}))
+        self.client.post(reverse('scenarios:fight_add_participant', kwargs={'scenario_id': self.scenario.id}), {'character_id': self.char_a.id})
+
+        state = self._state()
+        self.assertTrue(state['participants'])
+        card_html = state['participants'][0]['card_html']
+        self.assertIn('Build', card_html)
+        self.assertIn('Bonus Damage', card_html)
+
+
+# ===========================================================================
+# XVI. FIGHT ENCOUNTER TESTS
 # ===========================================================================
 
 class FightEncounterTest(TestCase):

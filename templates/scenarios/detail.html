@@ -391,19 +391,6 @@
     combatSkills.forEach((skill) => combatGrid.appendChild(makeSkillItem(skill, 'combat')));
     fragment.appendChild(combatGrid);
 
-    const tipsWrap = document.createElement('div');
-    tipsWrap.className = 'compact-section';
-    const tipsBtn = document.createElement('button');
-    tipsBtn.className = 'toggle-default-btn';
-    tipsBtn.type = 'button';
-    tipsBtn.innerHTML = '<i class="fas fa-info-circle"></i> Combat Tips';
-    tipsBtn.addEventListener('click', () => {
-      if (typeof window.showCombatTips === 'function') {
-        window.showCombatTips();
-      }
-    });
-    tipsWrap.appendChild(tipsBtn);
-    fragment.appendChild(tipsWrap);
 
     if (weapons.length) {
       const weaponsHeader = document.createElement('div');

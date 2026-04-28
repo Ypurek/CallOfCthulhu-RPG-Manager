@@ -22,9 +22,9 @@ tasks to implement:
 - status effects displayed in the character card as badges under the name
 - [ ] automatic logic should be added - characters without the "deep wound" status effect should restore 1 hp every day
   as soon as the next day starts
-- [ ] automatic logic should be added - if the character has 0 hp, the "near death" status effect should be added
+- [x] automatic logic should be added - if the character has 0 hp, the "near death" status effect should be added
   automatically. player should be notified and roll for CON each turn to avoid death
-- [ ] automatic logic should be added -in case character looses 5 or more SAN at once, the "psychological trauma" status
+- [x] automatic logic should be added -in case character looses 5 or more SAN at once, the "psychological trauma" status
   effect should be added. player should be notified and roll for INT. if roll <= INT, roll D10 for madness.
 - keeper can add/remove status effects, phobias, madness, mania manually at any time
 - TODO: make the /snapshot/ api to work only with json data, no html at all.
