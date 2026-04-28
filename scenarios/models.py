@@ -149,3 +149,19 @@ class Message(models.Model):
 
     def __str__(self):
         return f"{self.message_type} message in {self.scenario.name}"
+
+
+class MessageReceipt(models.Model):
+    """Per-user delivery/read tracking for scenario messages."""
+
+    message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name='receipts')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='message_receipts')
+    read_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-message__sent_at', '-created_at']
+        unique_together = ['message', 'user']
+
+    def __str__(self):
+        return f"Receipt for {self.user.username} - {self.message_id}"

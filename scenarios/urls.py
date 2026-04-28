@@ -56,6 +56,7 @@ urlpatterns = [
     # Messaging
     path('<int:scenario_id>/message/send/', views.scenario_send_message, name='send_message'),
     path('<int:scenario_id>/messages/', views.scenario_get_messages, name='get_messages'),
+    path('<int:scenario_id>/messages/read/', views.scenario_mark_messages_read, name='mark_messages_read'),
 
     # Status effects
     path('<int:scenario_id>/character/<int:character_id>/effect/add/', views.scenario_character_add_effect, name='character_add_effect'),

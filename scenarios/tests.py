@@ -23,6 +23,8 @@ from characters.models import Character, CharacterStatusEffect, NPCTemplate, Sta
 from scenarios.models import (
     FightEncounter,
     Invitation,
+    Message,
+    MessageReceipt,
     Scenario,
     ScenarioNPC,
     ScenarioPlayer,
@@ -1152,7 +1154,116 @@ class ScenarioStatusEffectsTest(TestCase):
 
 
 # ===========================================================================
-# XIII. MANAGE PAGE TESTS
+# XIII. MESSAGING TESTS
+# ===========================================================================
+
+class ScenarioMessagingTest(TestCase):
+
+    def setUp(self):
+        self.keeper = make_user('kmsg', is_keeper=True)
+        self.player = make_user('pmsg')
+        self.other_player = make_user('pmsg2')
+        self.scenario = make_scenario(self.keeper)
+        self.character = make_character(self.player)
+        self.other_character = make_character(self.other_player, name='Other Hero')
+        ScenarioPlayer.objects.create(scenario=self.scenario, player=self.player, character=self.character)
+        ScenarioPlayer.objects.create(scenario=self.scenario, player=self.other_player, character=self.other_character)
+        self.client.force_login(self.keeper)
+
+    def test_keeper_can_send_private_message_to_player(self):
+        response = self.client.post(
+            reverse('scenarios:send_message', kwargs={'scenario_id': self.scenario.id}),
+            {'message_type': 'PRIVATE', 'recipient_id': self.player.id, 'content': 'Keep your head down.'},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()['ok'])
+        message = Message.objects.get()
+        self.assertEqual(message.recipient, self.player)
+        self.assertEqual(message.message_type, 'PRIVATE')
+        self.assertTrue(MessageReceipt.objects.filter(message=message, user=self.player, read_at__isnull=True).exists())
+
+    def test_public_message_is_rejected(self):
+        response = self.client.post(
+            reverse('scenarios:send_message', kwargs={'scenario_id': self.scenario.id}),
+            {'message_type': 'PUBLIC', 'content': 'Everyone roll spot hidden.'},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(Message.objects.count(), 0)
+
+    def test_snapshot_reports_unread_messages_for_player(self):
+        self.client.post(
+            reverse('scenarios:send_message', kwargs={'scenario_id': self.scenario.id}),
+            {'message_type': 'PRIVATE', 'recipient_id': self.player.id, 'content': 'Secret warning'},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+
+        self.client.force_login(self.player)
+        response = self.client.get(reverse('scenarios:player_snapshot', kwargs={'scenario_id': self.scenario.id}))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['unread_messages'], 1)
+
+    def test_get_messages_does_not_auto_mark_read(self):
+        self.client.post(
+            reverse('scenarios:send_message', kwargs={'scenario_id': self.scenario.id}),
+            {'message_type': 'PRIVATE', 'recipient_id': self.player.id, 'content': 'Do not panic.'},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+
+        self.client.force_login(self.player)
+        messages_response = self.client.get(reverse('scenarios:get_messages', kwargs={'scenario_id': self.scenario.id}))
+        self.assertEqual(messages_response.status_code, 200)
+        self.assertEqual(messages_response.json()['unread_count'], 1)
+
+        snapshot_response = self.client.get(reverse('scenarios:player_snapshot', kwargs={'scenario_id': self.scenario.id}))
+        self.assertEqual(snapshot_response.json()['unread_messages'], 1)
+
+    def test_mark_messages_read_clears_unread_count(self):
+        self.client.post(
+            reverse('scenarios:send_message', kwargs={'scenario_id': self.scenario.id}),
+            {'message_type': 'PRIVATE', 'recipient_id': self.player.id, 'content': 'Read this now.'},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+
+        self.client.force_login(self.player)
+        mark_response = self.client.post(
+            reverse('scenarios:mark_messages_read', kwargs={'scenario_id': self.scenario.id}),
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(mark_response.status_code, 200)
+        self.assertTrue(mark_response.json()['ok'])
+
+        snapshot_response = self.client.get(reverse('scenarios:player_snapshot', kwargs={'scenario_id': self.scenario.id}))
+        self.assertEqual(snapshot_response.json()['unread_messages'], 0)
+
+    def test_keeper_cannot_send_private_message_to_nonparticipant(self):
+        outsider = make_user('outsider')
+        response = self.client.post(
+            reverse('scenarios:send_message', kwargs={'scenario_id': self.scenario.id}),
+            {'message_type': 'PRIVATE', 'recipient_id': outsider.id, 'content': 'Nope'},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_private_message_requires_recipient(self):
+        response = self.client.post(
+            reverse('scenarios:send_message', kwargs={'scenario_id': self.scenario.id}),
+            {'message_type': 'PRIVATE', 'content': 'Missing target'},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_manage_page_renders_messages_tab(self):
+        response = self.client.get(reverse('scenarios:manage', kwargs={'scenario_id': self.scenario.id}))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Messages')
+        self.assertContains(response, 'Send Message')
+
+
+# ===========================================================================
+# XIV. MANAGE PAGE TESTS
 # ===========================================================================
 
 class ScenarioManageTest(TestCase):
@@ -1190,7 +1301,7 @@ class ScenarioManageTest(TestCase):
 
 
 # ===========================================================================
-# XIV. FIGHT ENCOUNTER TESTS
+# XV. FIGHT ENCOUNTER TESTS
 # ===========================================================================
 
 class FightEncounterTest(TestCase):

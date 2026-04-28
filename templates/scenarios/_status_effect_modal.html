@@ -17,38 +17,38 @@ Requires JavaScript to handle post/submission
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-
+            
             <div class="modal-body" style="color: var(--cream);">
                 <div class="row">
                     <!-- Effect Categories -->
                     <div class="col-md-4">
                         <div class="list-group" id="effectCategoryList_{{ character.id }}">
-                            <button class="list-group-item list-group-item-action active"
-                                    data-bs-toggle="list"
+                            <button class="list-group-item list-group-item-action active" 
+                                    data-bs-toggle="list" 
                                     href="#effectCategory_normal_{{ character.id }}"
                                     style="background: rgba(139, 28, 28, 0.5); border-color: var(--gold); color: var(--cream);">
                                 <i class="bi bi-shield-exclamation"></i> Status Effects
                             </button>
-                            <button class="list-group-item list-group-item-action"
-                                    data-bs-toggle="list"
+                            <button class="list-group-item list-group-item-action" 
+                                    data-bs-toggle="list" 
                                     href="#effectCategory_phobia_{{ character.id }}"
                                     style="border-color: var(--gold); color: var(--cream);">
                                 <i class="bi bi-bug-fill"></i> Phobias
                             </button>
-                            <button class="list-group-item list-group-item-action"
-                                    data-bs-toggle="list"
+                            <button class="list-group-item list-group-item-action" 
+                                    data-bs-toggle="list" 
                                     href="#effectCategory_madness_{{ character.id }}"
                                     style="border-color: var(--gold); color: var(--cream);">
                                 <i class="bi bi-question-circle-fill"></i> Madness
                             </button>
-                            <button class="list-group-item list-group-item-action"
-                                    data-bs-toggle="list"
+                            <button class="list-group-item list-group-item-action" 
+                                    data-bs-toggle="list" 
                                     href="#effectCategory_mania_{{ character.id }}"
                                     style="border-color: var(--gold); color: var(--cream);">
                                 <i class="bi bi-fire"></i> Mania
                             </button>
-                            <button class="list-group-item list-group-item-action"
-                                    data-bs-toggle="list"
+                            <button class="list-group-item list-group-item-action" 
+                                    data-bs-toggle="list" 
                                     href="#effectCategory_custom_{{ character.id }}"
                                     style="border-color: var(--gold); color: var(--cream);">
                                 <i class="bi bi-pencil"></i> Custom Effect
@@ -67,7 +67,7 @@ Requires JavaScript to handle post/submission
                                             <div class="effect-item" data-effect-id="{{ effect.id }}">
                                                 <strong>{{ effect.name }}</strong>
                                                 <small class="d-block text-muted">{{ effect.description }}</small>
-                                                <button class="btn btn-sm btn-primary add-effect"
+                                                <button class="btn btn-sm btn-primary add-effect" 
                                                         data-character-id="{{ character.id }}"
                                                         data-effect-id="{{ effect.id }}"
                                                         data-effect-type="NORMAL">
@@ -87,7 +87,7 @@ Requires JavaScript to handle post/submission
                                             <div class="effect-item" data-effect-id="{{ effect.id }}">
                                                 <strong>{{ effect.name }}</strong>
                                                 <small class="d-block text-muted">{{ effect.description }}</small>
-                                                <button class="btn btn-sm btn-danger add-effect"
+                                                <button class="btn btn-sm btn-danger add-effect" 
                                                         data-character-id="{{ character.id }}"
                                                         data-effect-id="{{ effect.id }}"
                                                         data-effect-type="PHOBIA">
@@ -107,7 +107,7 @@ Requires JavaScript to handle post/submission
                                             <div class="effect-item" data-effect-id="{{ effect.id }}">
                                                 <strong>{{ effect.name }}</strong>
                                                 <small class="d-block text-muted">{{ effect.description }}</small>
-                                                <button class="btn btn-sm btn-dark add-effect"
+                                                <button class="btn btn-sm btn-dark add-effect" 
                                                         data-character-id="{{ character.id }}"
                                                         data-effect-id="{{ effect.id }}"
                                                         data-effect-type="MADNESS">
@@ -127,7 +127,7 @@ Requires JavaScript to handle post/submission
                                             <div class="effect-item" data-effect-id="{{ effect.id }}">
                                                 <strong>{{ effect.name }}</strong>
                                                 <small class="d-block text-muted">{{ effect.description }}</small>
-                                                <button class="btn btn-sm btn-info add-effect"
+                                                <button class="btn btn-sm btn-info add-effect" 
                                                         data-character-id="{{ character.id }}"
                                                         data-effect-id="{{ effect.id }}"
                                                         data-effect-type="MANIA">
@@ -144,15 +144,15 @@ Requires JavaScript to handle post/submission
                                 <div class="custom-effect-form">
                                     <div class="mb-3">
                                         <label class="form-label">Effect Name</label>
-                                        <input type="text" class="form-control custom-effect-name"
+                                        <input type="text" class="form-control custom-effect-name" 
                                                placeholder="Enter custom effect name">
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label">Duration (rounds)</label>
-                                        <input type="number" class="form-control custom-effect-duration"
+                                        <input type="number" class="form-control custom-effect-duration" 
                                                value="1" min="1">
                                     </div>
-                                    <button class="btn btn-primary add-custom-effect"
+                                    <button class="btn btn-primary add-custom-effect" 
                                             data-character-id="{{ character.id }}"
                                             data-scenario-id="{{ scenario.id }}">
                                         <i class="bi bi-plus-circle"></i> Create & Add
@@ -248,4 +248,3 @@ Requires JavaScript to handle post/submission
         background: rgba(44, 44, 44, 0.9) !important;
     }
 </style>
-

@@ -18,8 +18,8 @@ Usage: {% include "scenarios/_skill_update_checkboxes.html" with character=chara
         <div class="skills-update-list">
             {% for char_skill in character.skills.all %}
                 <div class="form-check skill-check-item">
-                    <input class="form-check-input skill-needs-update"
-                           type="checkbox"
+                    <input class="form-check-input skill-needs-update" 
+                           type="checkbox" 
                            id="skillUpdate_{{ character.id }}_{{ char_skill.id }}"
                            data-skill-id="{{ char_skill.skill.id }}"
                            data-character-id="{{ character.id }}"
@@ -41,7 +41,7 @@ Usage: {% include "scenarios/_skill_update_checkboxes.html" with character=chara
             <small class="text-muted d-block mb-2">
                 <i class="bi bi-info-circle"></i> Check the skills that need updates after this session.
             </small>
-            <button class="btn btn-sm btn-outline-warning save-skill-updates"
+            <button class="btn btn-sm btn-outline-warning save-skill-updates" 
                     data-character-id="{{ character.id }}">
                 <i class="bi bi-check-circle"></i> Save Updates
             </button>
@@ -99,10 +99,10 @@ function saveSkillUpdates(characterId) {
 
     // This would typically send to a backend endpoint to save
     // For now, just show confirmation
-    const message = checkedSkills.length > 0
-        ? `Marked ${checkedSkills.length} skill(s) for update`
+    const message = checkedSkills.length > 0 
+        ? `Marked ${checkedSkills.length} skill(s) for update` 
         : 'No skills marked for update';
-
+    
     alert(message);
     console.log('Skills to update:', checkedSkills);
 }
@@ -180,4 +180,3 @@ function saveSkillUpdates(characterId) {
 {% if not is_keeper %}
 <!-- Hidden from non-keeper users -->
 {% endif %}
-

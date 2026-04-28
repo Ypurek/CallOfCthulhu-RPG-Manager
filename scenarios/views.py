@@ -17,6 +17,8 @@ from .services import apply_daily_hp_restore, apply_hourly_mp_restore, get_chara
 from .models import (
     FightEncounter,
     Invitation,
+    Message,
+    MessageReceipt,
     Scenario,
     ScenarioNPC,
     ScenarioPlayer,
@@ -160,6 +162,50 @@ def _get_session_card_updates(scenario: Scenario):
             updates.append(_serialize_session_card(snpc.npc, display_name=snpc.get_display_name()))
 
     return updates
+
+
+def _get_scenario_player_users(scenario: Scenario):
+    """Return active player users participating in the scenario."""
+    return list(
+        _User.objects.filter(
+            player_scenarios__scenario=scenario,
+            player_scenarios__is_active=True,
+        ).distinct()
+    )
+
+
+def _create_message_receipts(message: Message):
+    """Create delivery receipts for the message recipients."""
+    recipients = []
+    if message.message_type == "PRIVATE" and message.recipient_id:
+        recipients = [message.recipient]
+    elif message.message_type in {"PUBLIC", "SYSTEM"}:
+        recipients = [user for user in _get_scenario_player_users(message.scenario) if user.id != message.sender_id]
+
+    MessageReceipt.objects.bulk_create(
+        [MessageReceipt(message=message, user=user) for user in recipients],
+        ignore_conflicts=True,
+    )
+
+
+def _serialize_message(message: Message, receipt: MessageReceipt | None = None):
+    return {
+        "id": message.id,
+        "sender": message.sender.username,
+        "content": message.content,
+        "type": message.message_type,
+        "recipient": message.recipient.username if message.recipient else "",
+        "sent_at": message.sent_at.isoformat(),
+        "is_unread": bool(receipt and receipt.read_at is None),
+    }
+
+
+def _get_unread_message_count(scenario: Scenario, user: _User) -> int:
+    return MessageReceipt.objects.filter(
+        message__scenario=scenario,
+        user=user,
+        read_at__isnull=True,
+    ).count()
 
 
 # ---------------------------------------------------------------------------
@@ -791,6 +837,7 @@ def scenario_detail(request, scenario_id):
         "character": character,
         "character_sheet": character_sheet,
         "is_keeper": is_keeper,
+        "unread_messages": _get_unread_message_count(scenario, request.user) if not is_keeper else 0,
         "scenario_player": scenario_player,
         "available_characters": available_characters,
     })
@@ -851,6 +898,7 @@ def scenario_player_snapshot(request, scenario_id):
         "day": scenario.in_game_day,
         "time": scenario.in_game_time.strftime("%H:%M"),
         "public_notes": scenario.public_notes,
+        "unread_messages": _get_unread_message_count(scenario, request.user) if not is_keeper else 0,
         "has_alive_character": bool(character and character.is_alive),
         "sheet": sheet_payload,
     })
@@ -923,44 +971,49 @@ def fight_encounter(request, scenario_id):
 @require_POST
 @_keeper_required
 def scenario_send_message(request, scenario_id):
-    """Keeper sends a message to a player or all players (public)."""
-    from scenarios.models import Message
-
+    """Keeper sends a private message to a player in this scenario."""
     scenario = _get_scenario_for_keeper(request, scenario_id)
     content = request.POST.get("content", "").strip()
-    message_type = request.POST.get("message_type", "PUBLIC")  # PUBLIC or recipient-specific
     recipient_id = request.POST.get("recipient_id")
 
     if not content:
         return JsonResponse({"ok": False, "error": "Message cannot be empty"}, status=400)
 
-    recipient = None
-    if recipient_id and message_type != "PUBLIC":
-        try:
-            recipient = _User.objects.get(id=recipient_id)
-        except _User.DoesNotExist:
-            return JsonResponse({"ok": False, "error": "Recipient not found"}, status=404)
+    if not recipient_id:
+        return JsonResponse({"ok": False, "error": "Recipient is required."}, status=400)
+
+    recipient_sp = ScenarioPlayer.objects.filter(
+        scenario=scenario,
+        player_id=recipient_id,
+        is_active=True,
+    ).select_related("player").first()
+    if not recipient_sp:
+        return JsonResponse({"ok": False, "error": "Recipient not in scenario"}, status=404)
+
+    recipient = recipient_sp.player
+    if recipient.id == request.user.id:
+        return JsonResponse({"ok": False, "error": "Cannot send a private message to yourself."}, status=400)
 
     msg = Message.objects.create(
         scenario=scenario,
         sender=request.user,
         recipient=recipient,
-        message_type=message_type if not recipient else "PRIVATE",
+        message_type="PRIVATE",
         content=content,
     )
+    _create_message_receipts(msg)
 
     return JsonResponse({
         "ok": True,
         "message_id": msg.id,
         "sent_at": msg.sent_at.isoformat(),
+        "message": _serialize_message(msg),
     })
 
 
 @login_required
 def scenario_get_messages(request, scenario_id):
     """Get messages for player (polling endpoint) - JSON only"""
-    from scenarios.models import Message
-
     scenario = get_object_or_404(Scenario, id=scenario_id)
 
     # Security check
@@ -971,33 +1024,43 @@ def scenario_get_messages(request, scenario_id):
         except ScenarioPlayer.DoesNotExist:
             return JsonResponse({"ok": False, "error": "Not participant"}, status=403)
 
-    # Get messages for this player/keeper
-    msg_query = Message.objects.filter(scenario=scenario, is_read=False)
-    if not is_keeper:
-        msg_query = msg_query.filter(
-            _Q(message_type="PUBLIC") | _Q(recipient=request.user)
+    if is_keeper:
+        latest_messages = Message.objects.filter(scenario=scenario).select_related("sender", "recipient")[:30]
+        messages_list = [_serialize_message(message) for message in latest_messages]
+        unread_count = 0
+    else:
+        receipts = list(
+            MessageReceipt.objects.filter(
+                message__scenario=scenario,
+                user=request.user,
+            ).select_related("message__sender", "message__recipient")[:30]
         )
-
-    unread_count = msg_query.count()
-    messages_list = [
-        {
-            "id": m.id,
-            "sender": m.sender.username,
-            "content": m.content,
-            "type": m.message_type,
-            "sent_at": m.sent_at.isoformat(),
-        }
-        for m in msg_query[:10]  # Latest 10
-    ]
-
-    # Mark as read
-    msg_query.update(is_read=True)
+        unread_count = sum(1 for receipt in receipts if receipt.read_at is None)
+        messages_list = [_serialize_message(receipt.message, receipt) for receipt in receipts]
 
     return JsonResponse({
         "ok": True,
         "unread_count": unread_count,
         "messages": messages_list,
     })
+
+
+@require_POST
+@login_required
+def scenario_mark_messages_read(request, scenario_id):
+    """Mark the current player's scenario messages as read."""
+    scenario = get_object_or_404(Scenario, id=scenario_id)
+    is_keeper = scenario.keeper == request.user or request.user.is_staff
+    if is_keeper:
+        return JsonResponse({"ok": True, "marked_read": 0})
+
+    get_object_or_404(ScenarioPlayer, scenario=scenario, player=request.user)
+    updated = MessageReceipt.objects.filter(
+        message__scenario=scenario,
+        user=request.user,
+        read_at__isnull=True,
+    ).update(read_at=timezone.now())
+    return JsonResponse({"ok": True, "marked_read": updated})
 
 
 # ---------------------------------------------------------------------------
@@ -1119,7 +1182,6 @@ def scenario_player_snapshot_json(request, scenario_id):
     Player polling endpoint for live updates (static JSON payload, no HTML).
     Returns: day, time, public_notes, unread message count, character status.
     """
-    from scenarios.models import Message
     from scenarios.services import get_character_status_effects_display
 
     scenario = get_object_or_404(Scenario, id=scenario_id)
@@ -1131,16 +1193,7 @@ def scenario_player_snapshot_json(request, scenario_id):
 
     character = scenario_player.character if scenario_player else None
 
-    # Get unread message count
-    unread_messages = Message.objects.filter(
-        scenario=scenario,
-        is_read=False
-    )
-    if not is_keeper:
-        unread_messages = unread_messages.filter(
-            _Q(message_type="PUBLIC") | _Q(recipient=request.user)
-        )
-    unread_count = unread_messages.count()
+    unread_count = _get_unread_message_count(scenario, request.user) if not is_keeper else 0
 
     # Build character summary
     character_data = None

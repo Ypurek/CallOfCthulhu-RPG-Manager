@@ -21,19 +21,19 @@ Requires JavaScript for auto-polling and real-time updates
         <form class="send-message-form" data-scenario-id="{{ scenario.id }}" method="POST">
             {% csrf_token %}
             <hidden input type="hidden" name="scenario_id" value="{{ scenario.id }}">
-
+            
             <div class="mb-2">
                 <label class="form-label" style="color: var(--cream); font-size: 0.9rem;">
                     <i class="bi bi-arrow-right-circle"></i> Send Message
                 </label>
-
+                
                 <!-- Message Type Selection -->
                 <div class="btn-group d-block mb-2" role="group" style="width: 100%;">
                     <input type="radio" class="btn-check" name="message_type" value="PUBLIC" id="msgPublic_{{ scenario.id }}" checked>
                     <label class="btn btn-outline-secondary" for="msgPublic_{{ scenario.id }}" style="flex: 1; font-size: 0.85rem;">
                         <i class="bi bi-megaphone"></i> All Players
                     </label>
-
+                    
                     <input type="radio" class="btn-check" name="message_type" value="PRIVATE" id="msgPrivate_{{ scenario.id }}">
                     <label class="btn btn-outline-secondary" for="msgPrivate_{{ scenario.id }}" style="flex: 1; font-size: 0.85rem;">
                         <i class="bi bi-person"></i> Private
@@ -52,9 +52,9 @@ Requires JavaScript for auto-polling and real-time updates
             </div>
 
             <div class="mb-2">
-                <textarea class="form-control message-input"
-                          name="content"
-                          placeholder="Type your message..."
+                <textarea class="form-control message-input" 
+                          name="content" 
+                          placeholder="Type your message..." 
                           rows="2"
                           style="background: rgba(44, 44, 44, 0.8); border-color: var(--gold); color: var(--cream); font-size: 0.9rem;"></textarea>
             </div>
@@ -83,10 +83,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (messageForm) {
         messageForm.addEventListener('submit', function(e) {
             e.preventDefault();
-
+            
             const scenarioId = this.dataset.scenarioId;
             const formData = new FormData(this);
-
+            
             fetch(`/scenarios/${scenarioId}/message/send/`, {
                 method: 'POST',
                 body: formData,
@@ -130,7 +130,7 @@ function loadMessages(scenarioId) {
 
 function updateMessagesDisplay(messages) {
     const messagesList = document.getElementById('messagesList');
-
+    
     if (messages.length === 0) {
         messagesList.innerHTML = `
             <div class="text-center text-muted" style="padding: 2rem;">
@@ -209,4 +209,3 @@ function updateNotificationBadge(count) {
         color: var(--cream);
     }
 </style>
-
