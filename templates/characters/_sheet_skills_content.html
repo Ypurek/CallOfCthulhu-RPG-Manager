@@ -1,0 +1,41 @@
+<div class="skills-grid" data-sheet-skills-grid>
+    {% for skill in sheet.skills %}
+    <div class="skill-item" onclick="showSkillModal('{{ skill.name|escapejs }}', {{ skill.value }}, '{{ skill.description|escapejs }}')">
+        <span class="skill-name">
+            {{ skill.name }}
+            {% if skill.is_custom %}<span class="badge bg-info text-dark ms-1" style="font-size: 0.7rem;">Custom</span>{% endif %}
+        </span>
+        <span class="skill-value">{{ skill.value }}%</span>
+    </div>
+    {% empty %}
+    <div class="skill-item">
+        <span class="skill-name">No improved skills yet.</span>
+    </div>
+    {% endfor %}
+</div>
+
+{% if sheet.default_skills %}
+<button class="toggle-default-btn" type="button" id="{{ sid }}-default-skills-btn" onclick="toggleDefaultSkills('{{ sid }}')">
+    Show more ({{ sheet.default_skills|length }} default skills)
+</button>
+<div class="default-skills" id="{{ sid }}-default-skills">
+    <div class="skills-grid">
+        {% for skill in sheet.default_skills %}
+        <div class="skill-item" onclick="showSkillModal('{{ skill.name|escapejs }}', {{ skill.value }}, '{{ skill.description|escapejs }}')">
+            <span class="skill-name">
+                {{ skill.name }}
+                {% if skill.is_custom %}<span class="badge bg-info text-dark ms-1" style="font-size: 0.7rem;">Custom</span>{% endif %}
+            </span>
+            <span class="skill-value">{{ skill.value }}%</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if sheet.can_add_custom_skill %}
+<div class="add-skill-btn" onclick="showAddSkillModal()">
+    <i class="fas fa-plus"></i> Add Custom Skill
+</div>
+{% endif %}
+

@@ -1,0 +1,501 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ scenario.name }} – Cthulhu RPG{% endblock %}
+
+{% block extra_css %}
+{% include 'characters/_character_sheet_styles.html' %}
+<style>
+  .session-note { white-space: pre-wrap; }
+  .session-private-notes { min-height: 120px; }
+  .session-status { min-height: 1.2rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-2 flex-wrap gap-2">
+  <div>
+    <h2 class="text-warning mb-0"><i class="fas fa-book-open me-2"></i>{{ scenario.name }}</h2>
+    {% if scenario.place %}
+    <small class="text-muted"><i class="fas fa-map-marker-alt me-1"></i>{{ scenario.place }}</small>
+    {% endif %}
+  </div>
+  <div class="d-flex gap-2 align-items-center flex-wrap">
+    <span class="px-2 py-1 rounded border border-warning small">
+      <i class="fas fa-clock me-1 text-warning"></i>
+      <span class="text-muted me-1">Day</span><span id="session-day">{{ scenario.in_game_day }}</span>
+      <span class="text-muted mx-1">•</span>
+      <span id="session-time">{{ scenario.in_game_time|date:"H:i" }}</span>
+    </span>
+    {% if is_keeper %}
+    <a href="{% url 'scenarios:manage' scenario.id %}" class="btn btn-sm btn-warning"><i class="fas fa-crown me-1"></i>Manage</a>
+    {% endif %}
+  </div>
+</div>
+
+{% if not is_keeper and character and character.is_alive %}
+  <div id="player-sheet-root" class="mb-3">
+    {% include 'scenarios/_player_sheet_block.html' with scenario=scenario character=character sheet=character_sheet sheet_id='player-sheet-main' %}
+  </div>
+{% elif not is_keeper %}
+  <div class="card border-warning mb-3">
+    <div class="card-header text-warning">
+      <i class="fas fa-skull me-2"></i>
+      {% if character and not character.is_alive %}
+      {{ character.name }} has perished. Select a new character to continue.
+      {% else %}
+      You haven't selected a character yet. Choose one to play.
+      {% endif %}
+    </div>
+    <div class="card-body">
+      {% if available_characters %}
+      <form method="post" action="{% url 'scenarios:select_character' scenario.id %}">
+        {% csrf_token %}
+        <div class="row g-2 mb-2">
+          {% for ch in available_characters %}
+          <div class="col-12">
+            <label class="d-flex align-items-center gap-2 p-2 rounded" style="cursor:pointer;border:1px solid rgba(212,175,55,.3);background:rgba(255,255,255,.04);">
+              <input type="radio" name="character_id" value="{{ ch.id }}" class="form-check-input mt-0" required>
+              <span>
+                <span class="fw-bold text-warning">{{ ch.name }}</span>
+                <small class="text-muted ms-1">{{ ch.occupation }} • HP {{ ch.hp_current }}/{{ ch.hp_max }} • SAN {{ ch.sanity_current }}</small>
+              </span>
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+        <button type="submit" class="btn btn-warning btn-sm"><i class="fas fa-check me-1"></i>Play selected character</button>
+      </form>
+      {% else %}
+      <p class="text-muted mb-2">You have no living characters available.</p>
+      <a href="{% url 'characters:create' %}" class="btn btn-outline-warning btn-sm"><i class="fas fa-plus me-1"></i>Create a new character</a>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}
+
+<div class="mb-3">
+  <h6 class="text-warning mb-1"><i class="fas fa-globe me-1"></i>Public Session Notes</h6>
+  <div id="public-notes" class="session-note text-muted">{{ scenario.public_notes|default:'No public notes yet.' }}</div>
+</div>
+
+{% if scenario_player %}
+<div class="mb-3">
+  <h6 class="text-warning mb-1"><i class="fas fa-user-secret me-1"></i>Your Private Session Notes</h6>
+  <form id="private-notes-form" method="post" action="{% url 'scenarios:player_private_notes' scenario.id %}">
+    {% csrf_token %}
+    <textarea name="private_notes" id="private-notes" class="form-control form-control-sm session-private-notes" placeholder="Only you can see these notes.">{{ scenario_player.private_notes }}</textarea>
+    <div class="d-flex align-items-center gap-2 mt-2">
+      <button type="submit" class="btn btn-sm btn-outline-warning" id="save-private-notes-btn"><i class="fas fa-save me-1"></i>Save</button>
+      <small class="text-muted session-status" id="private-notes-status"></small>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+<div class="text-center mt-3">
+  <a href="{% url 'scenarios:list' %}" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Back to Scenarios</a>
+</div>
+
+{% include 'characters/_character_sheet_modals.html' %}
+{% endblock %}
+
+{% block extra_js %}
+{% include 'characters/_character_sheet_scripts.html' %}
+<script>
+(function initPlayerSessionLiveView() {
+  const dayEl = document.getElementById('session-day');
+  const timeEl = document.getElementById('session-time');
+  const notesEl = document.getElementById('public-notes');
+  const sheetRoot = document.getElementById('player-sheet-root');
+  const snapshotUrl = "{% url 'scenarios:player_snapshot' scenario.id %}";
+  const sectionSignatures = {
+    skills: null,
+    combat: null,
+    items: null,
+    spells: null,
+  };
+
+  function toSignature(value) {
+    return JSON.stringify(value ?? null);
+  }
+
+  function safeNumber(value, fallback = 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  function makeSkillItem(skill, extraClass = '') {
+    const item = document.createElement('div');
+    item.className = `skill-item${extraClass ? ` ${extraClass}` : ''}`;
+
+    const name = document.createElement('span');
+    name.className = 'skill-name';
+    name.textContent = skill.name || '';
+
+    if (skill.is_custom) {
+      const badge = document.createElement('span');
+      badge.className = 'badge bg-info text-dark ms-1';
+      badge.style.fontSize = '0.7rem';
+      badge.textContent = 'Custom';
+      name.appendChild(badge);
+    }
+
+    const value = document.createElement('span');
+    value.className = 'skill-value';
+    value.textContent = `${safeNumber(skill.value)}%`;
+
+    item.appendChild(name);
+    item.appendChild(value);
+
+    item.addEventListener('click', () => {
+      if (typeof window.showSkillModal === 'function') {
+        window.showSkillModal(skill.name || '', safeNumber(skill.value), skill.description || '');
+      }
+    });
+
+    return item;
+  }
+
+  function renderSkillsSection(payload) {
+    const skillsContent = document.getElementById('player-sheet-main-skills-content');
+    if (!skillsContent) return;
+
+    const skills = Array.isArray(payload.skills) ? payload.skills : [];
+    const defaultSkills = Array.isArray(payload.default_skills) ? payload.default_skills : [];
+    const canAddCustomSkill = Boolean(payload.can_add_custom_skill);
+
+    const signature = toSignature({ skills, defaultSkills, canAddCustomSkill });
+    if (sectionSignatures.skills === signature) return;
+
+    const wasDefaultSkillsOpen = document.getElementById('player-sheet-main-default-skills')?.classList.contains('show');
+    const fragment = document.createDocumentFragment();
+
+    const skillsGrid = document.createElement('div');
+    skillsGrid.className = 'skills-grid';
+    skillsGrid.dataset.sheetSkillsGrid = '';
+    if (skills.length) {
+      skills.forEach((skill) => skillsGrid.appendChild(makeSkillItem(skill)));
+    } else {
+      const empty = document.createElement('div');
+      empty.className = 'skill-item';
+      const emptyName = document.createElement('span');
+      emptyName.className = 'skill-name';
+      emptyName.textContent = 'No improved skills yet.';
+      empty.appendChild(emptyName);
+      skillsGrid.appendChild(empty);
+    }
+    fragment.appendChild(skillsGrid);
+
+    if (defaultSkills.length) {
+      const toggleBtn = document.createElement('button');
+      toggleBtn.className = 'toggle-default-btn';
+      toggleBtn.type = 'button';
+      toggleBtn.id = 'player-sheet-main-default-skills-btn';
+
+      const defaultSkillsWrap = document.createElement('div');
+      defaultSkillsWrap.className = 'default-skills';
+      defaultSkillsWrap.id = 'player-sheet-main-default-skills';
+
+      const defaultGrid = document.createElement('div');
+      defaultGrid.className = 'skills-grid';
+      defaultSkills.forEach((skill) => defaultGrid.appendChild(makeSkillItem(skill)));
+      defaultSkillsWrap.appendChild(defaultGrid);
+
+      toggleBtn.addEventListener('click', () => {
+        defaultSkillsWrap.classList.toggle('show');
+        toggleBtn.textContent = defaultSkillsWrap.classList.contains('show')
+          ? 'Hide default skills'
+          : `Show more (${defaultSkills.length} default skills)`;
+      });
+
+      if (wasDefaultSkillsOpen) {
+        defaultSkillsWrap.classList.add('show');
+        toggleBtn.textContent = 'Hide default skills';
+      } else {
+        toggleBtn.textContent = `Show more (${defaultSkills.length} default skills)`;
+      }
+
+      fragment.appendChild(toggleBtn);
+      fragment.appendChild(defaultSkillsWrap);
+    }
+
+    if (canAddCustomSkill) {
+      const addSkillBtn = document.createElement('div');
+      addSkillBtn.className = 'add-skill-btn';
+      addSkillBtn.innerHTML = '<i class="fas fa-plus"></i> Add Custom Skill';
+      addSkillBtn.addEventListener('click', () => {
+        if (typeof window.showAddSkillModal === 'function') {
+          window.showAddSkillModal();
+        }
+      });
+      fragment.appendChild(addSkillBtn);
+    }
+
+    skillsContent.replaceChildren(fragment);
+    sectionSignatures.skills = signature;
+  }
+
+  function renderCombatSection(payload) {
+    const combatContent = document.getElementById('player-sheet-main-combat-content');
+    if (!combatContent) return;
+
+    const combatSkills = Array.isArray(payload.combat_skills) ? payload.combat_skills : [];
+    const weapons = Array.isArray(payload.weapons) ? payload.weapons : [];
+    const dodgeValue = safeNumber(payload.dodge_value);
+
+    const signature = toSignature({ combatSkills, weapons, dodgeValue });
+    if (sectionSignatures.combat === signature) return;
+
+    const fragment = document.createDocumentFragment();
+
+    const combatGrid = document.createElement('div');
+    combatGrid.className = 'skills-grid';
+    combatGrid.dataset.sheetCombatGrid = '';
+
+    combatGrid.appendChild(makeSkillItem({
+      name: 'Dodge',
+      value: dodgeValue,
+      description: 'Avoid attacks by moving out of the way',
+    }, 'combat'));
+    combatSkills.forEach((skill) => combatGrid.appendChild(makeSkillItem(skill, 'combat')));
+    fragment.appendChild(combatGrid);
+
+    const tipsWrap = document.createElement('div');
+    tipsWrap.className = 'compact-section';
+    const tipsBtn = document.createElement('button');
+    tipsBtn.className = 'toggle-default-btn';
+    tipsBtn.type = 'button';
+    tipsBtn.innerHTML = '<i class="fas fa-info-circle"></i> Combat Tips';
+    tipsBtn.addEventListener('click', () => {
+      if (typeof window.showCombatTips === 'function') {
+        window.showCombatTips();
+      }
+    });
+    tipsWrap.appendChild(tipsBtn);
+    fragment.appendChild(tipsWrap);
+
+    if (weapons.length) {
+      const weaponsHeader = document.createElement('div');
+      weaponsHeader.className = 'compact-header';
+      weaponsHeader.innerHTML = '<i class="fas fa-crosshairs"></i> Weapons';
+      fragment.appendChild(weaponsHeader);
+
+      const weaponsWrap = document.createElement('div');
+      weaponsWrap.dataset.sheetWeapons = '';
+      weapons.forEach((weapon) => {
+        const row = document.createElement('div');
+        row.className = 'weapon-item';
+
+        const strong = document.createElement('strong');
+        strong.textContent = weapon.name || '';
+        row.appendChild(strong);
+        row.appendChild(document.createTextNode(` ${weapon.damage || ''}`));
+
+        if (weapon.is_prepared) {
+          const prepared = document.createElement('span');
+          prepared.className = 'text-success';
+          prepared.textContent = ' [Prepared]';
+          row.appendChild(prepared);
+        }
+
+        weaponsWrap.appendChild(row);
+      });
+      fragment.appendChild(weaponsWrap);
+    }
+
+    combatContent.replaceChildren(fragment);
+    sectionSignatures.combat = signature;
+  }
+
+  function renderItemsSection(payload) {
+    const itemsContent = document.getElementById('player-sheet-main-items-content');
+    if (!itemsContent) return;
+
+    const items = Array.isArray(payload.items) ? payload.items : [];
+    const cash = safeNumber(payload.character?.cash, 0);
+    const signature = toSignature({ cash, items });
+    if (sectionSignatures.items === signature) return;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'compact-section';
+    const grid = document.createElement('div');
+    grid.className = 'items-grid';
+    grid.dataset.sheetItems = '';
+
+    const cashBadge = document.createElement('span');
+    cashBadge.className = 'item-badge cash-badge';
+    cashBadge.textContent = `Cash $${cash}`;
+    grid.appendChild(cashBadge);
+
+    if (items.length) {
+      items.forEach((item) => {
+        const badge = document.createElement('span');
+        badge.className = 'item-badge';
+        badge.textContent = `${item.name || ''} x${safeNumber(item.quantity, 0)}`;
+        grid.appendChild(badge);
+      });
+    } else {
+      const empty = document.createElement('span');
+      empty.className = 'item-badge';
+      empty.textContent = 'No items';
+      grid.appendChild(empty);
+    }
+
+    wrap.appendChild(grid);
+    itemsContent.replaceChildren(wrap);
+    sectionSignatures.items = signature;
+  }
+
+  function renderSpellsSection(payload) {
+    const spellsSection = document.getElementById('player-sheet-main-spells-section');
+    if (!spellsSection) return;
+
+    const spells = Array.isArray(payload.spells) ? payload.spells : [];
+    const signature = toSignature(spells);
+    if (sectionSignatures.spells === signature) return;
+
+    if (!spells.length) {
+      spellsSection.style.display = 'none';
+      spellsSection.replaceChildren();
+      sectionSignatures.spells = signature;
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+
+    const header = document.createElement('div');
+    header.className = 'compact-header';
+    header.innerHTML = '<i class="fas fa-magic"></i> Spells';
+    fragment.appendChild(header);
+
+    const list = document.createElement('div');
+    list.dataset.sheetSpells = '';
+    spells.forEach((spell) => {
+      const row = document.createElement('div');
+      row.className = 'weapon-item';
+
+      const strong = document.createElement('strong');
+      strong.textContent = spell.name || '';
+      row.appendChild(strong);
+
+      const cost = document.createElement('span');
+      cost.className = 'text-info';
+      cost.textContent = ` ${safeNumber(spell.mana_cost, 0)}MP`;
+      row.appendChild(document.createTextNode(' '));
+      row.appendChild(cost);
+
+      list.appendChild(row);
+    });
+
+    fragment.appendChild(list);
+    spellsSection.style.display = '';
+    spellsSection.replaceChildren(fragment);
+    sectionSignatures.spells = signature;
+  }
+
+  function updateResource(root, key, current, max) {
+    const container = root.querySelector(`.stat-bar-container[data-resource="${key}"]`);
+    if (container) {
+      container.dataset.current = current;
+      container.dataset.max = max;
+    }
+    const fill = root.querySelector(`[data-resource-fill="${key}"]`);
+    if (fill) {
+      fill.style.width = `${(current / Math.max(max, 1)) * 100}%`;
+    }
+    const text = root.querySelector(`[data-resource-text="${key}"]`);
+    if (text) {
+      text.textContent = `${current}/${max}`;
+    }
+  }
+
+  function patchSheet(root, payload) {
+    if (!root || !payload) return;
+
+    const activeElement = document.activeElement;
+    if (activeElement && root.contains(activeElement)) {
+      return;
+    }
+
+    const summaryName = document.querySelector('[data-player-sheet-name]');
+    if (summaryName) summaryName.textContent = payload.summary?.name || '';
+    const summaryOccupation = document.querySelector('[data-player-sheet-occupation]');
+    if (summaryOccupation) {
+      summaryOccupation.textContent = payload.summary?.occupation ? `• ${payload.summary.occupation}` : '';
+    }
+
+    const sheetName = root.querySelector('[data-sheet-name]');
+    if (sheetName) sheetName.textContent = payload.character?.name || '';
+
+
+    const description = root.querySelector('[data-sheet-description]');
+    if (description) description.textContent = payload.character?.description || '';
+
+    if (payload.resources) {
+      Object.entries(payload.resources).forEach(([key, value]) => {
+        updateResource(root, key, value.current, value.max);
+      });
+    }
+
+    if (payload.stats) {
+      Object.entries(payload.stats).forEach(([key, value]) => {
+        const statValue = root.querySelector(`[data-stat-value="${key}"]`);
+        if (statValue) statValue.textContent = String(value ?? '');
+      });
+    }
+
+    renderSkillsSection(payload);
+    renderCombatSection(payload);
+    renderItemsSection(payload);
+    renderSpellsSection(payload);
+  }
+
+  async function refreshSnapshot() {
+    try {
+      const res = await fetch(snapshotUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      const data = await res.json();
+      if (!data.ok) return;
+      if (dayEl) dayEl.textContent = data.day;
+      if (timeEl) timeEl.textContent = data.time;
+      if (notesEl) notesEl.textContent = data.public_notes || 'No public notes yet.';
+      if (sheetRoot && data.has_alive_character && data.sheet) {
+        patchSheet(sheetRoot, data.sheet);
+      } else if ((sheetRoot && !data.has_alive_character) || (!sheetRoot && data.has_alive_character)) {
+        window.location.reload();
+      }
+    } catch (err) {
+      console.warn('Snapshot refresh failed', err);
+    }
+  }
+
+  setInterval(refreshSnapshot, 8000);
+})();
+
+(function initPrivateNotesSave() {
+  const form = document.getElementById('private-notes-form');
+  if (!form) return;
+  const btn = document.getElementById('save-private-notes-btn');
+  const status = document.getElementById('private-notes-status');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    btn.disabled = true;
+    status.textContent = 'Saving...';
+    try {
+      const res = await fetch(form.action, { method: 'POST', body: new FormData(form) });
+      const data = await res.json();
+      status.textContent = data.ok ? 'Saved' : 'Failed';
+    } catch (err) {
+      status.textContent = 'Failed';
+    } finally {
+      btn.disabled = false;
+      setTimeout(() => { status.textContent = ''; }, 2000);
+    }
+  });
+})();
+</script>
+{% endblock %}
+
+
+
+

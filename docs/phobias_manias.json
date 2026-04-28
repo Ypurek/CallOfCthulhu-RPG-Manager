@@ -1,0 +1,26 @@
+{
+  "phobias": [
+    { "name": "Acrophobia", "description": "Fear of heights; fear of falling or being in high places." },
+    { "name": "Pyrophobia", "description": "Fear of fire; intense dread of flames or burning." },
+    { "name": "Eisoptrophobia", "description": "Fear of mirrors; fear of seeing one's own reflection or spirits in glass." },
+    { "name": "Odontophobia", "description": "Fear of teeth; fear of dental work, being bitten, or exposed teeth." },
+    { "name": "Bibliophobia", "description": "Fear of books; often specifically directed at occult or forbidden literature." },
+    { "name": "Hemophobia", "description": "Fear of blood; severe distress at the sight of wounds or bleeding." },
+    { "name": "Necrophobia", "description": "Fear of the dead; intense dread of corpses and death-related objects." },
+    { "name": "Arachnophobia", "description": "Fear of spiders; irrational dread of arachnids." },
+    { "name": "Telephonophobia", "description": "Fear of telephones; anxiety about making or receiving calls." },
+    { "name": "Xenophobia", "description": "Fear of strangers; irrational dislike or fear of unfamiliar people." }
+  ],
+  "manias": [
+    { "name": "Nosomania", "description": "Hypochondriacal delusions; obsession with having undiagnosed medical conditions." },
+    { "name": "Amenomania", "description": "Maniacal joy; unnatural and excessive happiness despite dire circumstances." },
+    { "name": "Heliomania", "description": "Uncontrolled laughter; an irresistible urge to laugh inappropriately." },
+    { "name": "Kleptomania", "description": "Irrational urge to steal; inability to resist taking items that aren't needed." },
+    { "name": "Pseudomania", "description": "Irrational urge to lie; compulsive creation of false stories or identities." },
+    { "name": "Clazomania", "description": "Irrational urge to scream; uncontrollable shouting or yelling." },
+    { "name": "Algomania", "description": "Obsession with pain; an abnormal desire to experience or witness physical pain." },
+    { "name": "Dikemania", "description": "Obsession with justice; an obsessive need for 'fairness' often leading to vigilantism." },
+    { "name": "Agatomania", "description": "Pathological kindness; obsessive helpfulness that can be dangerous or misplaced." },
+    { "name": "Bibliokleptomania", "description": "Urge to steal books; a specific compulsion to take rare or mystical volumes." }
+  ]
+}

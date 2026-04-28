@@ -1,0 +1,35 @@
+<div class="skills-grid" data-sheet-combat-grid>
+    <div class="skill-item combat" onclick="showSkillModal('Dodge', {{ sheet.dodge_value }}, 'Avoid attacks by moving out of the way')">
+        <span class="skill-name">Dodge</span>
+        <span class="skill-value">{{ sheet.dodge_value }}%</span>
+    </div>
+
+    {% for skill in sheet.combat_skills %}
+    <div class="skill-item combat" onclick="showSkillModal('{{ skill.name|escapejs }}', {{ skill.value }}, '{{ skill.description|escapejs }}')">
+        <span class="skill-name">
+            {{ skill.name }}
+            {% if skill.is_custom %}<span class="badge bg-info text-dark ms-1" style="font-size: 0.7rem;">Custom</span>{% endif %}
+        </span>
+        <span class="skill-value">{{ skill.value }}%</span>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="compact-section">
+    <button class="toggle-default-btn" type="button" onclick="showCombatTips()">
+        <i class="fas fa-info-circle"></i> Combat Tips
+    </button>
+</div>
+
+{% if sheet.weapons %}
+    <div class="compact-header"><i class="fas fa-crosshairs"></i> Weapons</div>
+    <div data-sheet-weapons>
+        {% for weapon in sheet.weapons %}
+        <div class="weapon-item">
+            <strong>{{ weapon.name }}</strong> {{ weapon.damage }}
+            {% if weapon.is_prepared %}<span class="text-success"> ✓ Prepared</span>{% endif %}
+        </div>
+        {% endfor %}
+    </div>
+{% endif %}
+

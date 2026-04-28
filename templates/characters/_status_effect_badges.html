@@ -1,0 +1,78 @@
+{% comment %}
+Status Effect Badges Component
+Displays character status effects as colored badges
+
+Usage: {% include "characters/_status_effect_badges.html" with effects=character_effects %}
+{% endcomment %}
+
+<div class="status-effects-container">
+    {% if effects %}
+        {% for effect in effects %}
+            <span class="badge {{ effect.badge_color }} effect-badge me-2 mb-2"
+                  data-effect-description="{{ effect.description|default:''|escape }}"
+                  role="button"
+                  tabindex="0"
+                  data-effect-id="{{ effect.id }}"
+                  data-effect-type="{{ effect.effect_type }}"
+                  style="cursor: help;">
+                <i class="bi {{ effect.icon_class }}"></i>
+                {{ effect.name }}
+            </span>
+        {% endfor %}
+    {% endif %}
+</div>
+
+<style>
+    .status-effects-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+        margin: 0.5rem 0;
+    }
+
+    .status-effects-container .badge {
+        font-size: 0.85rem;
+        padding: 0.35rem 0.6rem;
+        border-radius: 0.25rem;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .status-effects-container .badge:hover {
+        transform: scale(1.05);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .status-effects-container .badge i {
+        font-size: 0.8rem;
+    }
+
+    .bg-warning {
+        background-color: #ffc107 !important;
+        color: #000 !important;
+    }
+
+    .bg-danger {
+        background-color: #dc3545 !important;
+        color: #fff !important;
+    }
+
+    .bg-dark {
+        background-color: #4f5961 !important;
+        color: #fff !important;
+    }
+
+    .bg-info {
+        background-color: #0dcaf0 !important;
+        color: #000 !important;
+    }
+
+    .bg-secondary {
+        background-color: #6c757d !important;
+        color: #fff !important;
+    }
+</style>
+
+

@@ -2,10 +2,10 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.contrib.auth.forms import UserCreationForm
 from characters.models import Character
-from scenarios.models import Scenario, ScenarioPlayer
+from scenarios.models import Scenario
 from .models import User
+from .forms import CustomUserCreationForm
 
 
 def home(request):
@@ -52,7 +52,7 @@ def dashboard(request):
 def register(request):
     """User registration"""
     if request.method == 'POST':
-        form = UserCreationForm(request.POST)
+        form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save(commit=False)
             user.role = User.Role.PLAYER  # Default role
@@ -61,7 +61,7 @@ def register(request):
             messages.success(request, 'Registration successful! Welcome to Cthulhu RPG Manager.')
             return redirect('dashboard')
     else:
-        form = UserCreationForm()
+        form = CustomUserCreationForm()
 
     return render(request, 'core/register.html', {'form': form})
 

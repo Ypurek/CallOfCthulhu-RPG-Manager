@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.utils import timezone
 from core.models import User
 
 
@@ -97,6 +98,22 @@ class Character(models.Model):
         self.damage_bonus = self.calculate_damage_bonus()
         super().save(*args, **kwargs)
 
+    def get_formatted_status_effects(self):
+        """Get status effects formatted for UI display with badge colors"""
+        effects = self.status_effects.select_related('status_effect').all()
+        return [
+            {
+                'id': eff.status_effect.id,
+                'character_effect_id': eff.id,
+                'name': eff.status_effect.name,
+                'effect_type': eff.status_effect.effect_type,
+                'icon_class': eff.status_effect.icon_class,
+                'description': eff.status_effect.description,
+                'badge_color': eff.status_effect.badge_color,
+            }
+            for eff in effects
+        ]
+
     def __str__(self):
         return f"{self.name} ({'Alive' if self.is_alive else 'Dead'})"
 
@@ -151,6 +168,7 @@ class CharacterSkill(models.Model):
     skill = models.ForeignKey(Skill, on_delete=models.CASCADE)
     value = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)])
     marked_for_improvement = models.BooleanField(default=False)
+    needs_update = models.BooleanField(default=False, help_text="Keeper flag: skill needs update after session")
 
     class Meta:
         unique_together = ['character', 'skill']
@@ -234,11 +252,36 @@ class CharacterSpell(models.Model):
 class StatusEffect(models.Model):
     """Status effects that can affect characters"""
 
-    name = models.CharField(max_length=50)
+    EFFECT_TYPE_CHOICES = [
+        ('NORMAL', 'Custom Status Effect'),
+        ('PHOBIA', 'Phobia'),
+        ('MADNESS', 'Madness'),
+        ('MANIA', 'Mania'),
+        ('DEEP_WOUND', 'Deep Wound'),
+    ]
+
+    BADGE_COLOR_CHOICES = [
+        ('bg-warning', 'Amber'),
+        ('bg-danger', 'Red'),
+        ('bg-info', 'Blue'),
+        ('bg-secondary', 'Gray'),
+        ('bg-success', 'Green'),
+        ('bg-primary', 'Indigo'),
+    ]
+
+    name = models.CharField(max_length=50, unique=True)
     description = models.TextField()
+    effect_type = models.CharField(max_length=20, choices=EFFECT_TYPE_CHOICES, default='NORMAL')
+    badge_color = models.CharField(max_length=20, choices=BADGE_COLOR_CHOICES, default='bg-warning')
+    is_permanent = models.BooleanField(default=False, help_text="If true, effect cannot be automatically removed")
+    icon_class = models.CharField(max_length=50, default='bi-shield-exclamation', help_text="Bootstrap icon class for display")
+    game_rules_json = models.JSONField(default=dict, blank=True, help_text="Custom game rules data")
+
+    class Meta:
+        ordering = ['effect_type', 'name']
 
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.get_effect_type_display()})"
 
 
 class CharacterStatusEffect(models.Model):
@@ -247,6 +290,10 @@ class CharacterStatusEffect(models.Model):
     character = models.ForeignKey(Character, on_delete=models.CASCADE, related_name='status_effects')
     status_effect = models.ForeignKey(StatusEffect, on_delete=models.CASCADE)
     remaining_rounds = models.IntegerField()
+    acquired_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['-acquired_at']
 
     def __str__(self):
         return f"{self.character.name} - {self.status_effect.name} ({self.remaining_rounds} rounds)"

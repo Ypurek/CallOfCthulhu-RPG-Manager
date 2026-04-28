@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block title %}Join {{ scenario.name }} – Cthulhu RPG{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-7">
+    <div class="card">
+      <div class="card-header">
+        <i class="fas fa-door-open me-2"></i>Join Scenario
+      </div>
+      <div class="card-body">
+        <h4 class="text-warning">{{ scenario.name }}</h4>
+        {% if scenario.place %}<p class="text-muted"><i class="fas fa-map-marker-alt me-1"></i>{{ scenario.place }}</p>{% endif %}
+        {% if scenario.description %}<p>{{ scenario.description }}</p>{% endif %}
+
+        <hr>
+        <h5>Choose your character</h5>
+
+        {% if available_characters %}
+        <form method="post">
+          {% csrf_token %}
+          <div class="row g-3 mb-4">
+            {% for char in available_characters %}
+            <div class="col-12">
+              <label class="d-block">
+                <input type="radio" name="character_id" value="{{ char.id }}" class="me-2"
+                  {% if forloop.first %}checked{% endif %}>
+                <strong class="text-warning">{{ char.name }}</strong>
+                <span class="text-muted ms-2">{{ char.occupation }}</span>
+                <small class="d-block ms-4 text-muted">
+                  HP {{ char.hp_current }}/{{ char.hp_max }} &bull;
+                  SAN {{ char.sanity_current }}/{{ char.sanity_max }} &bull;
+                  LCK {{ char.luck }}
+                </small>
+              </label>
+            </div>
+            {% endfor %}
+          </div>
+          <button type="submit" class="btn btn-warning w-100">
+            <i class="fas fa-check me-1"></i>Join with Selected Character
+          </button>
+        </form>
+        {% else %}
+        <div class="alert alert-danger">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          You have no alive characters available to join this scenario.
+          <a href="{% url 'characters:create' %}" class="alert-link">Create a character</a> first.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

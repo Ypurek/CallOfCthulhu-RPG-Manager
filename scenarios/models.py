@@ -1,26 +1,35 @@
 from django.db import models
 from django.utils import timezone
 from core.models import User
-from characters.models import Character
+from characters.models import Character, NPCTemplate
 
 
 class Scenario(models.Model):
     """Game scenario/session model"""
 
     STATUS_CHOICES = [
-        ('PLANNING', 'Planning'),
-        ('ACTIVE', 'Active'),
+        ('PLANNING', 'Not Started'),
+        ('ACTIVE', 'Ongoing'),
         ('PAUSED', 'Paused'),
-        ('COMPLETED', 'Completed'),
+        ('COMPLETED', 'Done'),
+    ]
+
+    VISIBILITY_CHOICES = [
+        ('PRIVATE', 'Private'),
+        ('PUBLIC', 'Public'),
     ]
 
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
+    place = models.CharField(max_length=200, blank=True)
+    scheduled_at = models.DateTimeField(null=True, blank=True)
+    visibility = models.CharField(max_length=10, choices=VISIBILITY_CHOICES, default='PRIVATE')
     keeper = models.ForeignKey(User, on_delete=models.CASCADE, related_name='keeper_scenarios')
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PLANNING')
 
     # In-game time
     in_game_time = models.DateTimeField(default=timezone.now)
+    in_game_day = models.PositiveIntegerField(default=1)
 
     # Notes
     public_notes = models.TextField(blank=True)
@@ -44,6 +53,7 @@ class ScenarioPlayer(models.Model):
     scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE, related_name='players')
     player = models.ForeignKey(User, on_delete=models.CASCADE, related_name='player_scenarios')
     character = models.ForeignKey(Character, on_delete=models.SET_NULL, null=True, blank=True)
+    private_notes = models.TextField(blank=True)
     joined_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
 
@@ -58,14 +68,18 @@ class ScenarioNPC(models.Model):
     """NPCs present in a scenario"""
 
     scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE, related_name='npcs')
-    npc = models.ForeignKey(Character, on_delete=models.CASCADE)
+    npc = models.ForeignKey(Character, on_delete=models.CASCADE, related_name='scenario_appearances')
+    display_name = models.CharField(max_length=200, blank=True,
+                                    help_text="Override NPC name for this scenario (e.g. 'Zombie #2')")
+    source_template = models.ForeignKey(NPCTemplate, on_delete=models.SET_NULL, null=True, blank=True,
+                                        help_text="Template used to create this NPC")
     is_active = models.BooleanField(default=True)
 
-    class Meta:
-        unique_together = ['scenario', 'npc']
+    def get_display_name(self):
+        return self.display_name or self.npc.name
 
     def __str__(self):
-        return f"{self.npc.name} in {self.scenario.name}"
+        return f"{self.get_display_name()} in {self.scenario.name}"
 
 
 class Invitation(models.Model):

@@ -17,9 +17,9 @@ class ScenarioNPCInline(admin.TabularInline):
 
 @admin.register(Scenario)
 class ScenarioAdmin(admin.ModelAdmin):
-    list_display = ['name', 'keeper', 'status', 'in_game_time', 'created_at']
-    list_filter = ['status', 'keeper']
-    search_fields = ['name', 'description']
+    list_display = ['name', 'keeper', 'status', 'visibility', 'place', 'in_game_time', 'created_at']
+    list_filter = ['status', 'visibility', 'keeper']
+    search_fields = ['name', 'description', 'place']
     inlines = [ScenarioPlayerInline, ScenarioNPCInline]
 
 

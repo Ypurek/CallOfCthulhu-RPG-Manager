@@ -1,0 +1,251 @@
+{% comment %}
+Status Effect Modal Component
+Modal dialog for keeper to add status effects, phobias, madness, or mania to a character
+
+Usage:
+{% include "scenarios/_status_effect_modal.html" with character=character scenario=scenario %}
+
+Requires JavaScript to handle post/submission
+{% endcomment %}
+
+<div class="modal fade" id="statusEffectModal_{{ character.id }}" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content" style="background: rgba(44, 44, 44, 0.95); border: 1px solid var(--gold);">
+            <div class="modal-header" style="background: rgba(26, 60, 46, 0.9); border-bottom: 1px solid var(--gold);">
+                <h5 class="modal-title" style="color: var(--gold);">
+                    <i class="bi bi-heart-plus"></i> Add Status Effect - {{ character.name }}
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body" style="color: var(--cream);">
+                <div class="row">
+                    <!-- Effect Categories -->
+                    <div class="col-md-4">
+                        <div class="list-group" id="effectCategoryList_{{ character.id }}">
+                            <button class="list-group-item list-group-item-action active"
+                                    data-bs-toggle="list"
+                                    href="#effectCategory_normal_{{ character.id }}"
+                                    style="background: rgba(139, 28, 28, 0.5); border-color: var(--gold); color: var(--cream);">
+                                <i class="bi bi-shield-exclamation"></i> Status Effects
+                            </button>
+                            <button class="list-group-item list-group-item-action"
+                                    data-bs-toggle="list"
+                                    href="#effectCategory_phobia_{{ character.id }}"
+                                    style="border-color: var(--gold); color: var(--cream);">
+                                <i class="bi bi-bug-fill"></i> Phobias
+                            </button>
+                            <button class="list-group-item list-group-item-action"
+                                    data-bs-toggle="list"
+                                    href="#effectCategory_madness_{{ character.id }}"
+                                    style="border-color: var(--gold); color: var(--cream);">
+                                <i class="bi bi-question-circle-fill"></i> Madness
+                            </button>
+                            <button class="list-group-item list-group-item-action"
+                                    data-bs-toggle="list"
+                                    href="#effectCategory_mania_{{ character.id }}"
+                                    style="border-color: var(--gold); color: var(--cream);">
+                                <i class="bi bi-fire"></i> Mania
+                            </button>
+                            <button class="list-group-item list-group-item-action"
+                                    data-bs-toggle="list"
+                                    href="#effectCategory_custom_{{ character.id }}"
+                                    style="border-color: var(--gold); color: var(--cream);">
+                                <i class="bi bi-pencil"></i> Custom Effect
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Effect Selection -->
+                    <div class="col-md-8">
+                        <div class="tab-content" id="effectContent_{{ character.id }}">
+                            <!-- Status Effects -->
+                            <div class="tab-pane fade show active" id="effectCategory_normal_{{ character.id }}">
+                                <div class="effect-list">
+                                    {% for effect in status_effects %}
+                                        {% if effect.effect_type == 'NORMAL' %}
+                                            <div class="effect-item" data-effect-id="{{ effect.id }}">
+                                                <strong>{{ effect.name }}</strong>
+                                                <small class="d-block text-muted">{{ effect.description }}</small>
+                                                <button class="btn btn-sm btn-primary add-effect"
+                                                        data-character-id="{{ character.id }}"
+                                                        data-effect-id="{{ effect.id }}"
+                                                        data-effect-type="NORMAL">
+                                                    <i class="bi bi-plus-circle"></i> Add
+                                                </button>
+                                            </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- Phobias -->
+                            <div class="tab-pane fade" id="effectCategory_phobia_{{ character.id }}">
+                                <div class="effect-list">
+                                    {% for effect in status_effects %}
+                                        {% if effect.effect_type == 'PHOBIA' %}
+                                            <div class="effect-item" data-effect-id="{{ effect.id }}">
+                                                <strong>{{ effect.name }}</strong>
+                                                <small class="d-block text-muted">{{ effect.description }}</small>
+                                                <button class="btn btn-sm btn-danger add-effect"
+                                                        data-character-id="{{ character.id }}"
+                                                        data-effect-id="{{ effect.id }}"
+                                                        data-effect-type="PHOBIA">
+                                                    <i class="bi bi-plus-circle"></i> Add
+                                                </button>
+                                            </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- Madness -->
+                            <div class="tab-pane fade" id="effectCategory_madness_{{ character.id }}">
+                                <div class="effect-list">
+                                    {% for effect in status_effects %}
+                                        {% if effect.effect_type == 'MADNESS' %}
+                                            <div class="effect-item" data-effect-id="{{ effect.id }}">
+                                                <strong>{{ effect.name }}</strong>
+                                                <small class="d-block text-muted">{{ effect.description }}</small>
+                                                <button class="btn btn-sm btn-dark add-effect"
+                                                        data-character-id="{{ character.id }}"
+                                                        data-effect-id="{{ effect.id }}"
+                                                        data-effect-type="MADNESS">
+                                                    <i class="bi bi-plus-circle"></i> Add
+                                                </button>
+                                            </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- Mania -->
+                            <div class="tab-pane fade" id="effectCategory_mania_{{ character.id }}">
+                                <div class="effect-list">
+                                    {% for effect in status_effects %}
+                                        {% if effect.effect_type == 'MANIA' %}
+                                            <div class="effect-item" data-effect-id="{{ effect.id }}">
+                                                <strong>{{ effect.name }}</strong>
+                                                <small class="d-block text-muted">{{ effect.description }}</small>
+                                                <button class="btn btn-sm btn-info add-effect"
+                                                        data-character-id="{{ character.id }}"
+                                                        data-effect-id="{{ effect.id }}"
+                                                        data-effect-type="MANIA">
+                                                    <i class="bi bi-plus-circle"></i> Add
+                                                </button>
+                                            </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- Custom Effect -->
+                            <div class="tab-pane fade" id="effectCategory_custom_{{ character.id }}">
+                                <div class="custom-effect-form">
+                                    <div class="mb-3">
+                                        <label class="form-label">Effect Name</label>
+                                        <input type="text" class="form-control custom-effect-name"
+                                               placeholder="Enter custom effect name">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Duration (rounds)</label>
+                                        <input type="number" class="form-control custom-effect-duration"
+                                               value="1" min="1">
+                                    </div>
+                                    <button class="btn btn-primary add-custom-effect"
+                                            data-character-id="{{ character.id }}"
+                                            data-scenario-id="{{ scenario.id }}">
+                                        <i class="bi bi-plus-circle"></i> Create & Add
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer" style="border-top: 1px solid var(--gold); background: rgba(26, 60, 46, 0.5);">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .effect-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .effect-item {
+        background: rgba(0, 0, 0, 0.3);
+        border-left: 3px solid var(--gold);
+        padding: 0.75rem;
+        border-radius: 0.25rem;
+        transition: all 0.2s ease;
+    }
+
+    .effect-item:hover {
+        background: rgba(0, 0, 0, 0.5);
+        border-left-width: 4px;
+    }
+
+    .effect-item strong {
+        display: block;
+        color: var(--cream);
+        margin-bottom: 0.25rem;
+    }
+
+    .effect-item .add-effect {
+        margin-top: 0.5rem;
+        font-size: 0.85rem;
+    }
+
+    .custom-effect-form {
+        padding: 1rem;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 0.5rem;
+    }
+
+    .custom-effect-form .form-control {
+        background: rgba(44, 44, 44, 0.8);
+        border-color: var(--gold);
+        color: var(--cream);
+    }
+
+    .custom-effect-form .form-control:focus {
+        background: rgba(44, 44, 44, 0.9);
+        border-color: var(--gold);
+        color: var(--cream);
+        box-shadow: 0 0 0 0.2rem rgba(212, 175, 55, 0.25);
+    }
+
+    .custom-effect-form .form-label {
+        color: var(--cream);
+        font-size: 0.9rem;
+    }
+
+    .modal-body {
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+
+    #effectCategoryList_{{ character.id }} .list-group-item {
+        background: rgba(44, 44, 44, 0.7) !important;
+    }
+
+    #effectCategoryList_{{ character.id }} .list-group-item.active {
+        background: rgba(139, 28, 28, 0.7) !important;
+        border-color: var(--gold) !important;
+    }
+
+    #effectCategoryList_{{ character.id }} .list-group-item:hover {
+        background: rgba(44, 44, 44, 0.9) !important;
+    }
+</style>
+

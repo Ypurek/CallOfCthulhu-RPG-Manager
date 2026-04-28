@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Scenario – Cthulhu RPG{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card border-danger">
+      <div class="card-header text-danger">
+        <i class="fas fa-exclamation-triangle me-2"></i>Delete Scenario
+      </div>
+      <div class="card-body text-center">
+        <i class="fas fa-trash fa-4x text-danger mb-3"></i>
+        <h4>Are you sure?</h4>
+        <p class="lead">
+          You are about to permanently delete
+          <strong class="text-warning">{{ scenario.name }}</strong>.
+        </p>
+        <p class="text-muted">
+          This will remove all players, NPCs, notes, and invitation links associated with it.
+          This action <strong>cannot be undone</strong>.
+        </p>
+        <div class="d-flex justify-content-center gap-3 mt-4">
+          <a href="{% url 'scenarios:manage' scenario.id %}" class="btn btn-secondary btn-lg">
+            <i class="fas fa-arrow-left me-1"></i>Cancel
+          </a>
+          <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger btn-lg">
+              <i class="fas fa-trash me-1"></i>Yes, Delete
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

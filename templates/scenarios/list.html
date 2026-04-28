@@ -1,83 +1,97 @@
 {% extends 'base.html' %}
 
-{% block title %}Scenarios - Cthulhu RPG Manager{% endblock %}
+{% block title %}Scenarios – Cthulhu RPG{% endblock %}
 
 {% block content %}
 <div class="row">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1><i class="fas fa-book-open"></i> My Scenarios</h1>
-            {% if user.is_keeper %}
-                <a href="{% url 'scenarios:create' %}" class="btn btn-warning">
-                    <i class="fas fa-plus"></i> New Scenario
-                </a>
-            {% endif %}
-        </div>
+  <div class="col-12">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+      <h1><i class="fas fa-book-open me-2"></i>My Scenarios</h1>
+      <div class="d-flex gap-2">
+        <a href="{% url 'scenarios:archive' %}" class="btn btn-outline-secondary">
+          <i class="fas fa-archive me-1"></i>Archive
+        </a>
+        {% if user.is_keeper %}
+        <a href="{% url 'scenarios:create' %}" class="btn btn-warning">
+          <i class="fas fa-plus me-1"></i>New Scenario
+        </a>
+        {% endif %}
+      </div>
     </div>
+  </div>
 </div>
 
 <div class="row g-4">
-    {% for scenario in scenarios %}
-        <div class="col-md-6 col-lg-4">
-            <div class="card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span class="text-warning fw-bold">{{ scenario.name }}</span>
-                    <span class="badge bg-secondary">{{ scenario.get_status_display }}</span>
-                </div>
-                <div class="card-body">
-                    <p class="card-text">
-                        <strong>Keeper:</strong> {{ scenario.keeper.username }}<br>
-                        <strong>Players:</strong> {{ scenario.players.count }}<br>
-                        {% if scenario.description %}
-                            <small class="text-muted">{{ scenario.description|truncatewords:15 }}</small>
-                        {% endif %}
-                    </p>
-
-                    <div class="text-center mt-auto">
-                        <a href="{% url 'scenarios:detail' scenario.id %}" class="btn btn-outline-light">
-                            <i class="fas fa-play"></i> Enter Game
-                        </a>
-                        {% if scenario.keeper == user %}
-                            <a href="{% url 'scenarios:manage' scenario.id %}" class="btn btn-outline-warning">
-                                <i class="fas fa-cog"></i> Manage
-                            </a>
-                        {% endif %}
-                    </div>
-                </div>
-                <div class="card-footer text-muted text-center">
-                    <small>Started {{ scenario.started_at|date:"M d, Y"|default:"Not started" }}</small>
-                </div>
-            </div>
+  {% for scenario in scenarios %}
+  <div class="col-md-6 col-lg-4">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="text-warning fw-bold">{{ scenario.name }}</span>
+        <span class="badge"
+          style="background:{% if scenario.status == 'ACTIVE' %}#1a7a2e{% elif scenario.status == 'PAUSED' %}#8b5c1c{% else %}var(--gold){% endif %};color:#fff">
+          {{ scenario.get_status_display }}
+        </span>
+      </div>
+      <div class="card-body">
+        <p class="card-text small">
+          <strong>Keeper:</strong> {{ scenario.keeper.username }}<br>
+          {% if scenario.place %}<strong>Place:</strong> {{ scenario.place }}<br>{% endif %}
+          <strong>Players:</strong> {{ scenario.players.count }}
+          &bull; <i class="fas fa-{% if scenario.visibility == 'PUBLIC' %}globe{% else %}lock{% endif %}"></i>
+          {{ scenario.get_visibility_display }}<br>
+          {% if scenario.description %}
+          <span class="text-muted">{{ scenario.description|truncatewords:15 }}</span>
+          {% endif %}
+        </p>
+        <div class="d-flex gap-2 flex-wrap">
+          <a href="{% url 'scenarios:detail' scenario.id %}" class="btn btn-sm btn-outline-light">
+            <i class="fas fa-play me-1"></i>Enter
+          </a>
+          {% if scenario.keeper == user %}
+          <a href="{% url 'scenarios:manage' scenario.id %}" class="btn btn-sm btn-outline-warning">
+            <i class="fas fa-crown me-1"></i>Manage
+          </a>
+          {% endif %}
         </div>
-    {% empty %}
-        <div class="col-12">
-            <div class="text-center py-5">
-                <i class="fas fa-book fa-5x text-muted mb-4"></i>
-                <h3>No Active Scenarios</h3>
-                <p class="lead text-muted">
-                    {% if user.is_keeper %}
-                        Create your first scenario to start a new adventure!
-                    {% else %}
-                        Ask a Keeper to invite you to a scenario!
-                    {% endif %}
-                </p>
-                {% if user.is_keeper %}
-                    <a href="{% url 'scenarios:create' %}" class="btn btn-warning btn-lg">
-                        <i class="fas fa-plus"></i> Create Scenario
-                    </a>
-                {% endif %}
-            </div>
-        </div>
-    {% endfor %}
+      </div>
+      <div class="card-footer text-muted text-center">
+        <small>
+          {% if scenario.started_at %}
+            Started {{ scenario.started_at|date:"d M Y" }}
+          {% else %}
+            Not started yet
+          {% endif %}
+        </small>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12">
+    <div class="text-center py-5">
+      <i class="fas fa-book fa-5x text-muted mb-4"></i>
+      <h3>No Active Scenarios</h3>
+      <p class="lead text-muted">
+        {% if user.is_keeper %}
+          Create your first scenario to start a new adventure!
+        {% else %}
+          Ask a Keeper to invite you to a scenario!
+        {% endif %}
+      </p>
+      {% if user.is_keeper %}
+      <a href="{% url 'scenarios:create' %}" class="btn btn-warning btn-lg">
+        <i class="fas fa-plus me-1"></i>Create Scenario
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
 </div>
 
 <div class="row mt-5">
-    <div class="col-12">
-        <div class="text-center">
-            <a href="{% url 'dashboard' %}" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Back to Dashboard
-            </a>
-        </div>
-    </div>
+  <div class="col-12 text-center">
+    <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+      <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+    </a>
+  </div>
 </div>
 {% endblock %}

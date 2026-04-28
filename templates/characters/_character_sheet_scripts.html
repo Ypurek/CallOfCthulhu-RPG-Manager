@@ -1,6 +1,7 @@
 <script>
-function toggleDescription() {
-    const desc = document.getElementById('description');
+function toggleDescription(sheetId) {
+    const prefix = sheetId ? `${sheetId}-` : '';
+    const desc = document.getElementById(`${prefix}description`) || document.getElementById('description');
     if (!desc) {
         return;
     }
@@ -12,9 +13,10 @@ function toggleDescription() {
     }
 }
 
-function toggleSection(section) {
-    const content = document.getElementById(section + '-content');
-    const icon = document.getElementById(section + '-icon');
+function toggleSection(section, sheetId) {
+    const prefix = sheetId ? `${sheetId}-` : '';
+    const content = document.getElementById(`${prefix}${section}-content`) || document.getElementById(section + '-content');
+    const icon = document.getElementById(`${prefix}${section}-icon`) || document.getElementById(section + '-icon');
     if (!content || !icon) {
         return;
     }
@@ -71,9 +73,10 @@ function showAddSkillModal() {
     new bootstrap.Modal(modalElement).show();
 }
 
-function toggleDefaultSkills() {
-    const defaultSkills = document.getElementById('default-skills');
-    const button = document.getElementById('default-skills-btn');
+function toggleDefaultSkills(sheetId) {
+    const prefix = sheetId ? `${sheetId}-` : '';
+    const defaultSkills = document.getElementById(`${prefix}default-skills`) || document.getElementById('default-skills');
+    const button = document.getElementById(`${prefix}default-skills-btn`) || document.getElementById('default-skills-btn');
     if (!defaultSkills || !button) {
         return;
     }
@@ -103,6 +106,37 @@ function addCustomSkill() {
         bootstrap.Modal.getInstance(document.getElementById('addSkillModal')).hide();
     }
 }
+
+function initEffectBadgePopovers(scope) {
+    if (!window.bootstrap || !window.bootstrap.Popover) {
+        return;
+    }
+    const root = scope || document;
+    root.querySelectorAll('.effect-badge[data-effect-description]').forEach((badge) => {
+        const description = (badge.dataset.effectDescription || '').trim();
+        if (badge._effectPopover) {
+            badge._effectPopover.dispose();
+            badge._effectPopover = null;
+        }
+        if (!description) {
+            badge.removeAttribute('data-bs-toggle');
+            return;
+        }
+        badge.setAttribute('data-bs-toggle', 'popover');
+        badge.setAttribute('data-bs-trigger', 'focus');
+        badge.setAttribute('data-bs-placement', 'top');
+        badge._effectPopover = new bootstrap.Popover(badge, {
+            container: 'body',
+            customClass: 'effect-description-popover',
+            html: false,
+            content: description,
+        });
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    initEffectBadgePopovers(document);
+});
 
 (function initStatusAdjustControls() {
     const resources = ['hp', 'mp', 'sanity', 'luck'];

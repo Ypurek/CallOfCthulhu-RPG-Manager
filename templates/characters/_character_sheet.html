@@ -1,14 +1,17 @@
 {% load math_filters %}
-<div class="character-sheet">
-    <div class="character-name" onclick="toggleDescription()">
-        {{ sheet.character.name }}
+{% with sid=sheet_id|default:'sheet' %}
+<div class="character-sheet"{% if adjust_url %} data-adjust-url="{{ adjust_url }}"{% endif %} data-sheet-id="{{ sid }}" data-character-id="{{ sheet.character.id }}">
+    <div class="character-name" data-sheet-name onclick="toggleDescription('{{ sid }}')">
+        {{ sheet.display_name|default:sheet.character.name }}
     </div>
 
-    <div class="character-meta">
-        🕐 15:30 10 Sep 1920 • Cash ${{ sheet.character.cash|floatformat:0 }}
+    <div class="character-effects" id="effects-badges-{{ sheet.character.id }}">
+        {% for effect in sheet.effects %}
+            <span class="badge {{ effect.badge_color }} effect-badge" data-effect-description="{{ effect.description|default:''|escape }}" role="button" tabindex="0">{{ effect.name }}</span>
+        {% endfor %}
     </div>
 
-    <div class="description-popup" id="description">
+    <div class="description-popup" id="{{ sid }}-description" data-sheet-description>
         {{ sheet.character.description|default:"Athletic build. Short brown hair styled fashionably. Raised in Catholic traditions with a healthy respect for the supernatural. Stubborn, hot-tempered, likes to argue. Never walks under ladders." }}
     </div>
 
@@ -46,173 +49,57 @@
         </div>
     </div>
 
-    <div class="characteristics">
-        <div class="characteristic" onclick="showStatModal('STR', {{ sheet.character.strength }})">
-            <div class="stat-name">STR</div>
-            <div class="stat-value">{{ sheet.character.strength }}</div>
-        </div>
-        <div class="characteristic" onclick="showStatModal('CON', {{ sheet.character.constitution }})">
-            <div class="stat-name">CON</div>
-            <div class="stat-value">{{ sheet.character.constitution }}</div>
-        </div>
-        <div class="characteristic" onclick="showStatModal('DEX', {{ sheet.character.dexterity }})">
-            <div class="stat-name">DEX</div>
-            <div class="stat-value">{{ sheet.character.dexterity }}</div>
-        </div>
-        <div class="characteristic" onclick="showStatModal('INT', {{ sheet.character.intelligence }})">
-            <div class="stat-name">INT</div>
-            <div class="stat-value">{{ sheet.character.intelligence }}</div>
-        </div>
-        <div class="characteristic" onclick="showStatModal('POW', {{ sheet.character.power }})">
-            <div class="stat-name">POW</div>
-            <div class="stat-value">{{ sheet.character.power }}</div>
-        </div>
-        <div class="characteristic" onclick="showStatModal('SIZ', {{ sheet.character.size }})">
-            <div class="stat-name">SIZ</div>
-            <div class="stat-value">{{ sheet.character.size }}</div>
-        </div>
-        <div class="characteristic" onclick="showStatModal('APP', {{ sheet.character.appearance }})">
-            <div class="stat-name">APP</div>
-            <div class="stat-value">{{ sheet.character.appearance }}</div>
-        </div>
-        <div class="characteristic" onclick="showStatModal('EDU', {{ sheet.character.education }})">
-            <div class="stat-name">EDU</div>
-            <div class="stat-value">{{ sheet.character.education }}</div>
-        </div>
+    <div class="characteristics" id="{{ sid }}-characteristics">
+        {% include 'characters/_sheet_characteristics.html' %}
     </div>
 
     <div class="skills-container">
-        <div class="section-header" onclick="toggleSection('skills')">
+        <div class="section-header" onclick="toggleSection('skills', '{{ sid }}')">
             <span><i class="fas fa-brain"></i> Skills</span>
-            <i class="fas fa-chevron-down" id="skills-icon"></i>
+            <i class="fas fa-chevron-down" id="{{ sid }}-skills-icon"></i>
         </div>
-        <div class="section-content show" id="skills-content">
-            <div class="skills-grid">
-                {% for skill in sheet.skills %}
-                <div class="skill-item" onclick="showSkillModal('{{ skill.name|escapejs }}', {{ skill.value }}, '{{ skill.description|escapejs }}')">
-                    <span class="skill-name">
-                        {{ skill.name }}
-                        {% if skill.is_custom %}<span class="badge bg-info text-dark ms-1" style="font-size: 0.7rem;">Custom</span>{% endif %}
-                    </span>
-                    <span class="skill-value">{{ skill.value }}%</span>
-                </div>
-                {% empty %}
-                <div class="skill-item">
-                    <span class="skill-name">No improved skills yet.</span>
-                </div>
-                {% endfor %}
-            </div>
-
-            {% if sheet.default_skills %}
-            <button class="toggle-default-btn" type="button" id="default-skills-btn" onclick="toggleDefaultSkills()">
-                Show more ({{ sheet.default_skills|length }} default skills)
-            </button>
-            <div class="default-skills" id="default-skills">
-                <div class="skills-grid">
-                    {% for skill in sheet.default_skills %}
-                    <div class="skill-item" onclick="showSkillModal('{{ skill.name|escapejs }}', {{ skill.value }}, '{{ skill.description|escapejs }}')">
-                        <span class="skill-name">
-                            {{ skill.name }}
-                            {% if skill.is_custom %}<span class="badge bg-info text-dark ms-1" style="font-size: 0.7rem;">Custom</span>{% endif %}
-                        </span>
-                        <span class="skill-value">{{ skill.value }}%</span>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-
-            {% if sheet.can_add_custom_skill %}
-            <div class="add-skill-btn" onclick="showAddSkillModal()">
-                <i class="fas fa-plus"></i> Add Custom Skill
-            </div>
-            {% endif %}
+        <div class="section-content show" id="{{ sid }}-skills-content" data-sheet-skills-content>
+            {% include 'characters/_sheet_skills_content.html' %}
         </div>
     </div>
 
     <div class="skills-container">
-        <div class="section-header combat" onclick="toggleSection('combat')">
+        <div class="section-header combat" onclick="toggleSection('combat', '{{ sid }}')">
             <span><i class="fas fa-sword"></i> Combat</span>
-            <i class="fas fa-chevron-down" id="combat-icon"></i>
+            <i class="fas fa-chevron-down" id="{{ sid }}-combat-icon"></i>
         </div>
-        <div class="section-content" id="combat-content">
-            <div class="skills-grid">
-                <div class="skill-item combat" onclick="showSkillModal('Dodge', {{ sheet.dodge_value }}, 'Avoid attacks by moving out of the way')">
-                    <span class="skill-name">Dodge</span>
-                    <span class="skill-value">{{ sheet.dodge_value }}%</span>
-                </div>
-
-                {% for skill in sheet.combat_skills %}
-                <div class="skill-item combat" onclick="showSkillModal('{{ skill.name|escapejs }}', {{ skill.value }}, '{{ skill.description|escapejs }}')">
-                    <span class="skill-name">
-                        {{ skill.name }}
-                        {% if skill.is_custom %}<span class="badge bg-info text-dark ms-1" style="font-size: 0.7rem;">Custom</span>{% endif %}
-                    </span>
-                    <span class="skill-value">{{ skill.value }}%</span>
-                </div>
-                {% endfor %}
-            </div>
-
-            <div class="compact-section">
-                <button class="toggle-default-btn" type="button" onclick="showCombatTips()">
-                    <i class="fas fa-info-circle"></i> Combat Tips
-                </button>
-            </div>
-
-            {% if sheet.weapons %}
-                <div class="compact-header"><i class="fas fa-crosshairs"></i> Weapons</div>
-                {% for weapon in sheet.weapons %}
-                <div class="weapon-item">
-                    <strong>{{ weapon.name }}</strong> {{ weapon.damage }}
-                    {% if weapon.is_prepared %}<span class="text-success"> ✓ Prepared</span>{% endif %}
-                </div>
-                {% endfor %}
-            {% endif %}
+        <div class="section-content" id="{{ sid }}-combat-content" data-sheet-combat-content>
+            {% include 'characters/_sheet_combat_content.html' %}
         </div>
     </div>
 
     <div class="skills-container">
-        <div class="section-header" onclick="toggleSection('items')">
+        <div class="section-header" onclick="toggleSection('items', '{{ sid }}')">
             <span><i class="fas fa-backpack"></i> Items</span>
-            <i class="fas fa-chevron-down" id="items-icon"></i>
+            <i class="fas fa-chevron-down" id="{{ sid }}-items-icon"></i>
         </div>
-        <div class="section-content" id="items-content">
-            <div class="compact-section">
-                <div class="items-grid">
-                    {% for item in sheet.items %}
-                        <span class="item-badge">{{ item.name }} x{{ item.quantity }}</span>
-                    {% empty %}
-                        <span class="item-badge">No items</span>
-                    {% endfor %}
-                </div>
-            </div>
+        <div class="section-content" id="{{ sid }}-items-content" data-sheet-items-content>
+            {% include 'characters/_sheet_items_content.html' %}
         </div>
     </div>
 
-    {% if sheet.spells %}
-    <div class="compact-section">
-        <div class="compact-header"><i class="fas fa-magic"></i> Spells</div>
-        {% for spell in sheet.spells %}
-            <div class="weapon-item">
-                <strong>{{ spell.name }}</strong> <span class="text-info">{{ spell.mana_cost }}MP</span>
-            </div>
-        {% endfor %}
+    <div class="compact-section" id="{{ sid }}-spells-section" data-sheet-spells-section {% if not sheet.spells %}style="display:none;"{% endif %}>
+        {% include 'characters/_sheet_spells_content.html' %}
     </div>
-    {% endif %}
 
     {% if show_notes %}
     <div class="skills-container">
-        <div class="section-header" onclick="toggleSection('notes')">
+        <div class="section-header" onclick="toggleSection('notes', '{{ sid }}')">
             <span><i class="fas fa-note-sticky"></i> Notes</span>
-            <i class="fas fa-chevron-down" id="notes-icon"></i>
+            <i class="fas fa-chevron-down" id="{{ sid }}-notes-icon"></i>
         </div>
-        <div class="section-content" id="notes-content">
+        <div class="section-content" id="{{ sid }}-notes-content">
             <div class="compact-section">
                 {% if notes_editable %}
                 <form method="post">
                     {% csrf_token %}
-                    <label for="player_notes" class="compact-header">Personal Notes</label>
-                    <textarea id="player_notes" name="player_notes" class="notes-textarea" placeholder="Write your notes for this character...">{{ sheet.character.player_notes }}</textarea>
+                    <label for="{{ sid }}-player_notes" class="compact-header">Personal Notes</label>
+                    <textarea id="{{ sid }}-player_notes" name="player_notes" class="notes-textarea" placeholder="Write your notes for this character...">{{ sheet.character.player_notes }}</textarea>
                     <div class="mt-2 text-end">
                         <button type="submit" class="btn-compact">Save Notes</button>
                     </div>
@@ -231,7 +118,7 @@
         <a href="{% url 'characters:edit_wizard' sheet.character.id %}" class="btn-compact">
             <i class="fas fa-edit"></i> Edit
         </a>
-        <button type="button" class="btn-compact" data-bs-toggle="modal" data-bs-target="#deleteCharacterModal" style="border-color: rgba(220, 53, 69, 0.7); color: #ff8f98;">
+        <button type="button" class="btn-compact" data-bs-toggle="modal" data-bs-target="#deleteCharacterModal-{{ sid }}" style="border-color: rgba(220, 53, 69, 0.7); color: #ff8f98;">
             <i class="fas fa-trash-alt"></i> Delete
         </button>
         <a href="{% url 'characters:list' %}" class="btn-compact">
@@ -239,7 +126,7 @@
         </a>
     </div>
 
-    <div class="modal fade" id="deleteCharacterModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="deleteCharacterModal-{{ sid }}" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content" style="background: rgba(24, 24, 24, 0.98); border: 1px solid rgba(220, 53, 69, 0.55); color: var(--cream);">
                 <div class="modal-header" style="border-bottom-color: rgba(220, 53, 69, 0.35);">
@@ -264,6 +151,7 @@
     </div>
     {% endif %}
 </div>
+{% endwith %}
 
 
 

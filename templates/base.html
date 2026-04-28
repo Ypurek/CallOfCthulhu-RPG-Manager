@@ -141,6 +141,25 @@
                                 <i class="fas fa-book-open"></i> Scenarios
                             </a>
                         </li>
+                        {% if user.is_staff %}
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-tools"></i> Admin
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'admin:characters_statuseffect_changelist' %}">
+                                            <i class="fas fa-heartbeat me-2"></i>Status Effects
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'admin:index' %}">
+                                            <i class="fas fa-shield-alt me-2"></i>Django Admin
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        {% endif %}
                         {% if user.is_keeper %}
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="keeperDropdown" role="button" data-bs-toggle="dropdown">

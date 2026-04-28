@@ -1,0 +1,1086 @@
+{% extends 'base.html' %}
+{% load math_filters %}
+
+{% block title %}Manage: {{ scenario.name }} – Cthulhu RPG{% endblock %}
+
+{% block extra_css %}
+<style>
+  .scenario-header { border-left: 4px solid var(--gold); padding-left: 1rem; }
+  .tab-content { padding-top: 1.5rem; }
+  .npc-row td, .player-row td { vertical-align: middle; }
+  .invite-link { font-size: .8rem; word-break: break-all; background: rgba(0,0,0,.3); padding: .3rem .6rem; border-radius: .3rem; }
+  .stat-mini { display:inline-block; background:rgba(255,255,255,.07); border-radius:.3rem; padding:.1rem .4rem; font-size:.8rem; margin:1px; }
+  #tplSearch { background: rgba(255,255,255,.08); border-color: var(--gold); color: var(--cream); }
+  #tplSearch::placeholder { color: rgba(245,245,220,.5); }
+  .tpl-option { cursor:pointer; padding:.4rem .6rem; border-radius:.3rem; }
+  .tpl-option:hover, .tpl-option.selected { background: rgba(212,175,55,.2); }
+  #qrcode canvas, #qrcode img { display: block; margin: 0 auto; }
+  .cast-wrapper { border: 1px solid rgba(212,175,55,.25); border-radius: .5rem; background: rgba(0,0,0,.22); }
+  .cast-wrapper.dead-card { opacity: .6; }
+  .cast-header { display: flex; justify-content: space-between; align-items: center; gap: .75rem; flex-wrap: wrap; padding: .75rem 1rem; border-bottom: 1px solid rgba(212,175,55,.2); }
+  .cast-meta { font-size: .85rem; color: #b8b8b8; }
+  .cast-body { padding: 1rem; }
+  #tab-cast .row.g-3 { --bs-gutter-x: .7rem; --bs-gutter-y: .7rem; }
+  #tab-cast .cast-header { padding: .5rem .7rem; gap: .4rem; }
+  #tab-cast .cast-body { padding: .55rem; }
+  #tab-cast .character-sheet { max-width: 100%; padding: 6px 4px; }
+  #tab-cast .character-name { font-size: 1.45rem; margin-bottom: 2px; }
+  #tab-cast .character-meta { margin-bottom: 10px; }
+  #tab-cast .characteristics { margin-bottom: 9px; }
+  #tab-cast .skills-container { margin-bottom: 8px; }
+  #tab-cast .npc-controls { display: flex; align-items: center; gap: .45rem; margin-left: auto; min-width: 0; }
+  #tab-cast .npc-actions { display: inline-flex; align-items: center; gap: .3rem; white-space: nowrap; flex-shrink: 0; }
+  .cast-title-block { min-width: 0; }
+  .cast-title-block .btn { text-align: left; white-space: normal; }
+  .effect-manager-list { max-height: 240px; overflow-y: auto; }
+  .effects-manager-label { color: rgba(245, 245, 220, 0.95); font-weight: 600; }
+  .effect-type-text { color: rgba(245, 245, 220, 0.82); }
+  #effectsModalStatus { color: rgba(245, 245, 220, 0.88); }
+</style>
+{% include 'characters/_character_sheet_styles.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+  <div class="scenario-header">
+    <h1 class="mb-0 text-warning">
+      <i class="fas fa-crown me-2"></i>{{ scenario.name }}
+    </h1>
+    <div class="d-flex align-items-center flex-wrap gap-2 mt-1">
+      <small class="text-muted">
+        {% if scenario.place %}<i class="fas fa-map-marker-alt me-1"></i>{{ scenario.place }} &bull; {% endif %}
+        <form method="post" action="{% url 'scenarios:update_status' scenario.id %}" class="d-inline" id="status-dropdown-form">
+          {% csrf_token %}
+          <select name="status" id="status-select" class="form-select form-select-sm d-inline-block w-auto"
+            style="background:{% if scenario.status == 'ACTIVE' %}#1a7a2e{% elif scenario.status == 'PAUSED' %}#8b5c1c{% elif scenario.status == 'COMPLETED' %}#555{% else %}var(--gold){% endif %};color:#fff;border-color:rgba(255,255,255,.3);cursor:pointer;font-size:.8rem;padding:.2rem .5rem;"
+            onchange="this.form.submit()" title="Change scenario status">
+            <option value="PLANNING" {% if scenario.status == 'PLANNING' %}selected{% endif %}>Not Started</option>
+            <option value="ACTIVE" {% if scenario.status == 'ACTIVE' %}selected{% endif %}>Ongoing</option>
+            <option value="PAUSED" {% if scenario.status == 'PAUSED' %}selected{% endif %}>Paused</option>
+            <option value="COMPLETED" {% if scenario.status == 'COMPLETED' %}selected{% endif %}>Done</option>
+          </select>
+        </form>
+        &bull;
+        <i class="fas fa-{% if scenario.visibility == 'PUBLIC' %}globe{% else %}lock{% endif %} me-1"></i>{{ scenario.get_visibility_display }}
+        &bull;
+        <i class="fas fa-hourglass-half me-1 text-warning"></i>
+        <span class="text-warning" id="game-day-text">Day {{ scenario.in_game_day }}</span>
+        <span class="text-muted mx-1">•</span>
+        <span id="game-time-text">{{ scenario.in_game_time|date:"H:i" }}</span>
+      </small>
+      <!-- Time quick-advance -->
+      <div class="d-flex align-items-center gap-1 flex-wrap">
+        <form method="post" action="{% url 'scenarios:advance_time' scenario.id %}" class="time-advance-form d-inline">
+          {% csrf_token %}<input type="hidden" name="minutes" value="30">
+          <button type="submit" class="btn btn-outline-warning btn-sm py-0 px-1" style="font-size:.72rem;" title="+30 min">+30m</button>
+        </form>
+        <form method="post" action="{% url 'scenarios:advance_time' scenario.id %}" class="time-advance-form d-inline">
+          {% csrf_token %}<input type="hidden" name="minutes" value="60">
+          <button type="submit" class="btn btn-outline-warning btn-sm py-0 px-1" style="font-size:.72rem;" title="+1 hour">+1h</button>
+        </form>
+        <form method="post" action="{% url 'scenarios:advance_time' scenario.id %}" class="time-advance-form d-inline">
+          {% csrf_token %}<input type="hidden" name="minutes" value="120">
+          <button type="submit" class="btn btn-outline-warning btn-sm py-0 px-1" style="font-size:.72rem;" title="+2 hours">+2h</button>
+        </form>
+        <form method="post" action="{% url 'scenarios:advance_time' scenario.id %}" class="time-advance-form d-inline">
+          {% csrf_token %}<input type="hidden" name="minutes" value="300">
+          <button type="submit" class="btn btn-outline-warning btn-sm py-0 px-1" style="font-size:.72rem;" title="+5 hours">+5h</button>
+        </form>
+        <form method="post" action="{% url 'scenarios:advance_time' scenario.id %}" class="time-advance-form d-inline">
+          {% csrf_token %}<input type="hidden" name="minutes" value="1440">
+          <button type="submit" class="btn btn-outline-secondary btn-sm py-0 px-1" style="font-size:.72rem;" title="+1 day">+1d</button>
+        </form>
+        <button class="btn btn-outline-light btn-sm py-0 px-1" style="font-size:.72rem;" type="button"
+          data-bs-toggle="collapse" data-bs-target="#setTimeCollapse" aria-expanded="false" title="Set time">
+          <i class="fas fa-pen"></i>
+        </button>
+      </div>
+      <div class="collapse w-100" id="setTimeCollapse">
+        <form method="post" action="{% url 'scenarios:set_time' scenario.id %}" class="d-flex gap-2 align-items-end flex-wrap mt-1" id="set-time-form">
+          {% csrf_token %}
+          <div>
+            <label class="form-label small text-muted mb-0" style="font-size:.72rem;">Time</label>
+            <input type="time" name="in_game_time" class="form-control form-control-sm"
+              style="width:7rem;" value="{{ scenario.in_game_time|date:'H:i' }}">
+          </div>
+          <div>
+            <label class="form-label small text-muted mb-0" style="font-size:.72rem;">Day</label>
+            <input type="number" name="in_game_day" class="form-control form-control-sm"
+              style="width:4.5rem;" min="1" value="{{ scenario.in_game_day }}">
+          </div>
+          <button type="submit" class="btn btn-warning btn-sm py-0"><i class="fas fa-check"></i> Set</button>
+        </form>
+      </div>
+
+      {% if invitation %}
+      <span class="invite-link" id="invite-url-text">
+        {{ request.scheme }}://{{ request.get_host }}{% url 'scenarios:join' invitation.invite_code %}
+      </span>
+      <button class="btn btn-sm btn-outline-warning copy-btn"
+        data-url="{{ request.scheme }}://{{ request.get_host }}{% url 'scenarios:join' invitation.invite_code %}"
+        title="Copy invite link">
+        <i class="fas fa-copy"></i>
+      </button>
+      <button class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#qrModal"
+        data-invite-url="{{ request.scheme }}://{{ request.get_host }}{% url 'scenarios:join' invitation.invite_code %}"
+        title="Show invite QR code">
+        <i class="fas fa-qrcode"></i>
+      </button>
+      {% else %}
+      <small class="text-muted fst-italic">No active invite link for this scenario.</small>
+      {% endif %}
+    </div>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#npcActionsModal">
+      <i class="fas fa-user-plus"></i> Add NPC
+    </button>
+    <a href="{% url 'scenarios:edit' scenario.id %}" class="btn btn-sm btn-outline-warning">
+      <i class="fas fa-edit"></i> Edit
+    </a>
+    <a href="{% url 'scenarios:detail' scenario.id %}" class="btn btn-sm btn-outline-light" target="_blank">
+      <i class="fas fa-eye"></i> Player View
+    </a>
+    <a href="{% url 'scenarios:delete' scenario.id %}" class="btn btn-sm btn-outline-danger">
+      <i class="fas fa-trash"></i> Delete
+    </a>
+  </div>
+</div>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs" id="manageTabs">
+  <li class="nav-item"><a class="nav-link active text-warning" data-bs-toggle="tab" href="#tab-cast"><i class="fas fa-users me-1"></i>Cast <span class="badge bg-secondary">{{ players.count|add:npcs.count }}</span></a></li>
+  <li class="nav-item"><a class="nav-link text-warning" data-bs-toggle="tab" href="#tab-notes"><i class="fas fa-book me-1"></i>Notes</a></li>
+</ul>
+
+<div class="tab-content">
+
+  <!-- ====== CAST TAB (PC + NPC on one page) ====== -->
+  <div class="tab-pane fade show active" id="tab-cast">
+    <div class="card mb-3">
+      <div class="card-header">
+        <i class="fas fa-users me-2"></i>Characters and NPCs in Session
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          {% for card in player_cards %}
+            <div class="col-12 col-md-6 col-xxl-4">
+              <div class="cast-wrapper{% if not card.sp.character.is_alive %} dead-card{% endif %}">
+                <div class="cast-header">
+                  <div class="cast-title-block">
+                    <button class="btn btn-link text-decoration-none text-warning fw-bold p-0" type="button" data-bs-toggle="collapse" data-bs-target="#pc-card-{{ card.sp.id }}" aria-expanded="true" aria-controls="pc-card-{{ card.sp.id }}">
+                      <i class="fas fa-chevron-down me-1"></i>{{ card.sheet.character.name }}{% if card.sp.player == scenario.keeper %} <span class="badge bg-warning text-dark">Keeper</span>{% endif %}
+                    </button>
+                  </div>
+                  <div class="d-flex gap-2 align-items-center">
+                    <span class="cast-meta">Player {{ card.sp.player.username }} • Joined {{ card.sp.joined_at|date:"d M Y" }}</span>
+                    <button type="button" class="btn btn-sm btn-outline-warning manage-effects-btn"
+                      data-character-id="{{ card.sp.character.id }}"
+                      data-character-name="{{ card.sheet.character.name }}"
+                      data-bs-toggle="modal" data-bs-target="#effectsManagerModal"
+                      title="Manage effects">
+                      <i class="fas fa-heartbeat"></i>
+                    </button>
+                    <a href="{% url 'characters:edit_wizard' card.sp.character.id %}?next={% url 'scenarios:manage' scenario.id %}" class="btn btn-sm btn-outline-light" title="Edit character in wizard">
+                      <i class="fas fa-pen"></i>
+                    </a>
+                    <button type="button"
+                      class="btn btn-sm {% if card.sp.character.is_alive %}btn-outline-danger{% else %}btn-outline-success{% endif %} toggle-alive-btn"
+                      data-toggle-alive-url="{% url 'scenarios:character_toggle_alive' scenario.id card.sp.character.id %}"
+                      title="{% if card.sp.character.is_alive %}Mark dead{% else %}Mark alive{% endif %}">
+                      <i class="fas fa-{% if card.sp.character.is_alive %}skull-crossbones{% else %}heart{% endif %}"></i>
+                    </button>
+                    <form method="post" action="{% url 'scenarios:player_unassign' scenario.id card.sp.player.id %}" class="d-inline"
+                      onsubmit="return confirm('Remove {{ card.sheet.character.name }} from {{ card.sp.player.username }}\'s slot? The player stays in the scenario.')">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-sm btn-outline-warning" title="Unassign character"><i class="fas fa-user-slash"></i></button>
+                    </form>
+                    {% if card.sp.player != scenario.keeper %}
+                    <form method="post" action="{% url 'scenarios:player_remove' scenario.id card.sp.player.id %}" class="d-inline"
+                      onsubmit="return confirm('Remove {{ card.sp.player.username }} from this scenario?')">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove player"><i class="fas fa-user-minus"></i></button>
+                    </form>
+                    {% endif %}
+                  </div>
+                </div>
+                <div class="collapse show cast-body" id="pc-card-{{ card.sp.id }}">
+                  {% url 'scenarios:character_adjust_stats' scenario.id card.sp.character.id as pc_adjust_url %}
+                  {% include 'characters/_character_sheet.html' with sheet=card.sheet sheet_id=card.sheet_id show_notes=False notes_editable=False show_actions=False status_adjustable=True adjust_url=pc_adjust_url %}
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+
+          <div class="col-12">
+            <div class="cast-wrapper">
+              <div class="cast-header">
+                <span class="text-warning fw-bold"><i class="fas fa-skull me-1"></i>NPCs ({{ npc_cards|length }})</span>
+              </div>
+              <div class="cast-body">
+                <div class="row g-3">
+                  {% for card in npc_cards %}
+                  <div class="col-12 col-md-6 col-xxl-4">
+                    <div class="cast-wrapper{% if not card.snpc.npc.is_alive %} dead-card{% endif %}">
+                      <div class="cast-header">
+                        <div class="cast-title-block">
+                          <button class="btn btn-link text-decoration-none text-warning fw-bold p-0" type="button" data-bs-toggle="collapse" data-bs-target="#npc-card-{{ card.snpc.id }}" aria-expanded="true" aria-controls="npc-card-{{ card.snpc.id }}">
+                            <i class="fas fa-chevron-down me-1"></i>{{ card.snpc.get_display_name }}
+                          </button>
+                        </div>
+                        <div class="npc-controls">
+                          <div class="npc-actions">
+                            <button type="button" class="btn btn-sm btn-outline-warning manage-effects-btn"
+                              data-character-id="{{ card.snpc.npc.id }}"
+                              data-character-name="{{ card.snpc.get_display_name }}"
+                              data-bs-toggle="modal" data-bs-target="#effectsManagerModal"
+                              title="Manage effects">
+                              <i class="fas fa-heartbeat"></i>
+                            </button>
+                            <a href="{% url 'characters:npc_edit_wizard' card.snpc.npc.id %}?next={% url 'scenarios:manage' scenario.id %}" class="btn btn-sm btn-outline-light" title="Edit NPC in wizard">
+                              <i class="fas fa-pen"></i>
+                            </a>
+                            <button type="button"
+                              class="btn btn-sm {% if card.snpc.npc.is_alive %}btn-outline-danger{% else %}btn-outline-success{% endif %} toggle-alive-btn"
+                              data-toggle-alive-url="{% url 'scenarios:character_toggle_alive' scenario.id card.snpc.npc.id %}"
+                              title="{% if card.snpc.npc.is_alive %}Mark dead{% else %}Mark alive{% endif %}">
+                              <i class="fas fa-{% if card.snpc.npc.is_alive %}skull-crossbones{% else %}heart{% endif %}"></i>
+                            </button>
+                            <form method="post" action="{% url 'scenarios:npc_clone' scenario.id card.snpc.id %}" class="d-inline">
+                              {% csrf_token %}
+                              <button type="submit" class="btn btn-sm btn-outline-warning" title="Clone this NPC"><i class="fas fa-copy"></i></button>
+                            </form>
+                            <form method="post" action="{% url 'scenarios:npc_remove' scenario.id card.snpc.id %}" class="d-inline"
+                              onsubmit="return confirm('Remove {{ card.snpc.get_display_name }} from scenario?')">
+                              {% csrf_token %}
+                              <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove from scenario"><i class="fas fa-times"></i></button>
+                            </form>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="collapse show cast-body" id="npc-card-{{ card.snpc.id }}">
+                        {% url 'scenarios:character_adjust_stats' scenario.id card.snpc.npc.id as npc_adjust_url %}
+                        {% include 'characters/_character_sheet.html' with sheet=card.sheet sheet_id=card.sheet_id show_notes=False notes_editable=False show_actions=False status_adjustable=True adjust_url=npc_adjust_url %}
+                      </div>
+                    </div>
+                  </div>
+                  {% empty %}
+                  <div class="col-12">
+                    <p class="text-muted mb-0">No NPCs in this session yet.</p>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {% if not player_cards and not npc_cards %}
+          <div class="col-12">
+            <p class="text-center text-muted py-3 mb-0">No characters or NPCs in this session yet.</p>
+          </div>
+          {% endif %}
+        </div>
+
+        {% if players %}
+        <hr>
+        <h6 class="text-warning">Players without an active character</h6>
+        <div class="d-flex flex-wrap gap-2">
+          {% for sp in players %}
+            {% if not sp.character or not sp.character.is_alive %}
+            <div class="badge bg-secondary p-2 d-flex align-items-center gap-1">
+              <span>
+                {{ sp.player.username }}
+                {% if sp.character and not sp.character.is_alive %}
+                  <span class="text-danger ms-1"><i class="fas fa-skull"></i> {{ sp.character.name }} (dead)</span>
+                {% else %}
+                  <span class="text-muted ms-1">no character</span>
+                {% endif %}
+              </span>
+              {% if sp.player != scenario.keeper %}
+              <form method="post" action="{% url 'scenarios:player_remove' scenario.id sp.player.id %}" class="d-inline ms-1"
+                onsubmit="return confirm('Remove {{ sp.player.username }} from this scenario?')">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-light py-0 px-1" title="Remove player"><i class="fas fa-user-minus"></i></button>
+              </form>
+              {% endif %}
+            </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div><!-- /cast -->
+
+  <!-- ====== NOTES TAB ====== -->
+  <div class="tab-pane fade" id="tab-notes">
+    <form method="post" action="{% url 'scenarios:save_notes' scenario.id %}" id="notesForm">
+      {% csrf_token %}
+      <ul class="nav nav-pills mb-3" id="notePills">
+        <li class="nav-item">
+          <a class="nav-link active" data-bs-toggle="pill" href="#note-public">
+            <i class="fas fa-globe me-1"></i>Public Notes
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-bs-toggle="pill" href="#note-private">
+            <i class="fas fa-lock me-1"></i>Private (Keeper) Notes
+          </a>
+        </li>
+      </ul>
+      <div class="tab-content">
+        <div class="tab-pane fade show active" id="note-public">
+          <p class="text-muted small"><i class="fas fa-info-circle me-1"></i>Visible to all players in the scenario.</p>
+          <textarea name="public_notes" class="form-control" rows="14"
+            placeholder="Publicly visible notes – story summaries, clues, map descriptions…">{{ scenario.public_notes }}</textarea>
+        </div>
+        <div class="tab-pane fade" id="note-private">
+          <p class="text-muted small"><i class="fas fa-info-circle me-1"></i>Only visible to you (the Keeper).</p>
+          <textarea name="keeper_notes" class="form-control" rows="14"
+            placeholder="Private notes – NPC secrets, future plot hooks, player observations…">{{ scenario.keeper_notes }}</textarea>
+        </div>
+      </div>
+      <div class="mt-3 d-flex gap-2">
+        <button type="submit" class="btn btn-warning" id="saveNotesBtn">
+          <i class="fas fa-save me-1"></i>Save Notes
+        </button>
+        <span class="text-muted small align-self-center" id="saveStatus"></span>
+      </div>
+    </form>
+  </div><!-- /notes -->
+
+</div><!-- tab-content -->
+
+{% include 'characters/_character_sheet_modals.html' %}
+
+<!-- NPC Actions Modal -->
+<div class="modal fade" id="npcActionsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content" style="background:var(--shadow);border:1px solid var(--gold);">
+      <div class="modal-header" style="border-bottom:1px solid var(--gold);">
+        <h5 class="modal-title text-warning"><i class="fas fa-user-plus me-2"></i>Add NPC</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="card h-100">
+              <div class="card-header"><i class="fas fa-file-import me-2"></i>Add from Template</div>
+              <div class="card-body">
+                {% if npc_templates %}
+                <form method="post" action="{% url 'scenarios:npc_from_template' scenario.id %}" id="tplForm">
+                  {% csrf_token %}
+                  <div class="mb-2">
+                    <input type="text" id="tplSearch" class="form-control form-control-sm"
+                      placeholder="Search templates..." autocomplete="off">
+                  </div>
+                  <div id="tplList" style="max-height:160px;overflow-y:auto;border:1px solid rgba(212,175,55,.3);border-radius:.3rem;padding:.3rem;margin-bottom:.5rem;">
+                    {% for tpl in npc_templates %}
+                    <div class="tpl-option" data-id="{{ tpl.id }}" data-name="{{ tpl.name }}">
+                      {{ tpl.name }}
+                    </div>
+                    {% endfor %}
+                  </div>
+                  <input type="hidden" name="template_id" id="tplIdInput" required>
+                  <div class="mb-2">
+                    <input type="text" name="display_name" class="form-control form-control-sm"
+                      placeholder="Display name override (optional)">
+                  </div>
+                  <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-warning btn-sm flex-grow-1" id="tplAddBtn" disabled>
+                      <i class="fas fa-plus me-1"></i>Add NPC
+                    </button>
+                    <button type="button" class="btn btn-outline-light btn-sm" id="tplPreviewBtn" disabled
+                      data-bs-toggle="modal" data-bs-target="#npcPreviewModal">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                  </div>
+                </form>
+                {% else %}
+                <p class="text-muted small mb-2">No NPC templates available.</p>
+                <a href="{% url 'characters:npc_template_create' %}" class="btn btn-sm btn-outline-warning">
+                  <i class="fas fa-plus"></i> Create Template
+                </a>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="card h-100">
+              <div class="card-header"><i class="fas fa-plus me-2"></i>Create New NPC</div>
+              <div class="card-body d-flex flex-column justify-content-center align-items-center text-center">
+                <i class="fas fa-user-secret fa-3x text-warning mb-3"></i>
+                <p class="text-muted small mb-3">
+                  Use the full NPC wizard to set stats, skills, and inventory - then the NPC is added directly to this scenario.
+                </p>
+                <a href="{% url 'characters:npc_create' %}?add_to_scenario={{ scenario.id }}" class="btn btn-warning">
+                  <i class="fas fa-magic me-1"></i>Open NPC Wizard
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- QR Code Modal -->
+<div class="modal fade" id="qrModal" tabindex="-1">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content" style="background:var(--shadow);border:1px solid var(--gold);">
+      <div class="modal-header" style="border-bottom:1px solid var(--gold);">
+        <h5 class="modal-title text-warning"><i class="fas fa-qrcode me-2"></i>Invite QR Code</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center py-4">
+        <div id="qrcode" class="mb-3"></div>
+        <small class="text-muted">Scan to join the scenario</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NPC Template Preview Modal -->
+<div class="modal fade" id="npcPreviewModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content" style="background:var(--shadow);border:1px solid var(--gold);">
+      <div class="modal-header" style="border-bottom:1px solid var(--gold);">
+        <h5 class="modal-title text-warning" id="previewModalTitle">NPC Preview</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="previewModalBody">
+        <!-- Filled by JS -->
+      </div>
+      <div class="modal-footer" style="border-top:1px solid var(--gold);">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-warning" id="modalAddBtn">
+          <i class="fas fa-plus me-1"></i>Add NPC
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Effects Manager Modal -->
+<div class="modal fade" id="effectsManagerModal" tabindex="-1" aria-hidden="true"
+  data-get-url-template="{% url 'scenarios:character_get_effects' scenario.id 0 %}"
+  data-add-url-template="{% url 'scenarios:character_add_effect' scenario.id 0 %}"
+  data-remove-url-template="{% url 'scenarios:character_remove_effect' scenario.id 0 0 %}">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content" style="background:var(--shadow);border:1px solid var(--gold);">
+      <div class="modal-header" style="border-bottom:1px solid var(--gold);">
+        <h5 class="modal-title text-warning" id="effectsModalTitle"><i class="fas fa-heartbeat me-2"></i>Manage effects</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <h6 class="text-warning">Active effects</h6>
+            <div id="currentEffectsList" class="effect-manager-list"></div>
+          </div>
+          <div class="col-md-6">
+            <h6 class="text-warning">Add effect</h6>
+            <div class="mb-2">
+              <label class="form-label small effects-manager-label">From list</label>
+              <select id="effectSelect" class="form-select form-select-sm">
+                <option value="">Choose an effect...</option>
+                {% for effect in status_effects %}
+                  <option value="{{ effect.id }}">{{ effect.name }} ({{ effect.get_effect_type_display }})</option>
+                {% endfor %}
+              </select>
+            </div>
+            <button type="button" id="addSelectedEffectBtn" class="btn btn-sm btn-warning mb-3">
+              <i class="fas fa-plus me-1"></i>Add selected
+            </button>
+            <div class="mb-2">
+              <label class="form-label small effects-manager-label">Custom effect name</label>
+              <input type="text" id="customEffectName" class="form-control form-control-sm" placeholder="Type custom effect...">
+            </div>
+            <button type="button" id="addCustomEffectBtn" class="btn btn-sm btn-outline-light">
+              <i class="fas fa-magic me-1"></i>Add custom
+            </button>
+          </div>
+        </div>
+        <div class="small text-muted mt-2" id="effectsModalStatus"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="text-center mt-4">
+  <a href="{% url 'scenarios:list' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left me-1"></i>Back to Scenarios
+  </a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+{% include 'characters/_character_sheet_scripts.html' %}
+<script>
+// NPC Template data from server
+const NPC_TEMPLATES = JSON.parse('{{ npc_templates_json|escapejs }}');
+const tplMap = {};
+NPC_TEMPLATES.forEach(t => tplMap[t.id] = t);
+
+// Restore active tab from localStorage
+const STORAGE_KEY = 'scenario_manage_tab_{{ scenario.id }}';
+const savedTab = localStorage.getItem(STORAGE_KEY);
+if (savedTab) {
+  const el = document.querySelector(`[href="${savedTab}"]`);
+  if (el) { const tab = new bootstrap.Tab(el); tab.show(); }
+}
+document.querySelectorAll('#manageTabs .nav-link').forEach(el => {
+  el.addEventListener('shown.bs.tab', e => localStorage.setItem(STORAGE_KEY, e.target.getAttribute('href')));
+});
+
+// Copy invite link
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    navigator.clipboard.writeText(btn.dataset.url).then(() => {
+      btn.innerHTML = '<i class="fas fa-check"></i>';
+      setTimeout(() => btn.innerHTML = '<i class="fas fa-copy"></i>', 2000);
+    });
+  });
+});
+
+// QR Code generation
+let qrInstance = null;
+const qrModal = document.getElementById('qrModal');
+if (qrModal) {
+  qrModal.addEventListener('show.bs.modal', function(e) {
+    const btn = e.relatedTarget;
+    const url = btn ? btn.dataset.inviteUrl : '';
+    const container = document.getElementById('qrcode');
+    container.innerHTML = '';
+    if (url) {
+      qrInstance = new QRCode(container, {
+        text: url,
+        width: 200,
+        height: 200,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.H,
+      });
+    }
+  });
+}
+
+// AJAX time advance
+function clampCardPercent(value, maxValue) {
+  return Math.max(0, Math.min(100, (value / Math.max(maxValue, 1)) * 100));
+}
+
+function escapeHtmlAttr(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function patchCardResource(sheet, resource, current, maxValue) {
+  const container = sheet.querySelector(`.stat-bar-container[data-resource="${resource}"]`);
+  if (container) {
+    container.dataset.current = current;
+    container.dataset.max = maxValue;
+  }
+  const fill = sheet.querySelector(`[data-resource-fill="${resource}"]`);
+  if (fill) fill.style.width = `${clampCardPercent(current, maxValue)}%`;
+  const text = sheet.querySelector(`[data-resource-text="${resource}"]`);
+  if (text) text.textContent = maxValue != null ? `${current}/${maxValue}` : `${current}`;
+}
+
+function renderEffectsBadges(characterId, effects) {
+  const container = document.getElementById(`effects-badges-${characterId}`);
+  if (!container) return;
+  if (!effects || !effects.length) {
+    container.innerHTML = '';
+    return;
+  }
+  container.innerHTML = effects
+    .map((effect) => `<span class="badge ${escapeHtmlAttr(effect.badge_color)} effect-badge" data-effect-description="${escapeHtmlAttr(effect.description)}" role="button" tabindex="0">${escapeHtmlAttr(effect.name)}</span>`)
+    .join('');
+  if (typeof initEffectBadgePopovers === 'function') initEffectBadgePopovers(container);
+}
+
+function patchUpdatedCards(cards) {
+  (cards || []).forEach((card) => {
+    const sheet = document.querySelector(`.character-sheet[data-character-id="${card.character_id}"]`);
+    if (!sheet || !card.resources) return;
+    if (card.resources.hp) patchCardResource(sheet, 'hp', card.resources.hp.current, card.resources.hp.max);
+    if (card.resources.sanity) patchCardResource(sheet, 'sanity', card.resources.sanity.current, card.resources.sanity.max);
+    if (card.resources.mp) patchCardResource(sheet, 'mp', card.resources.mp.current, card.resources.mp.max);
+    if (card.resources.luck) patchCardResource(sheet, 'luck', card.resources.luck.current, card.resources.luck.max);
+    renderEffectsBadges(card.character_id, card.effects || []);
+
+    const wrapper = sheet.closest('.cast-wrapper');
+    if (wrapper && typeof card.is_alive === 'boolean') {
+      wrapper.classList.toggle('dead-card', !card.is_alive);
+    }
+  });
+}
+
+function applyTimeUpdateResponse(data) {
+  if (!data || !data.ok) return;
+  document.getElementById('game-time-text').textContent = data.in_game_time;
+  document.getElementById('game-day-text').textContent = 'Day ' + data.in_game_day;
+  if (Array.isArray(data.updated_cards) && data.updated_cards.length > 0) {
+    patchUpdatedCards(data.updated_cards || []);
+  }
+}
+
+document.querySelectorAll('.time-advance-form').forEach(form => {
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const res = await fetch(form.action, {
+      method: 'POST',
+      headers: {'X-Requested-With': 'XMLHttpRequest'},
+      body: new FormData(form)
+    });
+    const data = await res.json();
+    applyTimeUpdateResponse(data);
+  });
+});
+
+const setTimeForm = document.getElementById('set-time-form');
+if (setTimeForm) {
+  setTimeForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const res = await fetch(setTimeForm.action, {
+      method: 'POST',
+      headers: {'X-Requested-With': 'XMLHttpRequest'},
+      body: new FormData(setTimeForm)
+    });
+    const data = await res.json();
+    applyTimeUpdateResponse(data);
+  });
+}
+
+// AJAX notes save
+const notesForm = document.getElementById('notesForm');
+if (notesForm) {
+  notesForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = document.getElementById('saveNotesBtn');
+    const status = document.getElementById('saveStatus');
+    btn.disabled = true;
+    const res = await fetch(notesForm.action, {
+      method: 'POST',
+      headers: {'X-Requested-With': 'XMLHttpRequest'},
+      body: new FormData(notesForm)
+    });
+    const data = await res.json();
+    btn.disabled = false;
+    if (data.ok) {
+      status.textContent = '✓ Saved';
+      setTimeout(() => status.textContent = '', 3000);
+    }
+  });
+}
+
+// ---- Template search & selection ----
+const tplSearch = document.getElementById('tplSearch');
+const tplList = document.getElementById('tplList');
+const tplIdInput = document.getElementById('tplIdInput');
+const tplAddBtn = document.getElementById('tplAddBtn');
+const tplPreviewBtn = document.getElementById('tplPreviewBtn');
+let selectedTplId = null;
+
+function selectTemplate(id, name) {
+  selectedTplId = id;
+  tplIdInput.value = id;
+  tplAddBtn.disabled = false;
+  tplPreviewBtn.disabled = false;
+  document.querySelectorAll('.tpl-option').forEach(o => o.classList.remove('selected'));
+  const el = document.querySelector(`.tpl-option[data-id="${id}"]`);
+  if (el) el.classList.add('selected');
+}
+
+if (tplList) {
+  tplList.addEventListener('click', e => {
+    const opt = e.target.closest('.tpl-option');
+    if (opt) selectTemplate(Number(opt.dataset.id), opt.dataset.name);
+  });
+}
+
+if (tplSearch) {
+  tplSearch.addEventListener('input', () => {
+    const q = tplSearch.value.toLowerCase();
+    document.querySelectorAll('.tpl-option').forEach(opt => {
+      opt.style.display = opt.dataset.name.toLowerCase().includes(q) ? '' : 'none';
+    });
+  });
+}
+
+// Preview modal
+function buildPreviewHtml(tpl) {
+  const stats = tpl.stats || {};
+  const statHtml = Object.entries(stats).map(([k, v]) =>
+    `<span class="stat-mini">${k} ${v}</span>`).join(' ');
+  return `
+    <h5 class="text-warning">${tpl.name}</h5>
+    ${tpl.occupation ? `<p class="text-muted mb-1"><em>${tpl.occupation}</em></p>` : ''}
+    ${tpl.description ? `<p class="small mb-3">${tpl.description}</p>` : ''}
+    <div class="row g-2 mb-3">
+      <div class="col-4 text-center">
+        <div class="fw-bold text-danger">${tpl.hp_current}/${tpl.hp_max}</div>
+        <small class="text-muted">HP</small>
+      </div>
+      <div class="col-4 text-center">
+        <div class="fw-bold text-success">${tpl.san_max}</div>
+        <small class="text-muted">SAN max</small>
+      </div>
+      <div class="col-4 text-center">
+        <div class="fw-bold text-primary">${tpl.mp_max}</div>
+        <small class="text-muted">MP max</small>
+      </div>
+    </div>
+    <div>${statHtml}</div>`;
+}
+
+if (tplPreviewBtn) {
+  tplPreviewBtn.addEventListener('click', () => {
+    if (!selectedTplId || !tplMap[selectedTplId]) return;
+    const tpl = tplMap[selectedTplId];
+    document.getElementById('previewModalTitle').textContent = tpl.name;
+    document.getElementById('previewModalBody').innerHTML = buildPreviewHtml(tpl);
+  });
+}
+
+// "Add NPC" from modal footer submits the main form
+const modalAddBtn = document.getElementById('modalAddBtn');
+if (modalAddBtn) {
+  modalAddBtn.addEventListener('click', () => {
+    bootstrap.Modal.getInstance(document.getElementById('npcPreviewModal'))?.hide();
+    document.getElementById('tplForm').submit();
+  });
+}
+
+// ---- Session stat bars: AJAX HP/MP/SAN/LCK adjustment ----
+(function initSessionStatBars() {
+  const CSRF = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+  function getSheet(el) {
+    return el.closest('.character-sheet[data-adjust-url]');
+  }
+
+  function updateDisplay(sheet, resource, current, max) {
+    const fill = sheet.querySelector(`[data-resource-fill="${resource}"]`);
+    const text = sheet.querySelector(`[data-resource-text="${resource}"]`);
+    if (fill) fill.style.width = `${clamp((current / Math.max(max, 1)) * 100, 0, 100)}%`;
+    if (text) text.textContent = max != null ? `${current}/${max}` : `${current}/100`;
+  }
+
+  async function commitStat(sheet, resource, value) {
+    const url = sheet.dataset.adjustUrl;
+    if (!url) return;
+    const body = new FormData();
+    body.append('csrfmiddlewaretoken', CSRF);
+    body.append(resource, value);
+    try {
+      const res = await fetch(url, { method: 'POST', body });
+      const data = await res.json();
+      if (data.ok) {
+        const container = sheet.querySelector(`.stat-bar-container[data-resource="${resource}"]`);
+        if (container) container.dataset.current = value;
+      }
+    } catch (e) { console.warn('Stat save failed', e); }
+  }
+
+  function valueFromClientX(bar, clientX) {
+    const container = bar.closest('.stat-bar-container');
+    if (!container) return null;
+    const max = Number(container.dataset.max || 0);
+    const rect = bar.getBoundingClientRect();
+    if (!rect.width) return null;
+    return Math.round(clamp((clientX - rect.left) / rect.width, 0, 1) * max);
+  }
+
+  let dragBar = null, dragPending = null;
+
+  function handleDrag(bar, clientX) {
+    const sheet = getSheet(bar);
+    if (!sheet) return;
+    const resource = bar.dataset.adjustTarget;
+    const container = bar.closest('.stat-bar-container');
+    if (!resource || !container) return;
+    const max = Number(container.dataset.max || 0);
+    const val = valueFromClientX(bar, clientX);
+    if (val === null) return;
+    updateDisplay(sheet, resource, val, max);
+    dragPending = { sheet, resource, val };
+  }
+
+  document.querySelectorAll('.character-sheet[data-adjust-url] .stat-bar-adjustable').forEach(bar => {
+    bar.style.cursor = 'ew-resize';
+    bar.addEventListener('mousedown', e => { dragBar = bar; handleDrag(bar, e.clientX); e.preventDefault(); });
+    bar.addEventListener('touchstart', e => {
+      const t = e.touches[0]; if (t) { dragBar = bar; handleDrag(bar, t.clientX); }
+    }, { passive: true });
+  });
+
+  document.addEventListener('mousemove', e => { if (dragBar) handleDrag(dragBar, e.clientX); });
+  document.addEventListener('touchmove', e => {
+    if (dragBar) { const t = e.touches[0]; if (t) handleDrag(dragBar, t.clientX); }
+  }, { passive: true });
+
+  function stopDrag() {
+    if (dragPending) {
+      commitStat(dragPending.sheet, dragPending.resource, dragPending.val);
+      dragPending = null;
+    }
+    dragBar = null;
+  }
+  document.addEventListener('mouseup', stopDrag);
+  document.addEventListener('touchend', stopDrag);
+})();
+
+// ---- Explicit dead/alive toggle ----
+(function initAliveToggleButtons() {
+  const CSRF = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+  function renderAliveState(btn, isAlive) {
+    const wrapper = btn.closest('.cast-wrapper');
+    if (wrapper) wrapper.classList.toggle('dead-card', !isAlive);
+    btn.classList.toggle('btn-outline-danger', isAlive);
+    btn.classList.toggle('btn-outline-success', !isAlive);
+    btn.title = isAlive ? 'Mark dead' : 'Mark alive';
+    btn.innerHTML = isAlive
+      ? '<i class="fas fa-skull-crossbones"></i>'
+      : '<i class="fas fa-heart"></i>';
+  }
+
+  document.querySelectorAll('.toggle-alive-btn[data-toggle-alive-url]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (btn.disabled) return;
+      btn.disabled = true;
+      try {
+        const body = new FormData();
+        body.append('csrfmiddlewaretoken', CSRF);
+        const res = await fetch(btn.dataset.toggleAliveUrl, { method: 'POST', body });
+        const data = await res.json();
+        if (data.ok) {
+          renderAliveState(btn, data.is_alive);
+        }
+      } catch (e) {
+        console.warn('Alive toggle failed', e);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
+})();
+
+// ---- Status effects manager ----
+(function initEffectsManager() {
+  const CSRF = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+  const modalEl = document.getElementById('effectsManagerModal');
+  if (!modalEl) return;
+
+  let activeCharacterId = null;
+  let activeCharacterName = '';
+
+  const titleEl = document.getElementById('effectsModalTitle');
+  const statusEl = document.getElementById('effectsModalStatus');
+  const currentListEl = document.getElementById('currentEffectsList');
+  const selectEl = document.getElementById('effectSelect');
+  const customNameEl = document.getElementById('customEffectName');
+  const addSelectedBtn = document.getElementById('addSelectedEffectBtn');
+  const addCustomBtn = document.getElementById('addCustomEffectBtn');
+
+  const getUrlTemplate = modalEl.dataset.getUrlTemplate;
+  const addUrlTemplate = modalEl.dataset.addUrlTemplate;
+  const removeUrlTemplate = modalEl.dataset.removeUrlTemplate;
+
+  function setStatus(msg, isError) {
+    statusEl.textContent = msg || '';
+    statusEl.classList.toggle('text-danger', Boolean(isError));
+  }
+
+  function urlForCharacter(template, characterId) {
+    return template.replace('/0/', `/${characterId}/`);
+  }
+
+  function urlForRemove(characterId, effectId) {
+    return removeUrlTemplate.replace('/0/', `/${characterId}/`).replace('/0/', `/${effectId}/`);
+  }
+
+  function getModalBadgeClass(effect) {
+    const colorClass = (effect && effect.badge_color) ? effect.badge_color : 'bg-secondary';
+    // Keep modal badges readable on dark modal backgrounds.
+    return colorClass === 'bg-dark' ? 'bg-secondary' : colorClass;
+  }
+
+  function formatEffectType(effectType) {
+    const labels = {
+      NORMAL: 'Custom status effect',
+      PHOBIA: 'Phobia',
+      MADNESS: 'Madness',
+      MANIA: 'Mania',
+      DEEP_WOUND: 'Deep wound',
+    };
+    return labels[effectType] || 'Effect';
+  }
+
+  function renderBadges(characterId, effects) {
+    const container = document.getElementById(`effects-badges-${characterId}`);
+    if (!container) return;
+    if (!effects || !effects.length) {
+      container.innerHTML = '';
+      return;
+    }
+    container.innerHTML = effects
+      .map((effect) => `<span class="badge ${escapeHtmlAttr(effect.badge_color)} effect-badge" data-effect-description="${escapeHtmlAttr(effect.description)}" role="button" tabindex="0">${escapeHtmlAttr(effect.name)}</span>`)
+      .join('');
+    if (typeof initEffectBadgePopovers === 'function') initEffectBadgePopovers(container);
+  }
+
+  function renderCurrentEffects(effects) {
+    if (!effects || !effects.length) {
+      currentListEl.innerHTML = '<p class="mb-0" style="color: rgba(245, 245, 220, 0.82);">No active effects.</p>';
+      return;
+    }
+    currentListEl.innerHTML = effects.map((effect) => `
+      <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-2">
+        <div>
+          <span class="badge ${getModalBadgeClass(effect)} me-2 effect-badge" data-effect-description="${escapeHtmlAttr(effect.description)}" role="button" tabindex="0">${escapeHtmlAttr(effect.name)}</span>
+          <small class="effect-type-text">${formatEffectType(effect.effect_type)}</small>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-danger remove-effect-btn" data-effect-id="${effect.id}">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    `).join('');
+    if (typeof initEffectBadgePopovers === 'function') initEffectBadgePopovers(currentListEl);
+  }
+
+  async function loadEffects() {
+    if (!activeCharacterId) return;
+    setStatus('Loading...');
+    try {
+      const res = await fetch(urlForCharacter(getUrlTemplate, activeCharacterId));
+      const data = await res.json();
+      if (!data.ok) {
+        setStatus(data.error || 'Failed to load effects.', true);
+        return;
+      }
+      renderCurrentEffects(data.effects || []);
+      renderBadges(activeCharacterId, data.effects || []);
+      setStatus('');
+    } catch (e) {
+      setStatus('Failed to load effects.', true);
+    }
+  }
+
+  async function addEffect(payload) {
+    if (!activeCharacterId) return;
+    setStatus('Saving...');
+    const body = new FormData();
+    body.append('csrfmiddlewaretoken', CSRF);
+    Object.entries(payload).forEach(([k, v]) => body.append(k, v));
+    try {
+      const res = await fetch(urlForCharacter(addUrlTemplate, activeCharacterId), { method: 'POST', body });
+      const data = await res.json();
+      if (!data.ok) {
+        setStatus(data.error || 'Failed to add effect.', true);
+        return;
+      }
+      customNameEl.value = '';
+      await loadEffects();
+      setStatus('Effect updated.');
+    } catch (e) {
+      setStatus('Failed to add effect.', true);
+    }
+  }
+
+  async function removeEffect(effectId) {
+    if (!activeCharacterId) return;
+    const body = new FormData();
+    body.append('csrfmiddlewaretoken', CSRF);
+    setStatus('Removing...');
+    try {
+      const res = await fetch(urlForRemove(activeCharacterId, effectId), { method: 'POST', body });
+      const data = await res.json();
+      if (!data.ok) {
+        setStatus(data.error || 'Failed to remove effect.', true);
+        return;
+      }
+      await loadEffects();
+      setStatus('Effect removed.');
+    } catch (e) {
+      setStatus('Failed to remove effect.', true);
+    }
+  }
+
+  document.querySelectorAll('.manage-effects-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      activeCharacterId = Number(btn.dataset.characterId);
+      activeCharacterName = btn.dataset.characterName || 'Character';
+      titleEl.innerHTML = `<i class="fas fa-heartbeat me-2"></i>Manage effects - ${activeCharacterName}`;
+      loadEffects();
+    });
+  });
+
+  addSelectedBtn?.addEventListener('click', () => {
+    const effectId = Number(selectEl.value || 0);
+    if (!effectId) {
+      setStatus('Choose an effect first.', true);
+      return;
+    }
+    addEffect({ effect_id: effectId, remaining_rounds: 1 });
+  });
+
+  addCustomBtn?.addEventListener('click', () => {
+    const name = (customNameEl.value || '').trim();
+    if (!name) {
+      setStatus('Enter a custom effect name.', true);
+      return;
+    }
+    addEffect({ effect_name: name, remaining_rounds: 1 });
+  });
+
+  currentListEl?.addEventListener('click', (event) => {
+    const button = event.target.closest('.remove-effect-btn');
+    if (!button) return;
+    const effectId = Number(button.dataset.effectId || 0);
+    if (!effectId) return;
+    removeEffect(effectId);
+  });
+})();
+</script>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

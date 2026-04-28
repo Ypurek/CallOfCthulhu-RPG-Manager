@@ -1,5 +1,6 @@
 import json
 import re
+from urllib.parse import urlencode
 
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
@@ -7,6 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.db import DatabaseError
+from django.utils.http import url_has_allowed_host_and_scheme
 from .models import (
     Character,
     CharacterChangeLog,
@@ -31,6 +33,7 @@ CUSTOM_SKILL_DESCRIPTION_PREFIXES = ('Custom skill:', 'Imported custom skill:')
 NPC_WIZARD_SESSION_KEY = 'npc_create_draft'
 NPC_WIZARD_STEPS = ['basic', 'stats', 'skills', 'inventory', 'review']
 NPC_TEMPLATE_WIZARD_META_KEY = 'npc_template_wizard_meta'
+NPC_WIZARD_TARGET_SCENARIO = 'npc_wizard_target_scenario'
 
 
 def _to_int(value, default=0, minimum=None, maximum=None):
@@ -602,7 +605,7 @@ def _create_character_from_draft(user, draft):
         movement=0,
         build=0,
         damage_bonus='0',
-        cash=0,
+        cash=_to_int(draft.get('inventory', {}).get('cash'), 0, 0),
     )
 
     skill_values, custom_skill_id_map = _resolve_skill_values_for_storage(draft, character.education)
@@ -935,7 +938,7 @@ def character_edit(request, character_id):
                         'description': f'Custom skill: {skill_name}',
                     }
                 )
-                
+
                 # Add skill to character
                 char_skill, created = CharacterSkill.objects.get_or_create(
                     character=character,
@@ -1019,6 +1022,7 @@ def character_create(request):
             _sync_custom_skill_values(draft)
         elif step == 'inventory':
             inventory = draft['inventory']
+            inventory['cash'] = _to_int(request.POST.get('cash'), inventory.get('cash', 0), 0)
             try:
                 weapons_payload = json.loads(request.POST.get('weapons_json', '[]'))
             except json.JSONDecodeError:
@@ -1062,6 +1066,9 @@ def character_create(request):
         current_index = WIZARD_STEPS.index(step)
         if action == 'prev':
             draft['step'] = WIZARD_STEPS[max(current_index - 1, 0)]
+        elif action == 'goto':
+            target_step = request.POST.get('target_step')
+            draft['step'] = target_step if target_step in WIZARD_STEPS else step
         elif action == 'save':
             if template_mode:
                 payload = _template_payload_from_draft(draft)
@@ -1126,7 +1133,7 @@ def character_create(request):
         'occupation': draft['basic'].get('occupation', ''),
         'age': draft['basic'].get('age') or None,
         'description': draft['basic'].get('description', ''),
-        'cash': 0,
+        'cash': _to_int(draft.get('inventory', {}).get('cash'), 0, 0),
         'is_alive': True,
         'hp_current': derived_stats['hp_current'],
         'hp_max': derived_stats['hp_max'],
@@ -1176,6 +1183,7 @@ def character_create(request):
         'show_reset': not template_mode,
         'wizard_title': 'Edit Template' if template_edit_mode else ('Create Template' if template_mode else 'Character Creation Wizard'),
         'wizard_back_text': 'Back to Templates' if template_mode else 'Back to List',
+        'final_submit_label': 'Save Template' if template_mode else 'Create Character',
         'show_change_history': False,
         'enable_status_adjustments': False,
     }
@@ -1468,6 +1476,131 @@ def _status_from_draft(draft):
     }
 
 
+def _create_npc_character_from_draft(user, draft):
+    """Create a Character (type=NPC) from a wizard draft, applying HP/MP/SAN adjustments."""
+    stats = draft['stats']
+    basic = draft['basic']
+    adjustments = draft.get('adjustments', {})
+
+    base_stats = {
+        'strength': _to_int(stats.get('strength'), 0, 0, 100),
+        'constitution': _to_int(stats.get('constitution'), 0, 0, 100),
+        'dexterity': _to_int(stats.get('dexterity'), 0, 0, 100),
+        'intelligence': _to_int(stats.get('intelligence'), 0, 0, 100),
+        'power': _to_int(stats.get('power'), 0, 0, 100),
+        'size': _to_int(stats.get('size'), 0, 0, 100),
+        'appearance': _to_int(stats.get('appearance'), 0, 0, 100),
+        'education': _to_int(stats.get('education'), 0, 0, 100),
+        'luck': _to_int(stats.get('luck'), 0, 0, 100),
+    }
+
+    skill_values, custom_skill_id_map = _resolve_skill_values_for_storage(draft, base_stats['education'])
+    cthulhu_mythos = 0
+    for skill in Skill.objects.filter(name='Cthulhu Mythos'):
+        cthulhu_mythos = _to_int(skill_values.get(str(skill.id), 0), 0, 0, 99)
+        break
+
+    derived = _derive_secondary_stats(base_stats, cthulhu_mythos)
+
+    hp_current = _to_int(
+        derived['hp_current'] + _to_int(adjustments.get('hp'), 0, -99, 99),
+        derived['hp_current'], 0, derived['hp_max'],
+    )
+    mp_current = _to_int(
+        derived['mp_current'] + _to_int(adjustments.get('mp'), 0, -99, 99),
+        derived['mp_current'], 0, derived['mp_max'],
+    )
+    sanity_current = _to_int(
+        derived['sanity_current'] + _to_int(adjustments.get('sanity'), 0, -99, 99),
+        derived['sanity_current'], 0, derived['sanity_max'],
+    )
+
+    character = Character.objects.create(
+        owner=user,
+        character_type='NPC',
+        is_alive=True,
+        name=basic.get('name') or 'Unnamed NPC',
+        description=basic.get('description', ''),
+        occupation=basic.get('occupation', ''),
+        age=_to_int(basic.get('age'), None) if str(basic.get('age', '')).strip() else None,
+        strength=base_stats['strength'],
+        constitution=base_stats['constitution'],
+        dexterity=base_stats['dexterity'],
+        intelligence=base_stats['intelligence'],
+        power=base_stats['power'],
+        size=base_stats['size'],
+        appearance=base_stats['appearance'],
+        education=base_stats['education'],
+        hp_current=hp_current,
+        hp_max=derived['hp_max'],
+        mp_current=mp_current,
+        mp_max=derived['mp_max'],
+        sanity_current=sanity_current,
+        sanity_max=derived['sanity_max'],
+        sanity_start=sanity_current,
+        luck=base_stats['luck'],
+        movement=0,
+        build=0,
+        damage_bonus='0',
+        cash=_to_int(draft.get('inventory', {}).get('cash'), 0, 0),
+    )
+
+    skills_by_id = {skill.id: skill for skill in Skill.objects.all()}
+    CharacterSkill.objects.bulk_create([
+        CharacterSkill(
+            character=character,
+            skill=skills_by_id[skill_id],
+            value=_to_int(value, skills_by_id[skill_id].base_value, 0, 100),
+        )
+        for skill_id_str, value in skill_values.items()
+        if (skill_id := _to_int(skill_id_str, None)) in skills_by_id
+    ])
+
+    inventory = draft.get('inventory', {})
+    for payload in inventory.get('weapons', []):
+        selected_skill_id = str(payload.get('skill_id', ''))
+        if selected_skill_id in custom_skill_id_map:
+            selected_skill = Skill.objects.filter(id=custom_skill_id_map[selected_skill_id]).first()
+        else:
+            selected_skill = Skill.objects.filter(id=_to_int(payload.get('skill_id'), -1)).first()
+        selected_skill_name = selected_skill.name if selected_skill else str(payload.get('skill_name') or 'Custom').strip()
+        selected_skill_value = skill_values.get(str(selected_skill.id), 0) if selected_skill else 0
+        weapon = None
+        if payload.get('weapon_id'):
+            weapon = Weapon.objects.filter(id=_to_int(payload.get('weapon_id'), -1)).first()
+        custom_name = str(payload.get('custom_name', '')).strip()
+        if not weapon and custom_name:
+            weapon = Weapon.objects.filter(name__iexact=custom_name, skill_name=selected_skill_name).first()
+            if not weapon:
+                weapon = Weapon.objects.create(
+                    name=custom_name,
+                    skill_name=selected_skill_name,
+                    damage=str(payload.get('damage') or '1D4').strip() or '1D4',
+                )
+        if weapon:
+            CharacterWeapon.objects.create(
+                character=character,
+                weapon=weapon,
+                skill_value=selected_skill_value,
+                is_prepared=bool(payload.get('is_prepared', False)),
+            )
+
+    for payload in inventory.get('items', []):
+        item = None
+        if payload.get('item_id'):
+            item = Item.objects.filter(id=_to_int(payload.get('item_id'), -1)).first()
+        custom_name = str(payload.get('custom_name', '')).strip()
+        if not item and custom_name:
+            item = Item.objects.filter(name__iexact=custom_name).first()
+            if not item:
+                item = Item.objects.create(name=custom_name)
+        if item:
+            qty = _to_int(payload.get('quantity'), 1, 1)
+            CharacterItem.objects.create(character=character, item=item, quantity=qty)
+
+    return character
+
+
 def _load_npc_templates():
     """Read NPC templates from the database."""
     templates = []
@@ -1639,6 +1772,7 @@ def npc_create(request):
         if action == 'reset':
             request.session.pop(NPC_WIZARD_SESSION_KEY, None)
             request.session.pop(NPC_TEMPLATE_WIZARD_META_KEY, None)
+            request.session.pop(NPC_WIZARD_TARGET_SCENARIO, None)
             request.session.modified = True
             messages.success(request, 'NPC draft cleared.')
             return redirect('characters:npc_create')
@@ -1681,6 +1815,7 @@ def npc_create(request):
             _sync_custom_skill_values(draft)
         elif step == 'inventory':
             inventory = draft['inventory']
+            inventory['cash'] = _to_int(request.POST.get('cash'), inventory.get('cash', 0), 0)
             try:
                 weapons_payload = json.loads(request.POST.get('weapons_json', '[]'))
             except json.JSONDecodeError:
@@ -1731,7 +1866,26 @@ def npc_create(request):
         current_index = NPC_WIZARD_STEPS.index(step)
         if action == 'prev':
             draft['step'] = NPC_WIZARD_STEPS[max(current_index - 1, 0)]
+        elif action == 'goto':
+            target_step = request.POST.get('target_step')
+            draft['step'] = target_step if target_step in NPC_WIZARD_STEPS else step
         elif action == 'save':
+            target_scenario_id = request.session.pop(NPC_WIZARD_TARGET_SCENARIO, None)
+            if target_scenario_id:
+                # Scenario-flow: create NPC Character and add to scenario
+                try:
+                    from scenarios.models import Scenario, ScenarioNPC
+                    scenario = Scenario.objects.get(id=target_scenario_id)
+                    npc_char = _create_npc_character_from_draft(request.user, draft)
+                    ScenarioNPC.objects.create(scenario=scenario, npc=npc_char)
+                    request.session.pop(NPC_WIZARD_SESSION_KEY, None)
+                    request.session.pop(NPC_TEMPLATE_WIZARD_META_KEY, None)
+                    request.session.modified = True
+                    messages.success(request, f'NPC "{npc_char.name}" created and added to the scenario.')
+                    return redirect('scenarios:manage', scenario_id=scenario.id)
+                except Exception as e:
+                    messages.error(request, f'Failed to add NPC to scenario: {str(e)}')
+                    return redirect('characters:npc_create')
             try:
                 payload = _template_payload_from_draft(draft)
                 payload['status'] = _status_from_draft(draft)
@@ -1771,6 +1925,17 @@ def npc_create(request):
     if requested_step in NPC_WIZARD_STEPS:
         draft['step'] = requested_step
 
+    # Store target scenario if provided via query param
+    add_to_scenario = request.GET.get('add_to_scenario')
+    if add_to_scenario:
+        try:
+            request.session[NPC_WIZARD_TARGET_SCENARIO] = int(add_to_scenario)
+            request.session.modified = True
+        except (ValueError, TypeError):
+            pass
+
+    target_scenario_id = request.session.get(NPC_WIZARD_TARGET_SCENARIO)
+
     request.session[NPC_WIZARD_SESSION_KEY] = draft
     request.session.modified = True
 
@@ -1808,7 +1973,7 @@ def npc_create(request):
         'occupation': draft['basic'].get('occupation', ''),
         'age': draft['basic'].get('age') or None,
         'description': draft['basic'].get('description', ''),
-        'cash': 0,
+        'cash': _to_int(draft.get('inventory', {}).get('cash'), 0, 0),
         'is_alive': True,
         'hp_current': hp_current,
         'hp_max': derived_stats['hp_max'],
@@ -1837,6 +2002,25 @@ def npc_create(request):
         custom_skills=draft.get('custom_skills', {}),
     )
 
+    # Determine back URL based on context
+    if target_scenario_id:
+        try:
+            wizard_back_url = reverse('scenarios:manage', kwargs={'scenario_id': target_scenario_id})
+            wizard_back_text = 'Back to Scenario'
+            wizard_title = 'Add NPC to Scenario'
+        except Exception:
+            wizard_back_url = reverse('characters:npc_templates')
+            wizard_back_text = 'Back to NPC Templates'
+            wizard_title = 'NPC Wizard'
+    elif template_edit_mode:
+        wizard_back_url = reverse('characters:npc_templates')
+        wizard_back_text = 'Back to NPC Templates'
+        wizard_title = 'Edit NPC Template'
+    else:
+        wizard_back_url = reverse('characters:npc_templates')
+        wizard_back_text = 'Back to NPC Templates'
+        wizard_title = 'NPC Template Wizard'
+
     return render(request, 'characters/create.html', {
         'wizard_steps': NPC_WIZARD_STEPS,
         'current_step': draft['step'],
@@ -1852,11 +2036,12 @@ def npc_create(request):
         'wizard_form_url': reverse('characters:npc_create'),
         'wizard_export_url': reverse('characters:npc_export_json'),
         'wizard_import_url': reverse('characters:npc_import_json'),
-        'wizard_back_url': reverse('characters:npc_templates'),
+        'wizard_back_url': wizard_back_url,
         'edit_mode': template_edit_mode,
         'show_reset': True,
-        'wizard_title': 'Edit NPC Template' if template_edit_mode else 'NPC Template Wizard',
-        'wizard_back_text': 'Back to NPC Templates',
+        'wizard_title': wizard_title,
+        'wizard_back_text': wizard_back_text,
+        'final_submit_label': 'Create NPC' if target_scenario_id else 'Save NPC Template',
         'show_change_history': False,
         'enable_status_adjustments': True,
     })
@@ -2074,7 +2259,7 @@ def _load_edit_draft_from_character(character):
         'stats': stats,
         'skills': skill_values,
         'custom_skills': custom_skills,
-        'inventory': {'weapons': weapons, 'items': items},
+        'inventory': {'weapons': weapons, 'items': items, 'cash': int(character.cash or 0)},
         'adjustments': {
             'hp': 0,
             'mp': 0,
@@ -2134,12 +2319,14 @@ def _apply_edit_draft_to_character(character, draft):
     character.sanity_current = _to_int(sanity_base + sanity_delta, sanity_base, 0, derived['sanity_max'])
     character.luck = _to_int(character.luck + luck_delta, character.luck, 0, 100)
 
+    character.cash = _to_int(draft.get('inventory', {}).get('cash'), character.cash, 0)
+
     character.save(update_fields=[
         'name', 'description', 'occupation', 'age',
         'strength', 'constitution', 'dexterity', 'intelligence', 'power',
         'size', 'appearance', 'education', 'luck',
         'hp_max', 'hp_current', 'mp_max', 'mp_current',
-        'sanity_max', 'sanity_start', 'sanity_current', 'updated_at',
+        'sanity_max', 'sanity_start', 'sanity_current', 'cash', 'updated_at',
     ])
 
     # Rebuild skills
@@ -2246,7 +2433,7 @@ def _build_edit_wizard_context(request, character, draft):
         'occupation': draft['basic'].get('occupation', ''),
         'age': draft['basic'].get('age') or None,
         'description': draft['basic'].get('description', ''),
-        'cash': character.cash,
+        'cash': _to_int(draft.get('inventory', {}).get('cash'), character.cash, 0),
         'is_alive': character.is_alive,
         'hp_current': review_current_values['hp'],
         'hp_max': derived_stats['hp_max'],
@@ -2279,6 +2466,25 @@ def _build_edit_wizard_context(request, character, draft):
         if any(skill['category'] == category_key for skill in skill_options):
             existing_categories.append((category_key, category_label))
 
+    is_npc = character.character_type == 'NPC'
+    wizard_route = 'characters:npc_edit_wizard' if is_npc else 'characters:edit_wizard'
+    export_route = 'characters:npc_edit_wizard_export' if is_npc else 'characters:edit_wizard_export'
+    import_route = 'characters:npc_edit_wizard_import' if is_npc else 'characters:edit_wizard_import'
+
+    next_url = request.POST.get('next') or request.GET.get('next')
+    if next_url and not url_has_allowed_host_and_scheme(
+        url=next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        next_url = None
+
+    def with_next(url_value):
+        if not next_url:
+            return url_value
+        join_char = '&' if '?' in url_value else '?'
+        return f"{url_value}{join_char}{urlencode({'next': next_url})}"
+
     return {
         'wizard_steps': EDIT_WIZARD_STEPS,
         'current_step': current_step,
@@ -2291,14 +2497,15 @@ def _build_edit_wizard_context(request, character, draft):
         'preview_sheet': preview_sheet,
         'skill_options': skill_options,
         'skill_categories': existing_categories,
-        'wizard_form_url': reverse('characters:edit_wizard', args=[character.id]),
-        'wizard_export_url': reverse('characters:edit_wizard_export', args=[character.id]),
-        'wizard_import_url': reverse('characters:edit_wizard_import', args=[character.id]),
-        'wizard_back_url': reverse('characters:detail', args=[character.id]),
+        'wizard_form_url': with_next(reverse(wizard_route, args=[character.id])),
+        'wizard_export_url': with_next(reverse(export_route, args=[character.id])),
+        'wizard_import_url': with_next(reverse(import_route, args=[character.id])),
+        'wizard_back_url': next_url or reverse('characters:detail', args=[character.id]),
+        'wizard_next_url': next_url,
         'edit_mode': True,
         'show_reset': False,
-        'wizard_title': 'Edit Character',
-        'wizard_back_text': 'Back to Character',
+        'wizard_title': 'Edit NPC' if is_npc else 'Edit Character',
+        'wizard_back_text': 'Back to Session' if next_url else 'Back to Character',
         'show_change_history': True,
         'enable_status_adjustments': True,
         'review_current_values': review_current_values,
@@ -2315,6 +2522,22 @@ def character_edit_wizard(request, character_id):
         return redirect('characters:detail', character_id=character_id)
 
     session_key = _edit_session_key(character_id)
+    is_npc = character.character_type == 'NPC'
+    wizard_route = 'characters:npc_edit_wizard' if is_npc else 'characters:edit_wizard'
+
+    next_url = request.POST.get('next') or request.GET.get('next')
+    if next_url and not url_has_allowed_host_and_scheme(
+        url=next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        next_url = None
+
+    def wizard_redirect():
+        base = reverse(wizard_route, kwargs={'character_id': character_id})
+        if not next_url:
+            return redirect(base)
+        return redirect(f"{base}?{urlencode({'next': next_url})}")
 
     def get_draft():
         draft = request.session.get(session_key)
@@ -2343,7 +2566,7 @@ def character_edit_wizard(request, character_id):
 
         if action == 'reset':
             request.session.pop(session_key, None)
-            return redirect('characters:edit_wizard', character_id=character_id)
+            return wizard_redirect()
 
         if step == 'basic':
             draft['basic'].update({
@@ -2382,6 +2605,7 @@ def character_edit_wizard(request, character_id):
             _sync_custom_skill_values(draft)
         elif step == 'inventory':
             inventory = draft['inventory']
+            inventory['cash'] = _to_int(request.POST.get('cash'), inventory.get('cash', 0), 0)
             try:
                 weapons_payload = json.loads(request.POST.get('weapons_json', '[]'))
             except json.JSONDecodeError:
@@ -2432,9 +2656,19 @@ def character_edit_wizard(request, character_id):
         current_index = EDIT_WIZARD_STEPS.index(step)
         if action == 'prev':
             draft['step'] = EDIT_WIZARD_STEPS[max(current_index - 1, 0)]
+        elif action == 'goto':
+            target_step = request.POST.get('target_step')
+            draft['step'] = target_step if target_step in EDIT_WIZARD_STEPS else step
         elif action == 'save':
+            old_name = character.name
             change_entries = _build_edit_change_entries(character, draft)
             _apply_edit_draft_to_character(character, draft)
+
+            if character.character_type == 'NPC' and old_name != character.name:
+                # Keep scenario card headers updated unless a custom per-scenario alias is used.
+                from scenarios.models import ScenarioNPC
+                ScenarioNPC.objects.filter(npc=character, display_name=old_name).update(display_name=character.name)
+
             if change_entries:
                 CharacterChangeLog.objects.create(
                     character=character,
@@ -2443,12 +2677,14 @@ def character_edit_wizard(request, character_id):
                 )
             request.session.pop(session_key, None)
             messages.success(request, f'Character "{character.name}" updated successfully.')
+            if next_url:
+                return redirect(next_url)
             return redirect('characters:detail', character_id=character.id)
         else:
             draft['step'] = EDIT_WIZARD_STEPS[min(current_index + 1, len(EDIT_WIZARD_STEPS) - 1)]
 
         save_draft(draft)
-        return redirect('characters:edit_wizard', character_id=character_id)
+        return wizard_redirect()
 
     # GET
     requested_step = request.GET.get('step')
@@ -2478,13 +2714,29 @@ def character_edit_wizard_export(request, character_id):
 @login_required
 def character_edit_wizard_import(request, character_id):
     """Import JSON into edit-wizard draft."""
-    if request.method != 'POST':
-        return redirect('characters:edit_wizard', character_id=character_id)
     character = get_object_or_404(Character, id=character_id, owner=request.user)
+    is_npc = character.character_type == 'NPC'
+    wizard_route = 'characters:npc_edit_wizard' if is_npc else 'characters:edit_wizard'
+    next_url = request.GET.get('next')
+    if next_url and not url_has_allowed_host_and_scheme(
+        url=next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        next_url = None
+
+    def wizard_redirect():
+        base = reverse(wizard_route, kwargs={'character_id': character_id})
+        if not next_url:
+            return redirect(base)
+        return redirect(f"{base}?{urlencode({'next': next_url})}")
+
+    if request.method != 'POST':
+        return wizard_redirect()
     uploaded_file = request.FILES.get('json_file')
     if not uploaded_file:
         messages.error(request, 'Please choose a JSON file to import.')
-        return redirect('characters:edit_wizard', character_id=character_id)
+        return wizard_redirect()
     try:
         payload = json.loads(uploaded_file.read().decode('utf-8'))
         draft = _draft_from_import(payload)
@@ -2495,6 +2747,6 @@ def character_edit_wizard_import(request, character_id):
         messages.success(request, 'Draft imported successfully.')
     except (UnicodeDecodeError, json.JSONDecodeError):
         messages.error(request, 'Invalid JSON file.')
-    return redirect('characters:edit_wizard', character_id=character_id)
+    return wizard_redirect()
 
 

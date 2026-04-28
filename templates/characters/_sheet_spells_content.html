@@ -1,0 +1,11 @@
+{% if sheet.spells %}
+<div class="compact-header"><i class="fas fa-magic"></i> Spells</div>
+<div data-sheet-spells>
+    {% for spell in sheet.spells %}
+        <div class="weapon-item">
+            <strong>{{ spell.name }}</strong> <span class="text-info">{{ spell.mana_cost }}MP</span>
+        </div>
+    {% endfor %}
+</div>
+{% endif %}
+

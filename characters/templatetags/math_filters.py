@@ -24,6 +24,12 @@ def div(value, arg):
 
 
 @register.filter
+def split(value, arg):
+    """Split a string by the given separator."""
+    return str(value).split(arg)
+
+
+@register.filter
 def percentage(value, total):
     """Calculate percentage: (value / total) * 100"""
     try:

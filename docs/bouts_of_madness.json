@@ -1,0 +1,54 @@
+{
+  "madness": [
+    {
+      "result": "1",
+      "name": "Amnesia",
+      "description": "The investigator has no memory of events that have taken place since they were last in a safe place."
+    },
+    {
+      "result": "2",
+      "name": "Psychosomatic Disability",
+      "description": "The investigator suffers psychosomatic blindness, deafness, or loss of the use of a limb for 1D10 rounds."
+    },
+    {
+      "result": "3",
+      "name": "Violence",
+      "description": "A red mist descends. The investigator explodes in a spree of uncontrolled violence against anything and anyone nearby."
+    },
+    {
+      "result": "4",
+      "name": "Paranoia",
+      "description": "The investigator suffers severe paranoia; everyone is out to get them; no one can be trusted."
+    },
+    {
+      "result": "5",
+      "name": "Significant Person",
+      "description": "The investigator mistakes another person for their Significant Person. They act in accordance with their relationship."
+    },
+    {
+      "result": "6",
+      "name": "Faint",
+      "description": "The investigator faints, losing consciousness for the duration."
+    },
+    {
+      "result": "7",
+      "name": "Flee in Fear",
+      "description": "The investigator is compelled to get as far away as possible by any means available."
+    },
+    {
+      "result": "8",
+      "name": "Physical Hysteria",
+      "description": "The investigator is incapacitated by uncontrollable laughing, crying, or screaming."
+    },
+    {
+      "result": "9",
+      "name": "Phobia",
+      "description": "The investigator develops a new phobia. Even if the source isn't present, they imagine it is."
+    },
+    {
+      "result": "10",
+      "name": "Mania",
+      "description": "The investigator develops a new mania. They become obsessed with its source for the duration."
+    }
+  ]
+}

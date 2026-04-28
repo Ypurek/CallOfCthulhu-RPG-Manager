@@ -1,0 +1,135 @@
+{% comment %}
+Notification Icon Component
+Displays unread message notification icon near scenario time/day display
+
+Usage: {% include "scenarios/_notification_icon.html" with scenario=scenario %}
+
+Requires polling to update in real-time
+{% endcomment %}
+
+<div class="notification-icon-container d-inline-block position-relative ms-2" id="notificationContainer">
+    <button class="btn btn-sm btn-outline-warning"
+            id="notificationButton"
+            title="Click to view messages"
+            data-scenario-id="{{ scenario.id }}"
+            style="position: relative; padding: 0.4rem 0.6rem;">
+        <i class="bi bi-bell"></i>
+        <span class="badge bg-danger position-absolute top-0 start-100 translate-middle"
+              id="notificationBadge"
+              style="display: none; font-size: 0.7rem;">
+            <span id="unreadCount">0</span>
+        </span>
+    </button>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const scenarioId = '{{ scenario.id }}';
+    const notificationContainer = document.getElementById('notificationContainer');
+
+    // Poll for notifications every 10 seconds
+    setInterval(() => {
+        fetch(`/scenarios/${scenarioId}/messages/`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.ok) {
+                updateNotification(data.unread_count);
+            }
+        })
+        .catch(err => console.log('Notification update error:', err));
+    }, 10000);
+
+    // Initial load
+    fetch(`/scenarios/${scenarioId}/messages/`, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.ok) {
+            updateNotification(data.unread_count);
+        }
+    });
+
+    // Click handler for notification button
+    const notificationButton = document.getElementById('notificationButton');
+    if (notificationButton) {
+        notificationButton.addEventListener('click', function() {
+            // This would typically open a messages modal
+            // For now, just show an alert
+            alert('Message center - integrate with your message modal');
+        });
+    }
+});
+
+function updateNotification(count) {
+    const badge = document.getElementById('notificationBadge');
+    const countDisplay = document.getElementById('unreadCount');
+
+    if (count > 0) {
+        badge.style.display = 'inline-block';
+        countDisplay.textContent = count > 99 ? '99+' : count;
+
+        // Add a gentle pulse animation when there are new messages
+        badge.style.animation = 'none';
+        setTimeout(() => {
+            badge.style.animation = 'pulse 2s infinite';
+        }, 10);
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+// Add pulse animation
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+        }
+        70% {
+            box-shadow: 0 0 0 6px rgba(220, 53, 69, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+        }
+    }
+
+    #notificationBadge {
+        animation: pulse 2s infinite;
+    }
+`;
+document.head.appendChild(style);
+</script>
+
+<style>
+    .notification-icon-container .btn {
+        transition: all 0.2s ease;
+    }
+
+    .notification-icon-container .btn:hover {
+        transform: scale(1.1);
+    }
+
+    .notification-icon-container .badge {
+        min-width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        right: -8px;
+        top: -8px;
+    }
+
+    #notificationButton:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+</style>
+

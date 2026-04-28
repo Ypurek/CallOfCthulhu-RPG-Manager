@@ -67,8 +67,29 @@ class SpellAdmin(admin.ModelAdmin):
 
 @admin.register(StatusEffect)
 class StatusEffectAdmin(admin.ModelAdmin):
-    list_display = ['name']
-    search_fields = ['name']
+    list_display = ['name', 'effect_type', 'badge_color', 'is_permanent', 'icon_class']
+    list_filter = ['effect_type', 'is_permanent']
+    search_fields = ['name', 'description']
+    list_editable = ['badge_color', 'is_permanent']
+    fieldsets = (
+        ('Basic Info', {
+            'fields': ('name', 'description', 'effect_type')
+        }),
+        ('Display', {
+            'fields': ('icon_class', 'badge_color')
+        }),
+        ('Rules', {
+            'fields': ('is_permanent', 'game_rules_json')
+        }),
+    )
+
+
+@admin.register(CharacterStatusEffect)
+class CharacterStatusEffectAdmin(admin.ModelAdmin):
+    list_display = ['character', 'status_effect', 'remaining_rounds', 'acquired_at']
+    list_filter = ['acquired_at', 'status_effect__effect_type']
+    search_fields = ['character__name', 'status_effect__name']
+    readonly_fields = ['acquired_at']
 
 
 @admin.register(MentalDisorder)

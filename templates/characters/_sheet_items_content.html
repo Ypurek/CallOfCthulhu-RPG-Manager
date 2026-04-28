@@ -1,0 +1,12 @@
+<div class="compact-section">
+    <div class="items-grid" data-sheet-items>
+        <span class="item-badge cash-badge">Cash ${{ sheet.character.cash|floatformat:0 }}</span>
+        {% for item in sheet.items %}
+            <span class="item-badge">{{ item.name }} x{{ item.quantity }}</span>
+        {% endfor %}
+        {% if not sheet.items %}
+            <span class="item-badge">No items</span>
+        {% endif %}
+    </div>
+</div>
+

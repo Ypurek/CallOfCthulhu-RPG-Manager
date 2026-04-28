@@ -36,6 +36,76 @@
         margin-bottom: 20px;
     }
 
+    .character-effects {
+        text-align: center;
+        margin-bottom: 10px;
+        min-height: 22px;
+    }
+
+    .effect-badge {
+        display: inline-block;
+        margin: 0 2px 4px 2px;
+        padding: 0.24rem 0.48rem;
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        border-radius: 999px;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+        text-shadow: none;
+        cursor: pointer;
+    }
+
+    .effect-badge:focus {
+        outline: 2px solid rgba(212, 175, 55, 0.9);
+        outline-offset: 1px;
+    }
+
+    .effect-badge.bg-warning {
+        background: #7a5a00 !important;
+        color: #fff9e0 !important;
+    }
+
+    .effect-badge.bg-danger {
+        background: #8f1f2d !important;
+        color: #fff !important;
+    }
+
+    .effect-badge.bg-dark {
+        background: #4a5568 !important;
+        color: #f5f8ff !important;
+    }
+
+    .effect-badge.bg-info {
+        background: #0e5a7c !important;
+        color: #eef9ff !important;
+    }
+
+    .effect-badge.bg-secondary {
+        background: #4f5961 !important;
+        color: #fff !important;
+    }
+
+    .effect-description-popover {
+        --bs-popover-bg: rgba(244, 238, 223, 0.98);
+        --bs-popover-border-color: rgba(212, 175, 55, 0.55);
+        --bs-popover-header-bg: transparent;
+        --bs-popover-header-color: #2f2618;
+        --bs-popover-body-color: #2b2418;
+        --bs-popover-arrow-border: rgba(212, 175, 55, 0.55);
+        --bs-popover-box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+        max-width: 280px;
+        border-radius: 12px;
+        backdrop-filter: blur(2px);
+    }
+
+    .effect-description-popover .popover-body {
+        background: linear-gradient(180deg, rgba(248, 244, 234, 0.99), rgba(236, 228, 207, 0.99));
+        font-size: 0.92rem;
+        line-height: 1.45;
+        padding: 0.75rem 0.9rem;
+        color: #2b2418;
+    }
+
     .description-popup {
         display: none;
         background: rgba(44, 44, 44, 0.95);
@@ -280,6 +350,13 @@
         padding: 3px 8px;
         font-size: 0.75rem;
         color: var(--gold);
+    }
+
+    .item-badge.cash-badge {
+        background: rgba(13, 110, 253, 0.24);
+        border-color: rgba(13, 110, 253, 0.62);
+        color: #d9ebff;
+        font-weight: 700;
     }
 
     .weapon-item {

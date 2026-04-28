@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}Fight – {{ scenario.name }} – Cthulhu RPG{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="text-danger"><i class="fas fa-fist-raised me-2"></i>Fight Encounter</h1>
+  <a href="{% url 'scenarios:manage' scenario.id %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left me-1"></i>Back to Manage
+  </a>
+</div>
+
+{% if encounter %}
+<div class="alert alert-warning">
+  <strong>Round {{ encounter.round_number }}</strong> – Turn index: {{ encounter.current_turn_index }}
+</div>
+<p class="text-muted">Fight encounter management coming soon.</p>
+{% else %}
+<div class="text-center py-5">
+  <i class="fas fa-sword fa-5x text-danger mb-4"></i>
+  <h3>No Active Encounter</h3>
+  <form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger btn-lg">
+      <i class="fas fa-play me-1"></i>Start Fight Encounter
+    </button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}
+
