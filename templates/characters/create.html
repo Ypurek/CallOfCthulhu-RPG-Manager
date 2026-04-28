@@ -596,38 +596,68 @@
     </div>
 </div>
 
+{% trans "No weapons added." as wtnoWeapons %}
+{% trans "No combat skill" as wtnoCombatSkill %}
+{% trans "Prepared" as wtprepared %}
+{% trans "Default" as wtdefault %}
+{% trans "Weapon" as wtweapon %}
+{% trans "Add Custom Skill" as wtaddCustomSkill %}
+{% trans "New skill will be created with value 1. You can adjust it later." as wtaddSkillHelp %}
+{% trans "Add Skill" as wtaddSkill %}
+{% trans "Rename Custom Skill" as wtrenameCustomSkill %}
+{% trans "Update the custom skill name. The current value will stay unchanged." as wtrenameSkillHelp %}
+{% trans "Update Skill" as wtupdateSkill %}
+{% trans "Please enter a skill name" as wtenterSkillName %}
+{% trans "Skill container not found" as wtskillContainerNotFound %}
+{% trans "base" as wtbase %}
+{% trans "Rename custom skill" as wtrenameSkillTitle %}
+{% trans "Remove custom skill" as wtremoveSkillTitle %}
+{% trans "Edit Weapon" as wteditWeapon %}
+{% trans "Save" as wtsave %}
+{% trans "Add Weapon" as wtaddWeapon %}
+{% trans "Add" as wtadd %}
+{% trans "STR" as wtSTR %}{% trans "CON" as wtCON %}{% trans "DEX" as wtDEX %}{% trans "INT" as wtINT %}{% trans "POW" as wtPOW %}{% trans "SIZ" as wtSIZ %}{% trans "APP" as wtAPP %}{% trans "EDU" as wtEDU %}{% trans "LCK" as wtLCK %}
+{% trans "Measures raw muscle power, lifting strength, grappling force, and how much punishment your body can impose physically." as wtdSTR %}
+{% trans "Represents endurance, toughness, breath, and how well the body resists exhaustion, injury, poison, or disease." as wtdCON %}
+{% trans "Covers speed, balance, reaction time, fine motor control, stealthy movement, and general physical coordination." as wtdDEX %}
+{% trans "Reflects logic, analysis, memory, deduction, learning speed, and how well the investigator connects clues." as wtdINT %}
+{% trans "Represents force of personality, inner will, mental resilience, spiritual strength, and resistance to unnatural influence." as wtdPOW %}
+{% trans "Shows body mass and overall build; it affects physical presence, toughness, and some derived combat characteristics." as wtdSIZ %}
+{% trans "Measures appearance, presence, charm, first impressions, and how positively others react on a social level." as wtdAPP %}
+{% trans "Represents formal study, accumulated knowledge, literacy, specialist training, and broad academic background." as wtdEDU %}
+{% trans "Tracks how often chance favors the investigator when facts, timing, or fate could go either way." as wtdLCK %}
 <script>
 const WIZ_I18N = {
-  noWeapons: '{% trans "No weapons added." %}',
-  noCombatSkill: '{% trans "No combat skill" %}',
-  preparedBadge: '{% trans "Prepared" %}',
-  defaultBadge: '{% trans "Default" %}',
-  weaponFallback: '{% trans "Weapon" %}',
-  addCustomSkill: '{% trans "Add Custom Skill" %}',
-  addSkillHelp: '{% trans "New skill will be created with value 1. You can adjust it later." %}',
-  addSkill: '{% trans "Add Skill" %}',
-  renameCustomSkill: '{% trans "Rename Custom Skill" %}',
-  renameSkillHelp: '{% trans "Update the custom skill name. The current value will stay unchanged." %}',
-  updateSkill: '{% trans "Update Skill" %}',
-  enterSkillName: '{% trans "Please enter a skill name" %}',
-  skillContainerNotFound: '{% trans "Skill container not found" %}',
-  baseValue: '{% trans "base" %}',
-  renameSkillTitle: '{% trans "Rename custom skill" %}',
-  removeSkillTitle: '{% trans "Remove custom skill" %}',
-  editWeapon: '{% trans "Edit Weapon" %}',
-  saveWeapon: '{% trans "Save" %}',
-  addWeapon: '{% trans "Add Weapon" %}',
-  addWeaponBtn: '{% trans "Add" %}',
+  noWeapons: '{{ wtnoWeapons|escapejs }}',
+  noCombatSkill: '{{ wtnoCombatSkill|escapejs }}',
+  preparedBadge: '{{ wtprepared|escapejs }}',
+  defaultBadge: '{{ wtdefault|escapejs }}',
+  weaponFallback: '{{ wtweapon|escapejs }}',
+  addCustomSkill: '{{ wtaddCustomSkill|escapejs }}',
+  addSkillHelp: '{{ wtaddSkillHelp|escapejs }}',
+  addSkill: '{{ wtaddSkill|escapejs }}',
+  renameCustomSkill: '{{ wtrenameCustomSkill|escapejs }}',
+  renameSkillHelp: '{{ wtrenameSkillHelp|escapejs }}',
+  updateSkill: '{{ wtupdateSkill|escapejs }}',
+  enterSkillName: '{{ wtenterSkillName|escapejs }}',
+  skillContainerNotFound: '{{ wtskillContainerNotFound|escapejs }}',
+  baseValue: '{{ wtbase|escapejs }}',
+  renameSkillTitle: '{{ wtrenameSkillTitle|escapejs }}',
+  removeSkillTitle: '{{ wtremoveSkillTitle|escapejs }}',
+  editWeapon: '{{ wteditWeapon|escapejs }}',
+  saveWeapon: '{{ wtsave|escapejs }}',
+  addWeapon: '{{ wtaddWeapon|escapejs }}',
+  addWeaponBtn: '{{ wtadd|escapejs }}',
   statDescriptions: {
-    '{% trans "STR" %}': '{% trans "Measures raw muscle power, lifting strength, grappling force, and how much punishment your body can impose physically." %}',
-    '{% trans "CON" %}': '{% trans "Represents endurance, toughness, breath, and how well the body resists exhaustion, injury, poison, or disease." %}',
-    '{% trans "DEX" %}': '{% trans "Covers speed, balance, reaction time, fine motor control, stealthy movement, and general physical coordination." %}',
-    '{% trans "INT" %}': '{% trans "Reflects logic, analysis, memory, deduction, learning speed, and how well the investigator connects clues." %}',
-    '{% trans "POW" %}': '{% trans "Represents force of personality, inner will, mental resilience, spiritual strength, and resistance to unnatural influence." %}',
-    '{% trans "SIZ" %}': '{% trans "Shows body mass and overall build; it affects physical presence, toughness, and some derived combat characteristics." %}',
-    '{% trans "APP" %}': '{% trans "Measures appearance, presence, charm, first impressions, and how positively others react on a social level." %}',
-    '{% trans "EDU" %}': '{% trans "Represents formal study, accumulated knowledge, literacy, specialist training, and broad academic background." %}',
-    '{% trans "LCK" %}': '{% trans "Tracks how often chance favors the investigator when facts, timing, or fate could go either way." %}',
+    '{{ wtSTR|escapejs }}': '{{ wtdSTR|escapejs }}',
+    '{{ wtCON|escapejs }}': '{{ wtdCON|escapejs }}',
+    '{{ wtDEX|escapejs }}': '{{ wtdDEX|escapejs }}',
+    '{{ wtINT|escapejs }}': '{{ wtdINT|escapejs }}',
+    '{{ wtPOW|escapejs }}': '{{ wtdPOW|escapejs }}',
+    '{{ wtSIZ|escapejs }}': '{{ wtdSIZ|escapejs }}',
+    '{{ wtAPP|escapejs }}': '{{ wtdAPP|escapejs }}',
+    '{{ wtEDU|escapejs }}': '{{ wtdEDU|escapejs }}',
+    '{{ wtLCK|escapejs }}': '{{ wtdLCK|escapejs }}',
   },
 };
 const initialWeaponsData = JSON.parse(document.getElementById('initial-weapons').textContent || '[]');

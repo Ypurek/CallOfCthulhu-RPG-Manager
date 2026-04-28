@@ -142,17 +142,27 @@
 
 {% block extra_js %}
 {% include 'characters/_character_sheet_scripts.html' %}
+{% trans "Custom" as wicustom %}
+{% trans "Dodge" as widodge %}
+{% trans "Avoid attacks by moving out of the way" as widodgeDesc %}
+{% trans "No improved skills yet." as winoSkills %}
+{% trans "Hide default skills" as wihideSkills %}
+{% trans "Show more" as wishowMore %}
+{% trans "default skills" as widefaultSkills %}
+{% trans "Add Custom Skill" as wiaddCustomSkill %}
+{% trans "Prepared" as wiprepared %}
+{% trans "Weapons" as wiweapons %}
 <script>
 const I18N = {
-  custom: '{% trans "Custom" %}',
-  dodge: '{% trans "Dodge" %}',
-  dodgeDesc: '{% trans "Avoid attacks by moving out of the way" %}',
-  noImprovedSkills: '{% trans "No improved skills yet." %}',
-  hideDefaultSkills: '{% trans "Hide default skills" %}',
-  showMore: (n) => `{% trans "Show more" %} (${n} {% trans "default skills" %})`,
-  addCustomSkill: '{% trans "Add Custom Skill" %}',
-  prepared: '{% trans "Prepared" %}',
-  weapons: '{% trans "Weapons" %}',
+  custom: '{{ wicustom|escapejs }}',
+  dodge: '{{ widodge|escapejs }}',
+  dodgeDesc: '{{ widodgeDesc|escapejs }}',
+  noImprovedSkills: '{{ winoSkills|escapejs }}',
+  hideDefaultSkills: '{{ wihideSkills|escapejs }}',
+  showMore: (n) => `{{ wishowMore|escapejs }} (${n} {{ widefaultSkills|escapejs }})`,
+  addCustomSkill: '{{ wiaddCustomSkill|escapejs }}',
+  prepared: '{{ wiprepared|escapejs }}',
+  weapons: '{{ wiweapons|escapejs }}',
 };
 (function initPlayerSessionLiveView() {
   const dayEl = document.getElementById('session-day');
