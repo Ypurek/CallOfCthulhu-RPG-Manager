@@ -54,6 +54,7 @@ urlpatterns = [
     # In-session stat adjustment (AJAX)
     path('<int:scenario_id>/character/<int:character_id>/stats/', views.scenario_character_adjust_stats, name='character_adjust_stats'),
     path('<int:scenario_id>/character/<int:character_id>/toggle-alive/', views.scenario_character_toggle_alive, name='character_toggle_alive'),
+    path('<int:scenario_id>/character/<int:character_id>/skill/<int:skill_id>/needs-update/', views.scenario_character_skill_needs_update, name='character_skill_needs_update'),
 
     # NPCs
     path('<int:scenario_id>/npc/create/', views.scenario_npc_create, name='npc_create'),

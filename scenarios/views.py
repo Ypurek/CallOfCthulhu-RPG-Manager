@@ -12,7 +12,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.db.models import Q as _Q
 
-from characters.models import Character, NPCTemplate, StatusEffect, CharacterStatusEffect
+from characters.models import Character, NPCTemplate, StatusEffect, CharacterStatusEffect, CharacterSkill
 from characters.views import _build_character_sheet_context
 from core.models import User as _User
 from .services import apply_daily_hp_restore, apply_hourly_mp_restore, get_character_status_effects_display
@@ -108,10 +108,9 @@ def _clone_npc_character(original: Character, new_name: str) -> Character:
 
 def _build_session_sheet(character: Character):
     """Prepare full sheet payload used by the keeper session view."""
-    skill_values = {
-        char_skill.skill_id: char_skill.value
-        for char_skill in character.skills.select_related("skill").all()
-    }
+    char_skills = list(character.skills.select_related("skill").all())
+    skill_values = {cs.skill_id: cs.value for cs in char_skills}
+    needs_update_skill_ids = {cs.skill_id for cs in char_skills if cs.needs_update}
     weapons = [
         {"name": cw.weapon.name, "damage": cw.weapon.damage, "is_prepared": cw.is_prepared}
         for cw in character.weapons.select_related("weapon").all()
@@ -131,6 +130,7 @@ def _build_session_sheet(character: Character):
         items=items,
         spells=spells,
         can_add_custom_skill=False,
+        needs_update_skill_ids=needs_update_skill_ids,
     )
     sheet["effects"] = get_character_status_effects_display(character)
     return sheet
@@ -800,6 +800,24 @@ def scenario_character_toggle_alive(request, scenario_id, character_id):
     character.is_alive = not character.is_alive
     character.save(update_fields=["is_alive"])
     return JsonResponse({"ok": True, "is_alive": character.is_alive})
+
+
+@require_POST
+@_keeper_required
+def scenario_character_skill_needs_update(request, scenario_id, character_id, skill_id):
+    """Keeper: toggle needs_update flag on a character's skill."""
+    scenario = _get_scenario_for_keeper(request, scenario_id)
+    character = get_object_or_404(Character, id=character_id)
+    if not ScenarioPlayer.objects.filter(scenario=scenario, character=character).exists():
+        return JsonResponse({"ok": False, "error": "Character not in scenario"}, status=403)
+    char_skill, _ = CharacterSkill.objects.get_or_create(
+        character=character,
+        skill_id=skill_id,
+        defaults={"value": 0},
+    )
+    char_skill.needs_update = not char_skill.needs_update
+    char_skill.save(update_fields=["needs_update"])
+    return JsonResponse({"ok": True, "needs_update": char_skill.needs_update})
 
 
 # ---------------------------------------------------------------------------

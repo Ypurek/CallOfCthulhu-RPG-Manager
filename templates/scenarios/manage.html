@@ -247,7 +247,7 @@
                 </div>
                 <div class="collapse show cast-body" id="pc-card-{{ card.sp.id }}">
                   {% url 'scenarios:character_adjust_stats' scenario.id card.sp.character.id as pc_adjust_url %}
-                  {% include 'characters/_character_sheet.html' with sheet=card.sheet sheet_id=card.sheet_id show_notes=False notes_editable=False show_actions=False status_adjustable=True adjust_url=pc_adjust_url %}
+                  {% include 'characters/_character_sheet.html' with sheet=card.sheet sheet_id=card.sheet_id show_notes=False notes_editable=False show_actions=False status_adjustable=True adjust_url=pc_adjust_url show_skill_checkboxes=True %}
                 </div>
               </div>
             </div>
@@ -796,6 +796,27 @@ if (notesForm) {
       setTimeout(() => status.textContent = '', 3000);
     }
   });
+}
+
+// ---- Skill needs-update toggle ----
+function getCsrfToken() {
+  const match = document.cookie.match(/csrftoken=([^;]+)/);
+  return match ? match[1] : '';
+}
+
+async function toggleSkillNeedsUpdate(checkbox) {
+  const characterId = checkbox.dataset.characterId;
+  const skillId = checkbox.dataset.skillId;
+  const url = `/scenarios/{{ scenario.id }}/character/${characterId}/skill/${skillId}/needs-update/`;
+  const fd = new FormData();
+  fd.append('csrfmiddlewaretoken', getCsrfToken());
+  try {
+    const res = await fetch(url, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!data.ok) checkbox.checked = !checkbox.checked;
+  } catch {
+    checkbox.checked = !checkbox.checked;
+  }
 }
 
 // ---- Template search & selection ----

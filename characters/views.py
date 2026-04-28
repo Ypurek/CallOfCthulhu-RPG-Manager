@@ -714,10 +714,11 @@ def _normalize_preview_items(item_entries):
     return normalized
 
 
-def _build_character_sheet_context(character, skill_values=None, weapons=None, items=None, spells=None, can_add_custom_skill=False, custom_skills=None):
+def _build_character_sheet_context(character, skill_values=None, weapons=None, items=None, spells=None, can_add_custom_skill=False, custom_skills=None, needs_update_skill_ids=None):
     education = getattr(character, 'education', 0)
     dexterity = getattr(character, 'dexterity', 0)
     skill_values = {} if skill_values is None else {int(key): int(value) for key, value in skill_values.items()}
+    needs_update_skill_ids = set(needs_update_skill_ids or [])
     custom_skills = _normalize_custom_skills(custom_skills or {})
     persisted_custom_skills = {}
     if isinstance(character, Character) and getattr(character, 'id', None):
@@ -743,18 +744,21 @@ def _build_character_sheet_context(character, skill_values=None, weapons=None, i
             'base_value': skill.base_value,
             'is_default': value == skill.base_value,
             'is_custom': str(skill.description or '').startswith('Custom skill:') or str(skill.description or '').startswith('Imported custom skill:'),
+            'needs_update': skill.id in needs_update_skill_ids,
         }
 
     def serialize_custom_skill(custom_skill_id, payload):
-        value = skill_values.get(int(custom_skill_id), payload.get('base_value', 1))
+        sid = int(custom_skill_id)
+        value = skill_values.get(sid, payload.get('base_value', 1))
         return {
-            'id': int(custom_skill_id),
+            'id': sid,
             'name': payload['name'],
             'description': payload.get('description', ''),
             'value': value,
             'base_value': payload.get('base_value', 1),
             'is_default': value == payload.get('base_value', 1),
             'is_custom': True,
+            'needs_update': sid in needs_update_skill_ids,
         }
 
     non_combat_skills = [
