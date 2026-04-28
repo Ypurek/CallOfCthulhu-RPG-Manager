@@ -1,5 +1,6 @@
+{% load i18n %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uk">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -128,33 +129,33 @@
                     <ul class="navbar-nav me-auto">
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'dashboard' %}">
-                                <i class="fas fa-tachometer-alt"></i> Dashboard
+                                <i class="fas fa-tachometer-alt"></i> {% trans "Dashboard" %}
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'characters:list' %}">
-                                <i class="fas fa-users"></i> Characters
+                                <i class="fas fa-users"></i> {% trans "Characters" %}
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'scenarios:list' %}">
-                                <i class="fas fa-book-open"></i> Scenarios
+                                <i class="fas fa-book-open"></i> {% trans "Scenarios" %}
                             </a>
                         </li>
                         {% if user.is_staff %}
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
-                                    <i class="fas fa-tools"></i> Admin
+                                    <i class="fas fa-tools"></i> {% trans "Admin" %}
                                 </a>
                                 <ul class="dropdown-menu">
                                     <li>
                                         <a class="dropdown-item" href="{% url 'admin:characters_statuseffect_changelist' %}">
-                                            <i class="fas fa-heartbeat me-2"></i>Status Effects
+                                            <i class="fas fa-heartbeat me-2"></i>{% trans "Status Effects" %}
                                         </a>
                                     </li>
                                     <li>
                                         <a class="dropdown-item" href="{% url 'admin:index' %}">
-                                            <i class="fas fa-shield-alt me-2"></i>Django Admin
+                                            <i class="fas fa-shield-alt me-2"></i>{% trans "Django Admin" %}
                                         </a>
                                     </li>
                                 </ul>
@@ -163,15 +164,42 @@
                         {% if user.is_keeper %}
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="keeperDropdown" role="button" data-bs-toggle="dropdown">
-                                    <i class="fas fa-crown"></i> Keeper
+                                    <i class="fas fa-crown"></i> {% trans "Keeper" %}
                                 </a>
                                 <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="{% url 'scenarios:create' %}">Create Scenario</a></li>
-                                     <li><a class="dropdown-item" href="{% url 'characters:npc_templates' %}">NPC Templates</a></li>
-                                     <li><a class="dropdown-item" href="{% url 'characters:templates' %}">Character Templates</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'scenarios:create' %}">{% trans "Create Scenario" %}</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'characters:npc_templates' %}">{% trans "NPC Templates" %}</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'characters:templates' %}">{% trans "Character Templates" %}</a></li>
                                 </ul>
                             </li>
                         {% endif %}
+                    </ul>
+
+                    <ul class="navbar-nav me-2">
+                        {% get_current_language as LANGUAGE_CODE_CURRENT %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                {% if LANGUAGE_CODE_CURRENT == 'uk' %}🇺🇦 UA{% else %}🇬🇧 EN{% endif %}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <form action="{% url 'set_language' %}" method="post" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="language" value="uk">
+                                        <input type="hidden" name="next" value="{{ request.path }}">
+                                        <button type="submit" class="dropdown-item {% if LANGUAGE_CODE_CURRENT == 'uk' %}active{% endif %}">🇺🇦 Українська</button>
+                                    </form>
+                                </li>
+                                <li>
+                                    <form action="{% url 'set_language' %}" method="post" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="language" value="en">
+                                        <input type="hidden" name="next" value="{{ request.path }}">
+                                        <button type="submit" class="dropdown-item {% if LANGUAGE_CODE_CURRENT == 'en' %}active{% endif %}">🇬🇧 English</button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </li>
                     </ul>
 
                     <ul class="navbar-nav">
@@ -179,24 +207,48 @@
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-user"></i> {{ user.username }}
                                 {% if user.is_keeper %}
-                                    <span class="badge bg-warning">Keeper</span>
+                                    <span class="badge bg-warning">{% trans "Keeper" %}</span>
                                 {% endif %}
                             </a>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="#">Profile</a></li>
-                                <li><a class="dropdown-item" href="#">Settings</a></li>
+                                <li><a class="dropdown-item" href="#">{% trans "Profile" %}</a></li>
+                                <li><a class="dropdown-item" href="#">{% trans "Settings" %}</a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
+                                <li><a class="dropdown-item" href="{% url 'logout' %}">{% trans "Logout" %}</a></li>
                             </ul>
                         </li>
                     </ul>
                 {% else %}
                     <ul class="navbar-nav ms-auto">
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'login' %}">Login</a>
+                        {% get_current_language as LANGUAGE_CODE_CURRENT %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                {% if LANGUAGE_CODE_CURRENT == 'uk' %}🇺🇦 UA{% else %}🇬🇧 EN{% endif %}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <form action="{% url 'set_language' %}" method="post" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="language" value="uk">
+                                        <input type="hidden" name="next" value="{{ request.path }}">
+                                        <button type="submit" class="dropdown-item {% if LANGUAGE_CODE_CURRENT == 'uk' %}active{% endif %}">🇺🇦 Українська</button>
+                                    </form>
+                                </li>
+                                <li>
+                                    <form action="{% url 'set_language' %}" method="post" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="language" value="en">
+                                        <input type="hidden" name="next" value="{{ request.path }}">
+                                        <button type="submit" class="dropdown-item {% if LANGUAGE_CODE_CURRENT == 'en' %}active{% endif %}">🇬🇧 English</button>
+                                    </form>
+                                </li>
+                            </ul>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'register' %}">Register</a>
+                            <a class="nav-link" href="{% url 'login' %}">{% trans "Login" %}</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'register' %}">{% trans "Register" %}</a>
                         </li>
                     </ul>
                 {% endif %}

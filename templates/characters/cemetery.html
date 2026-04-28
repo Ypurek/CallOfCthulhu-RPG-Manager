@@ -1,12 +1,13 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Cemetery - Cthulhu RPG Manager{% endblock %}
+{% block title %}{% trans "Cemetery - Cthulhu RPG Manager" %}{% endblock %}
 
 {% block content %}
 <div class="row">
     <div class="col-12">
-        <h1><i class="fas fa-cross"></i> Character Cemetery</h1>
-        <p class="text-muted">Rest in peace, fallen investigators...</p>
+        <h1><i class="fas fa-cross"></i> {% trans "Character Cemetery" %}</h1>
+        <p class="text-muted">{% trans "Rest in peace, fallen investigators..." %}</p>
     </div>
 </div>
 
@@ -20,16 +21,17 @@
                 </div>
                 <div class="card-body">
                     <p class="card-text">
-                        <strong>Occupation:</strong> {{ character.occupation|default:"Unknown" }}<br>
-                        <strong>Age:</strong> {{ character.age|default:"Unknown" }}
+                        {% trans "Unknown" as unknown_str %}
+                        <strong>{% trans "Occupation:" %}</strong> {{ character.occupation|default:unknown_str }}<br>
+                        <strong>{% trans "Age:" %}</strong> {{ character.age|default:unknown_str }}
                     </p>
                     <p class="text-muted">
                         <i class="fas fa-skull"></i>
-                        Died during their investigations into the unknown...
+                        {% trans "Died during their investigations into the unknown..." %}
                     </p>
                 </div>
                 <div class="card-footer text-muted text-center">
-                    <small>Created {{ character.created_at|date:"M d, Y" }}</small>
+                    <small>{% blocktrans with date=character.created_at|date:"d M Y" %}Created {{ date }}{% endblocktrans %}</small>
                 </div>
             </div>
         </div>
@@ -37,10 +39,10 @@
         <div class="col-12">
             <div class="text-center py-5">
                 <i class="fas fa-dove fa-5x text-success mb-4"></i>
-                <h3>No Fallen Characters</h3>
-                <p class="lead text-muted">Your characters are still safe... for now.</p>
+                <h3>{% trans "No Fallen Characters" %}</h3>
+                <p class="lead text-muted">{% trans "Your characters are still safe... for now." %}</p>
                 <a href="{% url 'characters:list' %}" class="btn btn-success">
-                    <i class="fas fa-users"></i> Back to Living Characters
+                    <i class="fas fa-users"></i> {% trans "Back to Living Characters" %}
                 </a>
             </div>
         </div>
@@ -51,7 +53,7 @@
     <div class="col-12">
         <div class="text-center">
             <a href="{% url 'characters:list' %}" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Back to Characters
+                <i class="fas fa-arrow-left"></i> {% trans "Back to Characters" %}
             </a>
         </div>
     </div>

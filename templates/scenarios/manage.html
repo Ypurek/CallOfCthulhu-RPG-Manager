@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load math_filters %}
+{% load math_filters i18n %}
 
 {% block title %}Manage: {{ scenario.name }} – Cthulhu RPG{% endblock %}
 
@@ -188,10 +188,10 @@
 
 <!-- Tabs -->
 <ul class="nav nav-tabs" id="manageTabs">
-  <li class="nav-item"><a class="nav-link active text-warning" data-bs-toggle="tab" href="#tab-cast"><i class="fas fa-users me-1"></i>Cast <span class="badge bg-secondary">{{ players.count|add:npcs.count }}</span></a></li>
-  <li class="nav-item"><a class="nav-link text-warning" data-bs-toggle="tab" href="#tab-fight"><i class="fas fa-fist-raised me-1"></i>Fight</a></li>
-  <li class="nav-item"><a class="nav-link text-warning" data-bs-toggle="tab" href="#tab-notes"><i class="fas fa-book me-1"></i>Notes</a></li>
-  <li class="nav-item"><a class="nav-link text-warning" data-bs-toggle="tab" href="#tab-messages"><i class="fas fa-comments me-1"></i>Messages</a></li>
+  <li class="nav-item"><a class="nav-link active text-warning" data-bs-toggle="tab" href="#tab-cast"><i class="fas fa-users me-1"></i>{% trans "Cast" %} <span class="badge bg-secondary">{{ players.count|add:npcs.count }}</span></a></li>
+  <li class="nav-item"><a class="nav-link text-warning" data-bs-toggle="tab" href="#tab-fight"><i class="fas fa-fist-raised me-1"></i>{% trans "Fight" %}</a></li>
+  <li class="nav-item"><a class="nav-link text-warning" data-bs-toggle="tab" href="#tab-notes"><i class="fas fa-book me-1"></i>{% trans "Notes" %}</a></li>
+  <li class="nav-item"><a class="nav-link text-warning" data-bs-toggle="tab" href="#tab-messages"><i class="fas fa-comments me-1"></i>{% trans "Messages" %}</a></li>
 </ul>
 
 <div class="tab-content">

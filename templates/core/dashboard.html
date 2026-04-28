@@ -1,14 +1,15 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Dashboard - Cthulhu RPG Manager{% endblock %}
+{% block title %}{% trans "Dashboard - Cthulhu RPG Manager" %}{% endblock %}
 
 {% block content %}
 <div class="row">
     <div class="col-12">
         <h1>
-            <i class="fas fa-tachometer-alt"></i> Dashboard
+            <i class="fas fa-tachometer-alt"></i> {% trans "Dashboard" %}
             {% if is_keeper %}
-                <span class="badge bg-warning">Keeper</span>
+                <span class="badge bg-warning">{% trans "Keeper" %}</span>
             {% endif %}
         </h1>
     </div>
@@ -19,9 +20,9 @@
     <div class="col-lg-6">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="fas fa-users"></i> My Characters</span>
+                <span><i class="fas fa-users"></i> {% trans "My Characters" %}</span>
                 <a href="{% url 'characters:create' %}" class="btn btn-sm btn-warning">
-                    <i class="fas fa-plus"></i> New
+                    <i class="fas fa-plus"></i> {% trans "New" %}
                 </a>
             </div>
             <div class="card-body">
@@ -49,42 +50,41 @@
                     </div>
                     <div class="mt-3">
                         <a href="{% url 'characters:list' %}" class="btn btn-outline-light btn-sm">
-                            View All Characters
+                            {% trans "View All Characters" %}
                         </a>
                     </div>
                 {% else %}
                     <div class="text-center py-4">
                         <i class="fas fa-user-slash fa-3x text-muted mb-3"></i>
-                        <p class="text-muted">No characters yet</p>
+                        <p class="text-muted">{% trans "No characters yet" %}</p>
                         <a href="{% url 'characters:create' %}" class="btn btn-warning">
-                            Create Your First Character
+                            {% trans "Create Your First Character" %}
                         </a>
                     </div>
                 {% endif %}
             </div>
         </div>
 
-        <!-- Character Templates -->
         <div class="card mt-4">
             <div class="card-header">
-                <i class="fas fa-clipboard-list"></i> Quick Actions
+                <i class="fas fa-clipboard-list"></i> {% trans "Quick Actions" %}
             </div>
             <div class="card-body">
                 <div class="row g-2">
                     <div class="col-6">
                         <a href="{% url 'characters:templates' %}" class="btn btn-outline-light btn-sm w-100">
-                            <i class="fas fa-file-alt"></i><br>Templates
+                            <i class="fas fa-file-alt"></i><br>{% trans "Templates" %}
                         </a>
                     </div>
                     <div class="col-6">
                         <a href="{% url 'characters:cemetery' %}" class="btn btn-outline-light btn-sm w-100">
-                            <i class="fas fa-cross"></i><br>Cemetery
+                            <i class="fas fa-cross"></i><br>{% trans "Cemetery" %}
                         </a>
                     </div>
                     {% if is_keeper %}
                     <div class="col-12">
                         <a href="{% url 'characters:npc_templates' %}" class="btn btn-outline-warning btn-sm w-100">
-                            <i class="fas fa-user-secret"></i><br>NPC Templates
+                            <i class="fas fa-user-secret"></i><br>{% trans "NPC Templates" %}
                         </a>
                     </div>
                     {% endif %}
@@ -95,13 +95,12 @@
 
     <!-- Scenarios Section -->
     <div class="col-lg-6">
-        <!-- Ongoing Scenarios -->
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="fas fa-book-open"></i> Active Scenarios</span>
+                <span><i class="fas fa-book-open"></i> {% trans "Active Scenarios" %}</span>
                 {% if is_keeper %}
                     <a href="{% url 'scenarios:create' %}" class="btn btn-sm btn-warning">
-                        <i class="fas fa-plus"></i> New
+                        <i class="fas fa-plus"></i> {% trans "New" %}
                     </a>
                 {% endif %}
             </div>
@@ -113,9 +112,9 @@
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <h6 class="mb-1 text-warning">{{ scenario.name }}</h6>
-                                        <p class="mb-1 text-muted">Keeper: {{ scenario.keeper.username }}</p>
+                                        <p class="mb-1 text-muted">{% trans "Keeper:" %} {{ scenario.keeper.username }}</p>
                                         <small class="text-muted">
-                                            Status: <span class="badge bg-secondary">{{ scenario.get_status_display }}</span>
+                                            {% trans "Status:" %} <span class="badge bg-secondary">{{ scenario.get_status_display }}</span>
                                         </small>
                                     </div>
                                     <div>
@@ -130,17 +129,16 @@
                 {% else %}
                     <div class="text-center py-4">
                         <i class="fas fa-book fa-3x text-muted mb-3"></i>
-                        <p class="text-muted">No active scenarios</p>
+                        <p class="text-muted">{% trans "No active scenarios" %}</p>
                     </div>
                 {% endif %}
             </div>
         </div>
 
-        <!-- Keeper Scenarios -->
         {% if is_keeper and keeping_scenarios %}
             <div class="card mt-4">
                 <div class="card-header">
-                    <i class="fas fa-crown"></i> Your Scenarios (Keeper)
+                    <i class="fas fa-crown"></i> {% trans "Your Scenarios (Keeper)" %}
                 </div>
                 <div class="card-body">
                     <div class="list-group list-group-flush">
@@ -150,7 +148,7 @@
                                     <div>
                                         <h6 class="mb-1 text-warning">{{ scenario.name }}</h6>
                                         <small class="text-muted">
-                                            Status: <span class="badge bg-secondary">{{ scenario.get_status_display }}</span>
+                                            {% trans "Status:" %} <span class="badge bg-secondary">{{ scenario.get_status_display }}</span>
                                         </small>
                                     </div>
                                     <div>
@@ -166,21 +164,20 @@
             </div>
         {% endif %}
 
-        <!-- Scenario Actions -->
         <div class="card mt-4">
             <div class="card-header">
-                <i class="fas fa-compass"></i> Scenario Actions
+                <i class="fas fa-compass"></i> {% trans "Scenario Actions" %}
             </div>
             <div class="card-body">
                 <div class="row g-2">
                     <div class="col-6">
                         <a href="{% url 'scenarios:list' %}" class="btn btn-outline-light btn-sm w-100">
-                            <i class="fas fa-list"></i><br>All Scenarios
+                            <i class="fas fa-list"></i><br>{% trans "All Scenarios" %}
                         </a>
                     </div>
                     <div class="col-6">
                         <a href="{% url 'scenarios:archive' %}" class="btn btn-outline-light btn-sm w-100">
-                            <i class="fas fa-archive"></i><br>Archive
+                            <i class="fas fa-archive"></i><br>{% trans "Archive" %}
                         </a>
                     </div>
                 </div>
@@ -189,25 +186,24 @@
     </div>
 </div>
 
-<!-- Welcome Message -->
 {% if not alive_characters and not ongoing_scenarios %}
 <div class="row mt-4">
     <div class="col-12">
         <div class="card text-center">
             <div class="card-body">
                 <i class="fas fa-eye fa-4x text-warning mb-4"></i>
-                <h2>Welcome to Cthulhu RPG Manager!</h2>
-                <p class="lead">Get started by creating your first character or joining a scenario.</p>
+                <h2>{% trans "Welcome to Cthulhu RPG Manager!" %}</h2>
+                <p class="lead">{% trans "Get started by creating your first character or joining a scenario." %}</p>
                 <div class="row g-3 justify-content-center mt-4">
                     <div class="col-auto">
                         <a href="{% url 'characters:create' %}" class="btn btn-warning">
-                            <i class="fas fa-user-plus"></i> Create Character
+                            <i class="fas fa-user-plus"></i> {% trans "Create Character" %}
                         </a>
                     </div>
                     {% if is_keeper %}
                     <div class="col-auto">
                         <a href="{% url 'scenarios:create' %}" class="btn btn-primary">
-                            <i class="fas fa-book"></i> Create Scenario
+                            <i class="fas fa-book"></i> {% trans "Create Scenario" %}
                         </a>
                     </div>
                     {% endif %}

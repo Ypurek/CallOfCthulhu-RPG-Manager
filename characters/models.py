@@ -1,6 +1,7 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 from core.models import User
 
 
@@ -8,8 +9,8 @@ class Character(models.Model):
     """Character model for both PCs and NPCs"""
 
     CHARACTER_TYPE_CHOICES = [
-        ('PC', 'Player Character'),
-        ('NPC', 'Non-Player Character'),
+        ('PC', _('Player Character')),
+        ('NPC', _('Non-Player Character')),
     ]
 
     # Ownership and type
@@ -146,10 +147,10 @@ class Skill(models.Model):
     """Skills available to characters"""
 
     SKILL_CATEGORY_CHOICES = [
-        ('mutual', 'Mutual'),
-        ('general', 'General'),
-        ('combat', 'Combat'),
-        ('language', 'Language'),
+        ('mutual', _('Mutual')),
+        ('general', _('General')),
+        ('combat', _('Combat')),
+        ('language', _('Language')),
     ]
 
     name = models.CharField(max_length=50, unique=True)
@@ -253,20 +254,20 @@ class StatusEffect(models.Model):
     """Status effects that can affect characters"""
 
     EFFECT_TYPE_CHOICES = [
-        ('NORMAL', 'Custom Status Effect'),
-        ('PHOBIA', 'Phobia'),
-        ('MADNESS', 'Madness'),
-        ('MANIA', 'Mania'),
-        ('DEEP_WOUND', 'Deep Wound'),
+        ('NORMAL', _('Custom Status Effect')),
+        ('PHOBIA', _('Phobia')),
+        ('MADNESS', _('Madness')),
+        ('MANIA', _('Mania')),
+        ('DEEP_WOUND', _('Deep Wound')),
     ]
 
     BADGE_COLOR_CHOICES = [
-        ('bg-warning', 'Amber'),
-        ('bg-danger', 'Red'),
-        ('bg-info', 'Blue'),
-        ('bg-secondary', 'Gray'),
-        ('bg-success', 'Green'),
-        ('bg-primary', 'Indigo'),
+        ('bg-warning', _('Amber')),
+        ('bg-danger', _('Red')),
+        ('bg-info', _('Blue')),
+        ('bg-secondary', _('Gray')),
+        ('bg-success', _('Green')),
+        ('bg-primary', _('Indigo')),
     ]
 
     name = models.CharField(max_length=50, unique=True)

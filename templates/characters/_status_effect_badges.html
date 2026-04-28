@@ -1,3 +1,4 @@
+{% load i18n %}
 {% comment %}
 Status Effect Badges Component
 Displays character status effects as colored badges
@@ -16,7 +17,7 @@ Usage: {% include "characters/_status_effect_badges.html" with effects=character
                   data-effect-type="{{ effect.effect_type }}"
                   style="cursor: help;">
                 <i class="bi {{ effect.icon_class }}"></i>
-                {{ effect.name }}
+                {% trans effect.name %}
             </span>
         {% endfor %}
     {% endif %}

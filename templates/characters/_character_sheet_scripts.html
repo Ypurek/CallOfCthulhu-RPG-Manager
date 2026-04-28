@@ -89,7 +89,7 @@ function toggleDefaultSkills(sheetId) {
         if (!button.dataset.defaultText) {
             button.dataset.defaultText = button.textContent;
         }
-        button.textContent = 'Hide default skills';
+        button.textContent = button.dataset.hideText || 'Hide default skills';
     }
 }
 

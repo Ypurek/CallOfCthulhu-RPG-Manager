@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 from core.models import User
 from characters.models import Character, NPCTemplate
 
@@ -8,15 +9,15 @@ class Scenario(models.Model):
     """Game scenario/session model"""
 
     STATUS_CHOICES = [
-        ('PLANNING', 'Not Started'),
-        ('ACTIVE', 'Ongoing'),
-        ('PAUSED', 'Paused'),
-        ('COMPLETED', 'Done'),
+        ('PLANNING', _('Not Started')),
+        ('ACTIVE', _('Ongoing')),
+        ('PAUSED', _('Paused')),
+        ('COMPLETED', _('Done')),
     ]
 
     VISIBILITY_CHOICES = [
-        ('PRIVATE', 'Private'),
-        ('PUBLIC', 'Public'),
+        ('PRIVATE', _('Private')),
+        ('PUBLIC', _('Public')),
     ]
 
     name = models.CharField(max_length=200)
@@ -132,9 +133,9 @@ class Message(models.Model):
     """Messages sent from Keeper to players during game"""
 
     MESSAGE_TYPE_CHOICES = [
-        ('PUBLIC', 'Public'),
-        ('PRIVATE', 'Private'),
-        ('SYSTEM', 'System'),
+        ('PUBLIC', _('Public')),
+        ('PRIVATE', _('Private')),
+        ('SYSTEM', _('System')),
     ]
 
     scenario = models.ForeignKey(Scenario, on_delete=models.CASCADE, related_name='messages')

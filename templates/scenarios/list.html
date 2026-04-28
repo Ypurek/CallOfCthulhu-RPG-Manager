@@ -1,19 +1,20 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Scenarios – Cthulhu RPG{% endblock %}
+{% block title %}{% trans "Scenarios – Cthulhu RPG" %}{% endblock %}
 
 {% block content %}
 <div class="row">
   <div class="col-12">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-      <h1><i class="fas fa-book-open me-2"></i>My Scenarios</h1>
+      <h1><i class="fas fa-book-open me-2"></i>{% trans "My Scenarios" %}</h1>
       <div class="d-flex gap-2">
         <a href="{% url 'scenarios:archive' %}" class="btn btn-outline-secondary">
-          <i class="fas fa-archive me-1"></i>Archive
+          <i class="fas fa-archive me-1"></i>{% trans "Archive" %}
         </a>
         {% if user.is_keeper %}
         <a href="{% url 'scenarios:create' %}" class="btn btn-warning">
-          <i class="fas fa-plus me-1"></i>New Scenario
+          <i class="fas fa-plus me-1"></i>{% trans "New Scenario" %}
         </a>
         {% endif %}
       </div>
@@ -34,9 +35,9 @@
       </div>
       <div class="card-body">
         <p class="card-text small">
-          <strong>Keeper:</strong> {{ scenario.keeper.username }}<br>
-          {% if scenario.place %}<strong>Place:</strong> {{ scenario.place }}<br>{% endif %}
-          <strong>Players:</strong> {{ scenario.players.count }}
+          <strong>{% trans "Keeper:" %}</strong> {{ scenario.keeper.username }}<br>
+          {% if scenario.place %}<strong>{% trans "Place:" %}</strong> {{ scenario.place }}<br>{% endif %}
+          <strong>{% trans "Players:" %}</strong> {{ scenario.players.count }}
           &bull; <i class="fas fa-{% if scenario.visibility == 'PUBLIC' %}globe{% else %}lock{% endif %}"></i>
           {{ scenario.get_visibility_display }}<br>
           {% if scenario.description %}
@@ -45,11 +46,11 @@
         </p>
         <div class="d-flex gap-2 flex-wrap">
           <a href="{% url 'scenarios:detail' scenario.id %}" class="btn btn-sm btn-outline-light">
-            <i class="fas fa-play me-1"></i>Enter
+            <i class="fas fa-play me-1"></i>{% trans "Enter" %}
           </a>
           {% if scenario.keeper == user %}
           <a href="{% url 'scenarios:manage' scenario.id %}" class="btn btn-sm btn-outline-warning">
-            <i class="fas fa-crown me-1"></i>Manage
+            <i class="fas fa-crown me-1"></i>{% trans "Manage" %}
           </a>
           {% endif %}
         </div>
@@ -57,9 +58,9 @@
       <div class="card-footer text-muted text-center">
         <small>
           {% if scenario.started_at %}
-            Started {{ scenario.started_at|date:"d M Y" }}
+            {% blocktrans with date=scenario.started_at|date:"d M Y" %}Started {{ date }}{% endblocktrans %}
           {% else %}
-            Not started yet
+            {% trans "Not started yet" %}
           {% endif %}
         </small>
       </div>
@@ -69,17 +70,17 @@
   <div class="col-12">
     <div class="text-center py-5">
       <i class="fas fa-book fa-5x text-muted mb-4"></i>
-      <h3>No Active Scenarios</h3>
+      <h3>{% trans "No Active Scenarios" %}</h3>
       <p class="lead text-muted">
         {% if user.is_keeper %}
-          Create your first scenario to start a new adventure!
+          {% trans "Create your first scenario to start a new adventure!" %}
         {% else %}
-          Ask a Keeper to invite you to a scenario!
+          {% trans "Ask a Keeper to invite you to a scenario!" %}
         {% endif %}
       </p>
       {% if user.is_keeper %}
       <a href="{% url 'scenarios:create' %}" class="btn btn-warning btn-lg">
-        <i class="fas fa-plus me-1"></i>Create Scenario
+        <i class="fas fa-plus me-1"></i>{% trans "Create Scenario" %}
       </a>
       {% endif %}
     </div>
@@ -90,7 +91,7 @@
 <div class="row mt-5">
   <div class="col-12 text-center">
     <a href="{% url 'dashboard' %}" class="btn btn-secondary">
-      <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+      <i class="fas fa-arrow-left me-1"></i>{% trans "Back to Dashboard" %}
     </a>
   </div>
 </div>

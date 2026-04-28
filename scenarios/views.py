@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.translation import gettext as _t
 from django.views.decorators.http import require_POST
 from django.db.models import Q as _Q
 
@@ -1006,9 +1007,9 @@ def scenario_player_snapshot(request, scenario_id):
                 "appearance": character.appearance,
                 "education": character.education,
             },
-            "skills": sheet.get("skills", []),
-            "default_skills": sheet.get("default_skills", []),
-            "combat_skills": sheet.get("combat_skills", []),
+            "skills": [dict(s, name=_t(s["name"])) for s in sheet.get("skills", [])],
+            "default_skills": [dict(s, name=_t(s["name"])) for s in sheet.get("default_skills", [])],
+            "combat_skills": [dict(s, name=_t(s["name"])) for s in sheet.get("combat_skills", [])],
             "weapons": sheet.get("weapons", []),
             "items": sheet.get("items", []),
             "spells": sheet.get("spells", []),

@@ -1,15 +1,17 @@
+{% load i18n %}
 <div class="skills-grid" data-sheet-combat-grid>
-    <div class="skill-item combat" onclick="showSkillModal('Dodge', {{ sheet.dodge_value }}, 'Avoid attacks by moving out of the way')">
-        <span class="skill-name">Dodge</span>
+    <div class="skill-item combat" onclick="showSkillModal('{% trans "Dodge" %}', {{ sheet.dodge_value }}, '{% trans "Avoid attacks by moving out of the way" %}')">
+        <span class="skill-name">{% trans "Dodge" %}</span>
         <span class="skill-value">{{ sheet.dodge_value }}%</span>
     </div>
 
     {% for skill in sheet.combat_skills %}
-    <div class="skill-item combat" onclick="showSkillModal('{{ skill.name|escapejs }}', {{ skill.value }}, '{{ skill.description|escapejs }}')">
+    {% trans skill.name as skill_name_t %}
+    <div class="skill-item combat" onclick="showSkillModal('{{ skill_name_t|escapejs }}', {{ skill.value }}, '{{ skill.description|escapejs }}')">
         {% if show_skill_checkboxes %}<input type="checkbox" class="skill-update-check" title="" data-character-id="{{ sheet.character.id }}" data-skill-id="{{ skill.id }}" {% if skill.needs_update %}checked{% endif %} onclick="event.stopPropagation(); toggleSkillNeedsUpdate(this)">{% endif %}
         <span class="skill-name">
-            {{ skill.name }}
-            {% if skill.is_custom %}<span class="badge bg-info text-dark ms-1" style="font-size: 0.7rem;">Custom</span>{% endif %}
+            {{ skill_name_t }}
+            {% if skill.is_custom %}<span class="badge bg-info text-dark ms-1" style="font-size: 0.7rem;">{% trans "Custom" %}</span>{% endif %}
         </span>
         <span class="skill-value">{{ skill.value }}%</span>
     </div>

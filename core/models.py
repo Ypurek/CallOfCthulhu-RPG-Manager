@@ -1,13 +1,14 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 
 class User(AbstractUser):
     """Custom user model with role management"""
 
     class Role(models.TextChoices):
-        PLAYER = 'PLAYER', 'Player'
-        KEEPER = 'KEEPER', 'Keeper'
+        PLAYER = 'PLAYER', _('Player')
+        KEEPER = 'KEEPER', _('Keeper')
 
     role = models.CharField(
         max_length=10,

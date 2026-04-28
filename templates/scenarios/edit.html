@@ -1,31 +1,32 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Edit: {{ scenario.name }} – Cthulhu RPG{% endblock %}
+{% block title %}{% blocktrans with name=scenario.name %}Edit: {{ name }} – Cthulhu RPG{% endblocktrans %}{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
   <div class="col-lg-7">
     <div class="card">
       <div class="card-header">
-        <i class="fas fa-edit me-2"></i>Edit Scenario
+        <i class="fas fa-edit me-2"></i>{% trans "Edit Scenario" %}
       </div>
       <div class="card-body">
         <form method="post">
           {% csrf_token %}
 
           <div class="mb-3">
-            <label class="form-label">Scenario Name <span class="text-danger">*</span></label>
+            <label class="form-label">{% trans "Scenario Name" %} <span class="text-danger">*</span></label>
             <input type="text" name="name" class="form-control" value="{{ scenario.name }}" required autofocus>
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Place / Location</label>
+            <label class="form-label">{% trans "Place / Location" %}</label>
             <input type="text" name="place" class="form-control" value="{{ scenario.place }}">
           </div>
 
           <div class="row g-3 mb-3">
             <div class="col-md-6">
-              <label class="form-label">Status</label>
+              <label class="form-label">{% trans "Status" %}</label>
               <select name="status" class="form-select">
                 {% for val, label in status_choices %}
                 <option value="{{ val }}" {% if scenario.status == val %}selected{% endif %}>{{ label }}</option>
@@ -33,7 +34,7 @@
               </select>
             </div>
             <div class="col-md-6">
-              <label class="form-label">Visibility</label>
+              <label class="form-label">{% trans "Visibility" %}</label>
               <select name="visibility" class="form-select">
                 {% for val, label in visibility_choices %}
                 <option value="{{ val }}" {% if scenario.visibility == val %}selected{% endif %}>{{ label }}</option>
@@ -43,16 +44,16 @@
           </div>
 
           <div class="mb-4">
-            <label class="form-label">Description</label>
+            <label class="form-label">{% trans "Description" %}</label>
             <textarea name="description" class="form-control" rows="5">{{ scenario.description }}</textarea>
           </div>
 
           <div class="d-flex justify-content-end gap-2">
             <a href="{% url 'scenarios:manage' scenario.id %}" class="btn btn-secondary">
-              <i class="fas fa-times me-1"></i>Cancel
+              <i class="fas fa-times me-1"></i>{% trans "Cancel" %}
             </a>
             <button type="submit" class="btn btn-warning">
-              <i class="fas fa-save me-1"></i>Save Changes
+              <i class="fas fa-save me-1"></i>{% trans "Save Changes" %}
             </button>
           </div>
         </form>
@@ -61,5 +62,3 @@
   </div>
 </div>
 {% endblock %}
-
-

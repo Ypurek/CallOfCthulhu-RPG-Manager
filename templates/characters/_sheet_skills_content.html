@@ -1,10 +1,12 @@
+{% load i18n %}
 <div class="skills-grid" data-sheet-skills-grid>
     {% for skill in sheet.skills %}
-    <div class="skill-item" onclick="showSkillModal('{{ skill.name|escapejs }}', {{ skill.value }}, '{{ skill.description|escapejs }}')">
+    {% trans skill.name as skill_name_t %}
+    <div class="skill-item" onclick="showSkillModal('{{ skill_name_t|escapejs }}', {{ skill.value }}, '{{ skill.description|escapejs }}')">
         {% if show_skill_checkboxes %}<input type="checkbox" class="skill-update-check" title="" data-character-id="{{ sheet.character.id }}" data-skill-id="{{ skill.id }}" {% if skill.needs_update %}checked{% endif %} onclick="event.stopPropagation(); toggleSkillNeedsUpdate(this)">{% endif %}
         <span class="skill-name">
-            {{ skill.name }}
-            {% if skill.is_custom %}<span class="badge bg-info text-dark ms-1" style="font-size: 0.7rem;">Custom</span>{% endif %}
+            {{ skill_name_t }}
+            {% if skill.is_custom %}<span class="badge bg-info text-dark ms-1" style="font-size: 0.7rem;">{% trans "Custom" %}</span>{% endif %}
         </span>
         <span class="skill-value">{{ skill.value }}%</span>
     </div>
@@ -16,17 +18,22 @@
 </div>
 
 {% if sheet.default_skills %}
-<button class="toggle-default-btn" type="button" id="{{ sid }}-default-skills-btn" onclick="toggleDefaultSkills('{{ sid }}')">
-    Show more ({{ sheet.default_skills|length }} default skills)
+{% blocktrans with count=sheet.default_skills|length asvar show_more_label %}Show more ({{ count }} default skills){% endblocktrans %}
+{% trans "Hide default skills" as hide_label %}
+<button class="toggle-default-btn" type="button" id="{{ sid }}-default-skills-btn"
+        data-hide-text="{{ hide_label }}"
+        onclick="toggleDefaultSkills('{{ sid }}')">
+    {{ show_more_label }}
 </button>
 <div class="default-skills" id="{{ sid }}-default-skills">
     <div class="skills-grid">
         {% for skill in sheet.default_skills %}
-        <div class="skill-item" onclick="showSkillModal('{{ skill.name|escapejs }}', {{ skill.value }}, '{{ skill.description|escapejs }}')">
+        {% trans skill.name as skill_name_t %}
+        <div class="skill-item" onclick="showSkillModal('{{ skill_name_t|escapejs }}', {{ skill.value }}, '{{ skill.description|escapejs }}')">
             {% if show_skill_checkboxes %}<input type="checkbox" class="skill-update-check" title="" data-character-id="{{ sheet.character.id }}" data-skill-id="{{ skill.id }}" {% if skill.needs_update %}checked{% endif %} onclick="event.stopPropagation(); toggleSkillNeedsUpdate(this)">{% endif %}
             <span class="skill-name">
-                {{ skill.name }}
-                {% if skill.is_custom %}<span class="badge bg-info text-dark ms-1" style="font-size: 0.7rem;">Custom</span>{% endif %}
+                {{ skill_name_t }}
+                {% if skill.is_custom %}<span class="badge bg-info text-dark ms-1" style="font-size: 0.7rem;">{% trans "Custom" %}</span>{% endif %}
             </span>
             <span class="skill-value">{{ skill.value }}%</span>
         </div>

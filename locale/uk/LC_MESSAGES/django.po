@@ -1,0 +1,1042 @@
+# Ukrainian translations for Cthulhu RPG Manager
+# Copyright (C) 2024
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: uk\n"
+"Plural-Forms: nplurals=4; plural=(n % 1 == 0 && n % 10 == 1 && n % 100 != 11 ? 0 : n % 1 == 0 && n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 1 : n % 1 == 0 && (n % 10 == 0 || (n % 10 >= 5 && n % 10 <= 9) || (n % 100 >= 11 && n % 100 <= 14)) ? 2 : 3);\n"
+
+# --- Navigation ---
+msgid "Dashboard"
+msgstr "Панель управління"
+
+msgid "Characters"
+msgstr "Персонажі"
+
+msgid "Scenarios"
+msgstr "Сценарії"
+
+msgid "Admin"
+msgstr "Адмін"
+
+msgid "Status Effects"
+msgstr "Статус-ефекти"
+
+msgid "Django Admin"
+msgstr "Django Адмін"
+
+msgid "Keeper"
+msgstr "Хранитель"
+
+msgid "Create Scenario"
+msgstr "Створити сценарій"
+
+msgid "NPC Templates"
+msgstr "Шаблони НПС"
+
+msgid "Character Templates"
+msgstr "Шаблони персонажів"
+
+msgid "Profile"
+msgstr "Профіль"
+
+msgid "Settings"
+msgstr "Налаштування"
+
+msgid "Logout"
+msgstr "Вийти"
+
+msgid "Login"
+msgstr "Увійти"
+
+msgid "Register"
+msgstr "Реєстрація"
+
+msgid "RPG Manager"
+msgstr "RPG Менеджер"
+
+# --- Pages titles ---
+msgid "Welcome - Cthulhu RPG Manager"
+msgstr "Ласкаво просимо - Cthulhu RPG Manager"
+
+msgid "Dashboard - Cthulhu RPG Manager"
+msgstr "Панель управління - Cthulhu RPG Manager"
+
+msgid "Login - Cthulhu RPG Manager"
+msgstr "Вхід - Cthulhu RPG Manager"
+
+msgid "Register - Cthulhu RPG Manager"
+msgstr "Реєстрація - Cthulhu RPG Manager"
+
+msgid "My Characters - Cthulhu RPG Manager"
+msgstr "Мої персонажі - Cthulhu RPG Manager"
+
+msgid "Cemetery - Cthulhu RPG Manager"
+msgstr "Цвинтар - Cthulhu RPG Manager"
+
+msgid "Character Templates - Cthulhu RPG Manager"
+msgstr "Шаблони персонажів - Cthulhu RPG Manager"
+
+msgid "NPC Templates - Cthulhu RPG Manager"
+msgstr "Шаблони НПС - Cthulhu RPG Manager"
+
+msgid "Scenarios – Cthulhu RPG"
+msgstr "Сценарії – Cthulhu RPG"
+
+msgid "Create Scenario – Cthulhu RPG"
+msgstr "Створити сценарій – Cthulhu RPG"
+
+msgid "Archive – Cthulhu RPG"
+msgstr "Архів – Cthulhu RPG"
+
+# --- Home page ---
+msgid "Welcome to Cthulhu RPG Manager!"
+msgstr "Ласкаво просимо до Cthulhu RPG Manager!"
+
+msgid "Manage your characters and scenarios in the world of cosmic horror"
+msgstr "Керуйте персонажами та сценаріями у світі космічного жаху"
+
+msgid "Get Started"
+msgstr "Розпочати"
+
+msgid "For Players"
+msgstr "Для гравців"
+
+msgid "For Keepers"
+msgstr "Для Хранителів"
+
+msgid "Mobile-First Design"
+msgstr "Мобільний дизайн"
+
+msgid "Create and manage scenarios"
+msgstr "Створюйте та керуйте сценаріями"
+
+msgid "Manage NPCs and encounters"
+msgstr "Керуйте НПС та зустрічами"
+
+msgid "Track character progression"
+msgstr "Відстежуйте розвиток персонажа"
+
+msgid "Join game sessions"
+msgstr "Приєднуйтесь до ігрових сесій"
+
+msgid "Receive real-time updates"
+msgstr "Отримуйте оновлення в реальному часі"
+
+msgid "View character sheets optimized for mobile"
+msgstr "Переглядайте аркуші персонажів, оптимізовані для мобільних"
+
+msgid "Run combat encounters"
+msgstr "Проводьте бойові зустрічі"
+
+msgid "Send private messages to players"
+msgstr "Надсилайте приватні повідомлення гравцям"
+
+msgid "Control in-game time"
+msgstr "Контролюйте ігровий час"
+
+msgid "Character sheets are designed to fit on a single phone screen, showing only the most important skills and stats. Keepers can update character sheets during sessions, so players stay focused on the story."
+msgstr "Аркуші персонажів розроблені для одного екрана телефону, відображаючи лише найважливіші навички та характеристики. Хранителі можуть оновлювати аркуші під час сесій, щоб гравці залишалися зосередженими на сюжеті."
+
+msgid "Call of Cthulhu"
+msgstr "Поклик Ктулху"
+
+msgid "Enter"
+msgstr "Увійти"
+
+# --- Login/Register ---
+msgid "Username"
+msgstr "Ім'я користувача"
+
+msgid "Password"
+msgstr "Пароль"
+
+msgid "Don't have an account?"
+msgstr "Немає облікового запису?"
+
+msgid "Already have an account?"
+msgstr "Вже маєте обліковий запис?"
+
+msgid "Test Accounts:"
+msgstr "Тестові акаунти:"
+
+msgid "Confirm Password"
+msgstr "Підтвердити пароль"
+
+# --- Dashboard ---
+msgid "Quick Actions"
+msgstr "Швидкі дії"
+
+msgid "My Scenarios"
+msgstr "Мої сценарії"
+
+msgid "Your Scenarios (Keeper)"
+msgstr "Ваші сценарії (Хранитель)"
+
+msgid "New Character"
+msgstr "Новий персонаж"
+
+msgid "New Scenario"
+msgstr "Новий сценарій"
+
+msgid "View All Characters"
+msgstr "Усі персонажі"
+
+msgid "No Active Scenarios"
+msgstr "Немає активних сценаріїв"
+
+msgid "No active scenarios"
+msgstr "Немає активних сценаріїв"
+
+msgid "No Characters Yet"
+msgstr "Персонажів ще немає"
+
+msgid "New"
+msgstr "Новий"
+
+msgid "Ask a Keeper to invite you to a scenario!"
+msgstr "Попросіть Хранителя запросити вас до сценарію!"
+
+msgid "Get started by creating your first character or joining a scenario."
+msgstr "Почніть зі створення першого персонажа або приєднання до сценарію."
+
+# --- Characters ---
+msgid "My Characters"
+msgstr "Мої персонажі"
+
+msgid "New NPC Template"
+msgstr "Новий шаблон НПС"
+
+msgid "New Template"
+msgstr "Новий шаблон"
+
+msgid "Create a new character"
+msgstr "Створити нового персонажа"
+
+msgid "Create Your First Character"
+msgstr "Створити першого персонажа"
+
+msgid "create your first character to start your journey into cosmic horror!"
+msgstr "Створіть свого першого персонажа, щоб розпочати подорож у космічний жах!"
+
+msgid "Create your first character to start your journey into cosmic horror!"
+msgstr "Створіть свого першого персонажа, щоб розпочати подорож у космічний жах!"
+
+msgid "Alive"
+msgstr "Живий"
+
+msgid "Dead"
+msgstr "Мертвий"
+
+msgid "NPC"
+msgstr "НПС"
+
+msgid "View Sheet"
+msgstr "Переглянути аркуш"
+
+msgid "Back to Characters"
+msgstr "До персонажів"
+
+msgid "Back to Dashboard"
+msgstr "До панелі управління"
+
+msgid "Key Skills"
+msgstr "Ключові навички"
+
+msgid "Unknown"
+msgstr "Невідомо"
+
+msgid "Name"
+msgstr "Ім'я"
+
+msgid "Age"
+msgstr "Вік"
+
+msgid "Occupation"
+msgstr "Заняття"
+
+msgid "Description"
+msgstr "Опис"
+
+msgid "Age:"
+msgstr "Вік:"
+
+msgid "Occupation:"
+msgstr "Заняття:"
+
+msgid "Status:"
+msgstr "Статус:"
+
+msgid "Keeper:"
+msgstr "Хранитель:"
+
+msgid "Player:"
+msgstr "Гравець:"
+
+msgid "Players:"
+msgstr "Гравці:"
+
+msgid "Place:"
+msgstr "Місце:"
+
+msgid "Admin:"
+msgstr "Адмін:"
+
+msgid "Ended:"
+msgstr "Завершено:"
+
+# --- Cemetery ---
+msgid "Character Cemetery"
+msgstr "Цвинтар персонажів"
+
+msgid "Cemetery"
+msgstr "Цвинтар"
+
+msgid "Back to Living Characters"
+msgstr "До живих персонажів"
+
+msgid "No Fallen Characters"
+msgstr "Немає загиблих персонажів"
+
+msgid "Rest in peace, fallen investigators..."
+msgstr "Спочивайте з миром, загиблі слідчі..."
+
+msgid "Your characters are still safe... for now."
+msgstr "Ваші персонажі ще в безпеці... поки що."
+
+msgid "Died during their investigations into the unknown..."
+msgstr "Загинули під час розслідувань невідомого..."
+
+# --- Templates ---
+msgid "Template"
+msgstr "Шаблон"
+
+msgid "Templates"
+msgstr "Шаблони"
+
+msgid "Edit Template"
+msgstr "Редагувати шаблон"
+
+msgid "Delete Template"
+msgstr "Видалити шаблон"
+
+msgid "No templates found"
+msgstr "Шаблони не знайдено"
+
+msgid "Pre-made investigators ready to face cosmic horror. Choose one and make it your own."
+msgstr "Готові слідчі для зіткнення з космічним жахом. Оберіть одного та зробіть його своїм."
+
+msgid "Use as My Character"
+msgstr "Використати як мого персонажа"
+
+msgid "Use in NPC Wizard"
+msgstr "Використати у майстрі НПС"
+
+msgid "Preview after creation"
+msgstr "Переглянути після створення"
+
+# --- NPC Templates ---
+msgid "Keeper-managed NPC archetypes for scenes, encounters, and quick imports."
+msgstr "Архетипи НПС, керовані Хранителем, для сцен, зустрічей та швидкого імпорту."
+
+msgid "No NPC templates found"
+msgstr "Шаблони НПС не знайдено"
+
+# --- Scenarios ---
+msgid "All Scenarios"
+msgstr "Усі сценарії"
+
+msgid "Active Scenarios"
+msgstr "Активні сценарії"
+
+msgid "Scenario Archive"
+msgstr "Архів сценаріїв"
+
+msgid "Archive"
+msgstr "Архів"
+
+msgid "Create New Scenario"
+msgstr "Створити новий сценарій"
+
+msgid "Create your first scenario to start a new adventure!"
+msgstr "Створіть свій перший сценарій, щоб розпочати нову пригоду!"
+
+msgid "No Completed Scenarios"
+msgstr "Немає завершених сценаріїв"
+
+msgid "Completed scenarios will appear here."
+msgstr "Завершені сценарії з'являться тут."
+
+msgid "Not started yet"
+msgstr "Ще не розпочато"
+
+msgid "Scenario Name"
+msgstr "Назва сценарію"
+
+msgid "Place / Location"
+msgstr "Місце / Локація"
+
+msgid "Visibility"
+msgstr "Видимість"
+
+msgid "Public scenarios appear in the global scenarios list."
+msgstr "Публічні сценарії відображаються у глобальному списку сценаріїв."
+
+msgid "Edit Scenario"
+msgstr "Редагувати сценарій"
+
+msgid "Scenario Actions"
+msgstr "Дії зі сценарієм"
+
+msgid "Manage"
+msgstr "Керувати"
+
+msgid "View"
+msgstr "Переглянути"
+
+msgid "Done"
+msgstr "Завершено"
+
+msgid "Day"
+msgstr "День"
+
+msgid "Play selected character"
+msgstr "Грати обраним персонажем"
+
+msgid "Public Session Notes"
+msgstr "Публічні нотатки сесії"
+
+msgid "Your Private Session Notes"
+msgstr "Ваші приватні нотатки сесії"
+
+msgid "Session Messages"
+msgstr "Повідомлення сесії"
+
+msgid "Back to Scenarios"
+msgstr "До сценаріїв"
+
+msgid "Save"
+msgstr "Зберегти"
+
+msgid "Save Changes"
+msgstr "Зберегти зміни"
+
+msgid "Cancel"
+msgstr "Скасувати"
+
+msgid "You have no living characters available."
+msgstr "У вас немає живих персонажів."
+
+msgid "You haven't selected a character yet. Choose one to play."
+msgstr "Ви ще не обрали персонажа. Оберіть когось для гри."
+
+# --- Character creation ---
+msgid "Step 1: Basic Info"
+msgstr "Крок 1: Основна інформація"
+
+msgid "Step 2: Core Stats"
+msgstr "Крок 2: Основні характеристики"
+
+msgid "Step 3: Skills"
+msgstr "Крок 3: Навички"
+
+msgid "Step 4: Weapons & Items"
+msgstr "Крок 4: Зброя та предмети"
+
+msgid "New Skill"
+msgstr "Нова навичка"
+
+msgid "Cash ($)"
+msgstr "Готівка ($)"
+
+msgid "Create Character"
+msgstr "Створити персонажа"
+
+# --- Stat descriptions ---
+msgid "Physical strength and muscle power."
+msgstr "Фізична сила та м'язова потужність."
+
+msgid "Health, stamina, and resistance."
+msgstr "Здоров'я, витривалість та опірність."
+
+msgid "Agility, reflexes, and coordination."
+msgstr "Спритність, рефлекси та координація."
+
+msgid "Reasoning, memory, and problem solving."
+msgstr "Мислення, пам'ять та вирішення проблем."
+
+msgid "Willpower, spirit, and magical resilience."
+msgstr "Сила волі, дух та магічна стійкість."
+
+msgid "Body size, mass, and physical presence."
+msgstr "Розмір тіла, маса та фізична присутність."
+
+msgid "Looks, charm, and social impression."
+msgstr "Зовнішність, чарівність та соціальне враження."
+
+msgid "Schooling, learned knowledge, and expertise."
+msgstr "Освіта, набуті знання та досвід."
+
+msgid "Fortune, coincidence, and narrative luck."
+msgstr "Талан, збіг обставин та сюжетне везіння."
+
+# --- Combat / Skills sheet ---
+msgid "Dodge"
+msgstr "Ухилення"
+
+msgid "Custom"
+msgstr "Власна"
+
+msgid "Weapons"
+msgstr "Зброя"
+
+# --- Model choices ---
+msgid "Player"
+msgstr "Гравець"
+
+msgid "Player Character"
+msgstr "Персонаж гравця"
+
+msgid "Non-Player Character"
+msgstr "Персонаж не-гравця"
+
+msgid "Mutual"
+msgstr "Спільні"
+
+msgid "General"
+msgstr "Загальні"
+
+msgid "Combat"
+msgstr "Бойові"
+
+msgid "Language"
+msgstr "Мова"
+
+msgid "Custom Status Effect"
+msgstr "Власний статус-ефект"
+
+msgid "Phobia"
+msgstr "Фобія"
+
+msgid "Madness"
+msgstr "Безумство"
+
+msgid "Mania"
+msgstr "Манія"
+
+msgid "Deep Wound"
+msgstr "Глибока рана"
+
+msgid "Not Started"
+msgstr "Не розпочато"
+
+msgid "Ongoing"
+msgstr "Триває"
+
+msgid "Paused"
+msgstr "Призупинено"
+
+msgid "Private"
+msgstr "Приватний"
+
+msgid "Public"
+msgstr "Публічний"
+
+msgid "System"
+msgstr "Системне"
+
+# --- Skills ---
+msgid "Accounting"
+msgstr "Бухгалтерський облік"
+
+msgid "Anthropology"
+msgstr "Антропологія"
+
+msgid "Appraise"
+msgstr "Оцінка"
+
+msgid "Archaeology"
+msgstr "Археологія"
+
+msgid "Art/Craft"
+msgstr "Мистецтво/Ремесло"
+
+msgid "Art Craft"
+msgstr "Мистецтво/Ремесло"
+
+msgid "Art Craft Carpentry"
+msgstr "Теслярство"
+
+msgid "Charm"
+msgstr "Чарівність"
+
+msgid "Climb"
+msgstr "Лазіння"
+
+msgid "Credit Rating"
+msgstr "Кредитний рейтинг"
+
+msgid "Cthulhu Mythos"
+msgstr "Міф Ктулху"
+
+msgid "Disguise"
+msgstr "Маскування"
+
+msgid "Drive Auto"
+msgstr "Водіння"
+
+msgid "Egyptian Hieroglyphs"
+msgstr "Єгипетські ієрогліфи"
+
+msgid "Fast Talk"
+msgstr "Балаканина"
+
+msgid "Fighting (Brawl)"
+msgstr "Бійка (Рукопашна)"
+
+msgid "Firearms (Bow/Crossbow)"
+msgstr "Вогнепальна зброя (Лук/Арбалет)"
+
+msgid "Firearms (Handgun)"
+msgstr "Вогнепальна зброя (Пістолет)"
+
+msgid "Firearms (Rifle/Shotgun)"
+msgstr "Вогнепальна зброя (Рушниця/Дробовик)"
+
+msgid "First Aid"
+msgstr "Перша допомога"
+
+msgid "Foreign Language"
+msgstr "Іноземна мова"
+
+msgid "Greek"
+msgstr "Грецька"
+
+msgid "History"
+msgstr "Історія"
+
+msgid "Intimidate"
+msgstr "Залякування"
+
+msgid "Jump"
+msgstr "Стрибок"
+
+msgid "Latin"
+msgstr "Латина"
+
+msgid "Law"
+msgstr "Право"
+
+msgid "Library Use"
+msgstr "Робота з бібліотекою"
+
+msgid "Listen"
+msgstr "Прослуховування"
+
+msgid "Locksmith"
+msgstr "Зламування замків"
+
+msgid "Medicine"
+msgstr "Медицина"
+
+msgid "Natural World"
+msgstr "Природний світ"
+
+msgid "Navigate"
+msgstr "Навігація"
+
+msgid "Occult"
+msgstr "Окультизм"
+
+msgid "Operate Heavy Machinery"
+msgstr "Керування важкою технікою"
+
+msgid "Own Language"
+msgstr "Рідна мова"
+
+msgid "Persuade"
+msgstr "Переконання"
+
+msgid "Pilot"
+msgstr "Пілотування"
+
+msgid "Psychoanalysis"
+msgstr "Психоаналіз"
+
+msgid "Psychology"
+msgstr "Психологія"
+
+msgid "Repair (Electrical)"
+msgstr "Ремонт (Електрика)"
+
+msgid "Repair (Mechanical)"
+msgstr "Ремонт (Механіка)"
+
+msgid "Ride"
+msgstr "Верхова їзда"
+
+msgid "Science"
+msgstr "Наука"
+
+msgid "Sleight of Hand"
+msgstr "Спритність рук"
+
+msgid "Spot Hidden"
+msgstr "Виявлення прихованого"
+
+msgid "Stealth"
+msgstr "Прихованість"
+
+msgid "Survival"
+msgstr "Виживання"
+
+msgid "Swim"
+msgstr "Плавання"
+
+msgid "Throw"
+msgstr "Метання"
+
+msgid "Track"
+msgstr "Відстеження"
+
+# --- Status effects ---
+msgid "Acrophobia"
+msgstr "Акрофобія"
+
+msgid "Arachnophobia"
+msgstr "Арахнофобія"
+
+msgid "Claustrophobia"
+msgstr "Клаустрофобія"
+
+msgid "Compulsive Behavior"
+msgstr "Компульсивна поведінка"
+
+msgid "Dementia"
+msgstr "Деменція"
+
+msgid "Kleptomania"
+msgstr "Клептоманія"
+
+msgid "Near Death"
+msgstr "Близько до смерті"
+
+msgid "Paranoia"
+msgstr "Параноя"
+
+msgid "Poisoned"
+msgstr "Отруєний"
+
+msgid "Psychological Trauma"
+msgstr "Психологічна травма"
+
+msgid "Pyromania"
+msgstr "Пироманія"
+
+msgid "Restrained"
+msgstr "Обмежений"
+
+msgid "Stunned"
+msgstr "Приголомшений"
+
+msgid "Thanatophobia"
+msgstr "Танатофобія"
+
+msgid "Avoid attacks by moving out of the way"
+msgstr "Уникати атак, відступаючи з дороги"
+
+msgid "No public notes yet."
+msgstr "Публічних нотаток ще немає."
+
+msgid "Only you can see these notes."
+msgstr "Лише ви можете бачити ці нотатки."
+
+
+msgid "Skills"
+msgstr "Навички"
+
+msgid "Items"
+msgstr "Предмети"
+
+msgid "Notes"
+msgstr "Нотатки"
+
+msgid "Build"
+msgstr "Статура"
+
+msgid "Bonus Damage"
+msgstr "Бонус до пошкоджень"
+
+msgid "Edit"
+msgstr "Редагувати"
+
+msgid "Delete"
+msgstr "Видалити"
+
+msgid "Back"
+msgstr "Назад"
+
+msgid "Delete Character"
+msgstr "Видалити персонажа"
+
+msgid "Are you sure you want to permanently delete <strong>%(name)s</strong>?"
+msgstr "Ви впевнені, що хочете назавжди видалити <strong>%(name)s</strong>?"
+
+msgid "This action cannot be undone."
+msgstr "Цю дію неможливо скасувати."
+
+msgid "Personal Notes"
+msgstr "Особисті нотатки"
+
+msgid "Write your notes for this character..."
+msgstr "Запишіть ваші нотатки для цього персонажа..."
+
+msgid "Save Notes"
+msgstr "Зберегти нотатки"
+
+msgid "No notes yet."
+msgstr "Нотаток ще немає."
+
+msgid "Cash"
+msgstr "Готівка"
+
+msgid "No items"
+msgstr "Немає предметів"
+
+msgid "Character Creation Wizard"
+msgstr "Майстер створення персонажа"
+
+msgid "Export"
+msgstr "Експорт"
+
+msgid "Import"
+msgstr "Імпорт"
+
+msgid "Export current draft as JSON"
+msgstr "Експортувати чорновик як JSON"
+
+msgid "Import character from JSON file"
+msgstr "Імпортувати персонажа з файлу JSON"
+
+msgid "Reset"
+msgstr "Скинути"
+
+msgid "Reset all progress"
+msgstr "Скинути весь прогрес"
+
+msgid "Save character changes now"
+msgstr "Зберегти зміни персонажа"
+
+msgid "base"
+msgstr "база"
+
+msgid "Step 5: Review & Save"
+msgstr "Крок 5: Перегляд та збереження"
+
+msgid "Step 5: Review & Create"
+msgstr "Крок 5: Перегляд та створення"
+
+msgid "Previous"
+msgstr "Назад"
+
+msgid "Next"
+msgstr "Далі"
+
+msgid "Add weapon"
+msgstr "Додати зброю"
+
+msgid "Unarmed brawl is added automatically and cannot be removed."
+msgstr "Рукопашна бійка додається автоматично і не може бути видалена."
+
+msgid "Item name"
+msgstr "Назва предмета"
+
+msgid "Quantity"
+msgstr "Кількість"
+
+msgid "Add"
+msgstr "Додати"
+
+msgid "Type item name and press Enter"
+msgstr "Введіть назву предмета та натисніть Enter"
+
+msgid "Enter on the item name field adds a new item to the list."
+msgstr "Enter у полі назви предмета додає новий предмет до списку."
+
+msgid "Current value"
+msgstr "Поточне значення"
+
+msgid "Add Custom Skill"
+msgstr "Додати власну навичку"
+
+msgid "Skill Name"
+msgstr "Назва навички"
+
+msgid "e.g., Ancient Languages"
+msgstr "напр., Стародавні мови"
+
+msgid "New skill will be created with value 1. You can adjust it later."
+msgstr "Нову навичку буде створено зі значенням 1. Ви зможете змінити його пізніше."
+
+msgid "Add Skill"
+msgstr "Додати навичку"
+
+msgid "Add Weapon"
+msgstr "Додати зброю"
+
+msgid "From templates"
+msgstr "З шаблонів"
+
+msgid "Custom weapon..."
+msgstr "Власна зброя..."
+
+msgid "Custom weapon name"
+msgstr "Назва власної зброї"
+
+msgid "e.g., Ritual Dagger"
+msgstr "напр., Ритуальний кинджал"
+
+msgid "Damage"
+msgstr "Пошкодження"
+
+msgid "e.g., 1D6 + DB"
+msgstr "напр., 1D6 + БП"
+
+msgid "Combat skill"
+msgstr "Бойова навичка"
+
+msgid "Choose combat skill"
+msgstr "Оберіть бойову навичку"
+
+msgid "Prepared"
+msgstr "Підготовлено"
+
+msgid "Character Change History"
+msgstr "Історія змін персонажа"
+
+msgid "No saved changes yet."
+msgstr "Збережених змін ще немає."
+
+msgid "STR"
+msgstr "СИЛ"
+
+msgid "CON"
+msgstr "СТА"
+
+msgid "DEX"
+msgstr "СПР"
+
+msgid "INT"
+msgstr "ІНТ"
+
+msgid "POW"
+msgstr "ВОЛ"
+
+msgid "SIZ"
+msgstr "РОЗ"
+
+msgid "APP"
+msgstr "ЗОВ"
+
+msgid "EDU"
+msgstr "ОСВ"
+
+msgid "HP"
+msgstr "HP"
+
+msgid "SAN"
+msgstr "ГЛУЗД"
+
+msgid "MP"
+msgstr "MP"
+
+msgid "LCK"
+msgstr "ТАЛАН"
+
+msgid "Show more (%(count)s default skills)"
+msgstr "Показати більше (%(count)s стандартних навичок)"
+
+msgid "Hide default skills"
+msgstr "Приховати стандартні навички"
+
+msgid "Cast"
+msgstr "Склад"
+
+msgid "Fight"
+msgstr "Бій"
+
+msgid "Messages"
+msgstr "Повідомлення"
+
+msgid "No improved skills yet."
+msgstr "Покращених навичок поки немає."
+
+msgid "Show more"
+msgstr "Показати більше"
+
+msgid "default skills"
+msgstr "стандартних навичок"
+
+msgid "No weapons added."
+msgstr "Зброї не додано."
+
+msgid "No combat skill"
+msgstr "Немає бойової навички"
+
+msgid "Default"
+msgstr "Типова"
+
+msgid "Weapon"
+msgstr "Зброя"
+
+msgid "Rename Custom Skill"
+msgstr "Перейменувати власну навичку"
+
+msgid "Rename custom skill"
+msgstr "Перейменувати власну навичку"
+
+msgid "Remove custom skill"
+msgstr "Видалити власну навичку"
+
+msgid "Update the custom skill name. The current value will stay unchanged."
+msgstr "Оновіть назву власної навички. Поточне значення залишиться без змін."
+
+msgid "Update Skill"
+msgstr "Оновити навичку"
+
+msgid "Please enter a skill name"
+msgstr "Будь ласка, введіть назву навички"
+
+msgid "Skill container not found"
+msgstr "Контейнер навичок не знайдено"
+
+msgid "Edit Weapon"
+msgstr "Редагувати зброю"
+
+msgid "Measures raw muscle power, lifting strength, grappling force, and how much punishment your body can impose physically."
+msgstr "Вимірює грубу м'язову силу, здатність піднімати тягарі, силу захоплення та фізичний потенціал тіла."
+
+msgid "Represents endurance, toughness, breath, and how well the body resists exhaustion, injury, poison, or disease."
+msgstr "Відображає витривалість, міцність, дихання та стійкість тіла до втоми, поранень, отрути чи хвороби."
+
+msgid "Covers speed, balance, reaction time, fine motor control, stealthy movement, and general physical coordination."
+msgstr "Охоплює швидкість, рівновагу, час реакції, дрібну моторику, тихий рух та загальну координацію."
+
+msgid "Reflects logic, analysis, memory, deduction, learning speed, and how well the investigator connects clues."
+msgstr "Відображає логіку, аналіз, пам'ять, дедукцію, швидкість навчання та вміння слідчого зв'язувати підказки."
+
+msgid "Represents force of personality, inner will, mental resilience, spiritual strength, and resistance to unnatural influence."
+msgstr "Представляє силу особистості, внутрішню волю, психічну стійкість, духовну міць та опір надприродному впливу."
+
+msgid "Shows body mass and overall build; it affects physical presence, toughness, and some derived combat characteristics."
+msgstr "Показує масу тіла та загальну статуру; впливає на фізичну присутність, міцність і деякі бойові характеристики."
+
+msgid "Measures appearance, presence, charm, first impressions, and how positively others react on a social level."
+msgstr "Вимірює зовнішність, харизму, чарівність, перше враження та те, як позитивно реагують інші на соціальному рівні."
+
+msgid "Represents formal study, accumulated knowledge, literacy, specialist training, and broad academic background."
+msgstr "Представляє формальну освіту, накопичені знання, грамотність, спеціальну підготовку та широку академічну базу."
+
+msgid "Tracks how often chance favors the investigator when facts, timing, or fate could go either way."
+msgstr "Відстежує, як часто випадок сприяє слідчому, коли факти, час чи доля можуть схилитися в будь-який бік."

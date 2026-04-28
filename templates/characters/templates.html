@@ -1,21 +1,22 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Character Templates - Cthulhu RPG Manager{% endblock %}
+{% block title %}{% trans "Character Templates - Cthulhu RPG Manager" %}{% endblock %}
 
 {% block content %}
 <div class="row align-items-center mb-4">
     <div class="col">
-        <h1 class="mb-0"><i class="fas fa-file-alt"></i> Character Templates</h1>
-        <p class="text-muted mt-1 mb-0">Pre-made investigators ready to face cosmic horror. Choose one and make it your own.</p>
+        <h1 class="mb-0"><i class="fas fa-file-alt"></i> {% trans "Character Templates" %}</h1>
+        <p class="text-muted mt-1 mb-0">{% trans "Pre-made investigators ready to face cosmic horror. Choose one and make it your own." %}</p>
     </div>
     <div class="col-auto">
         {% if can_manage_templates %}
         <a href="{% url 'characters:template_create' %}" class="btn btn-warning me-2">
-            <i class="fas fa-plus"></i> New Template
+            <i class="fas fa-plus"></i> {% trans "New Template" %}
         </a>
         {% endif %}
         <a href="{% url 'characters:list' %}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left"></i> My Characters
+            <i class="fas fa-arrow-left"></i> {% trans "My Characters" %}
         </a>
     </div>
 </div>
@@ -34,7 +35,7 @@
 {% if not templates %}
 <div class="text-center py-5">
     <i class="fas fa-folder-open fa-4x text-muted mb-3"></i>
-    <h4 class="text-muted">No templates found</h4>
+    <h4 class="text-muted">{% trans "No templates found" %}</h4>
 </div>
 {% else %}
 <div class="row g-4">
@@ -44,9 +45,9 @@
             <div class="card-header d-flex justify-content-between align-items-start">
                 <div>
                     <div class="fw-bold text-warning fs-5">{{ t.name }}</div>
-                    <div class="text-muted small">{{ t.occupation }}{% if t.age %} &middot; age {{ t.age }}{% endif %}</div>
+                    <div class="text-muted small">{{ t.occupation }}{% if t.age %} &middot; {% blocktrans with age=t.age %}age {{ age }}{% endblocktrans %}{% endif %}</div>
                 </div>
-                <span class="badge bg-secondary ms-2 mt-1">Template</span>
+                <span class="badge bg-secondary ms-2 mt-1">{% trans "Template" %}</span>
             </div>
 
             <div class="card-body d-flex flex-column gap-3">
@@ -85,7 +86,7 @@
 
                 {% if t.top_skills %}
                 <div>
-                    <div class="text-muted small mb-1"><i class="fas fa-brain"></i> Key Skills</div>
+                    <div class="text-muted small mb-1"><i class="fas fa-brain"></i> {% trans "Key Skills" %}</div>
                     <div class="d-flex flex-wrap gap-1">
                         {% for skill_name, skill_val in t.top_skills %}
                         <span class="badge bg-secondary">{{ skill_name }} {{ skill_val }}%</span>
@@ -96,7 +97,7 @@
 
                 {% if t.weapons %}
                 <div>
-                    <div class="text-muted small mb-1"><i class="fas fa-fist-raised"></i> Weapons</div>
+                    <div class="text-muted small mb-1"><i class="fas fa-fist-raised"></i> {% trans "Weapons" %}</div>
                     <div class="d-flex flex-wrap gap-1">
                         {% for weapon in t.weapons %}
                         <span class="badge bg-danger bg-opacity-75">{{ weapon }}</span>
@@ -110,17 +111,17 @@
                 <form method="post" action="{% url 'characters:use_template' t.id %}">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-warning w-100">
-                        <i class="fas fa-user-plus me-1"></i> Use as My Character
+                        <i class="fas fa-user-plus me-1"></i> {% trans "Use as My Character" %}
                     </button>
                 </form>
                 {% if can_manage_templates %}
                 <a href="{% url 'characters:template_edit' t.id %}" class="btn btn-outline-info w-100 mt-2">
-                    <i class="fas fa-pen me-1"></i> Edit Template
+                    <i class="fas fa-pen me-1"></i> {% trans "Edit Template" %}
                 </a>
-                <form method="post" action="{% url 'characters:template_delete' t.id %}" class="mt-2" onsubmit="return confirm('Delete template {{ t.name|escapejs }}? This cannot be undone.');">
+                <form method="post" action="{% url 'characters:template_delete' t.id %}" class="mt-2" onsubmit="return confirm('{% blocktrans with name=t.name %}Delete template {{ name }}? This cannot be undone.{% endblocktrans %}');">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-outline-danger w-100">
-                        <i class="fas fa-trash-alt me-1"></i> Delete Template
+                        <i class="fas fa-trash-alt me-1"></i> {% trans "Delete Template" %}
                     </button>
                 </form>
                 {% endif %}

@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
 {% block title %}{{ scenario.name }} – Cthulhu RPG{% endblock %}
 
@@ -33,7 +34,7 @@
   <div class="d-flex gap-2 align-items-center flex-wrap">
     <span class="px-2 py-1 rounded border border-warning small">
       <i class="fas fa-clock me-1 text-warning"></i>
-      <span class="text-muted me-1">Day</span><span id="session-day">{{ scenario.in_game_day }}</span>
+      <span class="text-muted me-1">{% trans "Day" %}</span><span id="session-day">{{ scenario.in_game_day }}</span>
       <span class="text-muted mx-1">•</span>
       <span id="session-time">{{ scenario.in_game_time|date:"H:i" }}</span>
     </span>
@@ -44,7 +45,7 @@
     </button>
     {% endif %}
     {% if is_keeper %}
-    <a href="{% url 'scenarios:manage' scenario.id %}" class="btn btn-sm btn-warning"><i class="fas fa-crown me-1"></i>Manage</a>
+    <a href="{% url 'scenarios:manage' scenario.id %}" class="btn btn-sm btn-warning"><i class="fas fa-crown me-1"></i>{% trans "Manage" %}</a>
     {% endif %}
   </div>
 </div>
@@ -58,9 +59,9 @@
     <div class="card-header text-warning">
       <i class="fas fa-skull me-2"></i>
       {% if character and not character.is_alive %}
-      {{ character.name }} has perished. Select a new character to continue.
+      {% blocktrans with name=character.name %}{{ name }} has perished. Select a new character to continue.{% endblocktrans %}
       {% else %}
-      You haven't selected a character yet. Choose one to play.
+      {% trans "You haven't selected a character yet. Choose one to play." %}
       {% endif %}
     </div>
     <div class="card-body">
@@ -80,11 +81,11 @@
           </div>
           {% endfor %}
         </div>
-        <button type="submit" class="btn btn-warning btn-sm"><i class="fas fa-check me-1"></i>Play selected character</button>
+        <button type="submit" class="btn btn-warning btn-sm"><i class="fas fa-check me-1"></i>{% trans "Play selected character" %}</button>
       </form>
       {% else %}
-      <p class="text-muted mb-2">You have no living characters available.</p>
-      <a href="{% url 'characters:create' %}" class="btn btn-outline-warning btn-sm"><i class="fas fa-plus me-1"></i>Create a new character</a>
+      <p class="text-muted mb-2">{% trans "You have no living characters available." %}</p>
+      <a href="{% url 'characters:create' %}" class="btn btn-outline-warning btn-sm"><i class="fas fa-plus me-1"></i>{% trans "Create a new character" %}</a>
       {% endif %}
     </div>
   </div>
@@ -92,20 +93,21 @@
 
 <div class="mb-3">
   <div class="session-panel">
-  <h6 class="text-warning mb-1"><i class="fas fa-globe me-1"></i>Public Session Notes</h6>
-  <div id="public-notes" class="session-note text-muted">{{ scenario.public_notes|default:'No public notes yet.' }}</div>
+  <h6 class="text-warning mb-1"><i class="fas fa-globe me-1"></i>{% trans "Public Session Notes" %}</h6>
+  {% trans "No public notes yet." as no_notes_str %}
+  <div id="public-notes" class="session-note text-muted">{{ scenario.public_notes|default:no_notes_str }}</div>
   </div>
 </div>
 
 {% if scenario_player %}
 <div class="mb-3">
   <div class="session-panel">
-  <h6 class="text-warning mb-1"><i class="fas fa-user-secret me-1"></i>Your Private Session Notes</h6>
+  <h6 class="text-warning mb-1"><i class="fas fa-user-secret me-1"></i>{% trans "Your Private Session Notes" %}</h6>
   <form id="private-notes-form" method="post" action="{% url 'scenarios:player_private_notes' scenario.id %}">
     {% csrf_token %}
-    <textarea name="private_notes" id="private-notes" class="form-control form-control-sm session-private-notes" placeholder="Only you can see these notes.">{{ scenario_player.private_notes }}</textarea>
+    <textarea name="private_notes" id="private-notes" class="form-control form-control-sm session-private-notes" placeholder="{% trans "Only you can see these notes." %}">{{ scenario_player.private_notes }}</textarea>
     <div class="d-flex align-items-center gap-2 mt-2">
-      <button type="submit" class="btn btn-sm btn-outline-warning" id="save-private-notes-btn"><i class="fas fa-save me-1"></i>Save</button>
+      <button type="submit" class="btn btn-sm btn-outline-warning" id="save-private-notes-btn"><i class="fas fa-save me-1"></i>{% trans "Save" %}</button>
       <small class="text-muted session-status" id="private-notes-status"></small>
     </div>
   </form>
@@ -118,7 +120,7 @@
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content" style="background:var(--shadow);border:1px solid var(--gold);">
       <div class="modal-header" style="border-bottom:1px solid var(--gold);">
-        <h5 class="modal-title text-warning"><i class="fas fa-bell me-2"></i>Session Messages</h5>
+        <h5 class="modal-title text-warning"><i class="fas fa-bell me-2"></i>{% trans "Session Messages" %}</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
@@ -131,7 +133,7 @@
 {% endif %}
 
 <div class="text-center mt-3">
-  <a href="{% url 'scenarios:list' %}" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Back to Scenarios</a>
+  <a href="{% url 'scenarios:list' %}" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>{% trans "Back to Scenarios" %}</a>
 </div>
 
 {% include 'characters/_character_sheet_modals.html' %}
@@ -141,6 +143,17 @@
 {% block extra_js %}
 {% include 'characters/_character_sheet_scripts.html' %}
 <script>
+const I18N = {
+  custom: '{% trans "Custom" %}',
+  dodge: '{% trans "Dodge" %}',
+  dodgeDesc: '{% trans "Avoid attacks by moving out of the way" %}',
+  noImprovedSkills: '{% trans "No improved skills yet." %}',
+  hideDefaultSkills: '{% trans "Hide default skills" %}',
+  showMore: (n) => `{% trans "Show more" %} (${n} {% trans "default skills" %})`,
+  addCustomSkill: '{% trans "Add Custom Skill" %}',
+  prepared: '{% trans "Prepared" %}',
+  weapons: '{% trans "Weapons" %}',
+};
 (function initPlayerSessionLiveView() {
   const dayEl = document.getElementById('session-day');
   const timeEl = document.getElementById('session-time');
@@ -267,7 +280,7 @@
       const badge = document.createElement('span');
       badge.className = 'badge bg-info text-dark ms-1';
       badge.style.fontSize = '0.7rem';
-      badge.textContent = 'Custom';
+      badge.textContent = I18N.custom;
       name.appendChild(badge);
     }
 
@@ -311,7 +324,7 @@
       empty.className = 'skill-item';
       const emptyName = document.createElement('span');
       emptyName.className = 'skill-name';
-      emptyName.textContent = 'No improved skills yet.';
+      emptyName.textContent = I18N.noImprovedSkills;
       empty.appendChild(emptyName);
       skillsGrid.appendChild(empty);
     }
@@ -335,15 +348,15 @@
       toggleBtn.addEventListener('click', () => {
         defaultSkillsWrap.classList.toggle('show');
         toggleBtn.textContent = defaultSkillsWrap.classList.contains('show')
-          ? 'Hide default skills'
-          : `Show more (${defaultSkills.length} default skills)`;
+          ? I18N.hideDefaultSkills
+          : I18N.showMore(defaultSkills.length);
       });
 
       if (wasDefaultSkillsOpen) {
         defaultSkillsWrap.classList.add('show');
-        toggleBtn.textContent = 'Hide default skills';
+        toggleBtn.textContent = I18N.hideDefaultSkills;
       } else {
-        toggleBtn.textContent = `Show more (${defaultSkills.length} default skills)`;
+        toggleBtn.textContent = I18N.showMore(defaultSkills.length);
       }
 
       fragment.appendChild(toggleBtn);
@@ -353,7 +366,7 @@
     if (canAddCustomSkill) {
       const addSkillBtn = document.createElement('div');
       addSkillBtn.className = 'add-skill-btn';
-      addSkillBtn.innerHTML = '<i class="fas fa-plus"></i> Add Custom Skill';
+      addSkillBtn.innerHTML = `<i class="fas fa-plus"></i> ${I18N.addCustomSkill}`;
       addSkillBtn.addEventListener('click', () => {
         if (typeof window.showAddSkillModal === 'function') {
           window.showAddSkillModal();
@@ -384,9 +397,9 @@
     combatGrid.dataset.sheetCombatGrid = '';
 
     combatGrid.appendChild(makeSkillItem({
-      name: 'Dodge',
+      name: I18N.dodge,
       value: dodgeValue,
-      description: 'Avoid attacks by moving out of the way',
+      description: I18N.dodgeDesc,
     }, 'combat'));
     combatSkills.forEach((skill) => combatGrid.appendChild(makeSkillItem(skill, 'combat')));
     fragment.appendChild(combatGrid);
@@ -395,7 +408,7 @@
     if (weapons.length) {
       const weaponsHeader = document.createElement('div');
       weaponsHeader.className = 'compact-header';
-      weaponsHeader.innerHTML = '<i class="fas fa-crosshairs"></i> Weapons';
+      weaponsHeader.innerHTML = `<i class="fas fa-crosshairs"></i> ${I18N.weapons}`;
       fragment.appendChild(weaponsHeader);
 
       const weaponsWrap = document.createElement('div');
@@ -412,7 +425,7 @@
         if (weapon.is_prepared) {
           const prepared = document.createElement('span');
           prepared.className = 'text-success';
-          prepared.textContent = ' [Prepared]';
+          prepared.textContent = ` [${I18N.prepared}]`;
           row.appendChild(prepared);
         }
 
