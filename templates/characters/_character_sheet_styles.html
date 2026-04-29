@@ -140,7 +140,7 @@
         transform: translateY(-50%);
         font-weight: bold;
         font-size: 0.72rem;
-        z-index: 2;
+        z-index: 3;
         text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.9);
         color: white;
     }
@@ -149,9 +149,9 @@
         height: 18px;
         background: rgba(0, 0, 0, 0.4);
         border-radius: 9px;
-        overflow: hidden;
         border: 1px solid rgba(255, 255, 255, 0.2);
         position: relative;
+        overflow: hidden;
     }
 
     .stat-fill {
@@ -163,6 +163,17 @@
 
     .hp-fill { --fill-color: #dc3545; --fill-light: #ff6b6b; }
     .san-fill { --fill-color: #28a745; --fill-light: #66bb6a; }
+
+    .san-madness-threshold {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: rgba(255, 80, 80, 0.85);
+        box-shadow: 0 0 4px rgba(255, 60, 60, 0.7);
+        pointer-events: none;
+        z-index: 2;
+    }
     .mp-fill { --fill-color: #007bff; --fill-light: #42a5f5; }
     .luck-fill { --fill-color: #ffc107; --fill-light: #ffeb3b; }
 

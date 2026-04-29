@@ -152,6 +152,7 @@
 {% trans "Add Custom Skill" as wiaddCustomSkill %}
 {% trans "Prepared" as wiprepared %}
 {% trans "Weapons" as wiweapons %}
+{% trans "Madness threshold" as wimadnessThreshold %}
 <script>
 const I18N = {
   custom: '{{ wicustom|escapejs }}',
@@ -163,6 +164,7 @@ const I18N = {
   addCustomSkill: '{{ wiaddCustomSkill|escapejs }}',
   prepared: '{{ wiprepared|escapejs }}',
   weapons: '{{ wiweapons|escapejs }}',
+  madnessThreshold: '{{ wimadnessThreshold|escapejs }}',
 };
 (function initPlayerSessionLiveView() {
   const dayEl = document.getElementById('session-day');
@@ -583,6 +585,16 @@ const I18N = {
         const statValue = root.querySelector(`[data-stat-value="${key}"]`);
         if (statValue) statValue.textContent = String(value ?? '');
       });
+      const power = payload.stats.power;
+      const sanityMax = payload.resources?.sanity?.max;
+      if (power != null && sanityMax) {
+        const threshold = root.querySelector('.san-madness-threshold');
+        if (threshold) {
+          const pct = (power * 0.2) / Math.max(sanityMax, 1) * 100;
+          threshold.style.left = `${pct}%`;
+          threshold.title = `${I18N.madnessThreshold}: ${Math.round(power * 0.2)}`;
+        }
+      }
     }
 
     renderSkillsSection(payload);

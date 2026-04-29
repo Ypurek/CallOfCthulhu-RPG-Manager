@@ -1040,3 +1040,6 @@ msgstr "Представляє формальну освіту, накопиче
 
 msgid "Tracks how often chance favors the investigator when facts, timing, or fate could go either way."
 msgstr "Відстежує, як часто випадок сприяє слідчому, коли факти, час чи доля можуть схилитися в будь-який бік."
+
+msgid "Madness threshold"
+msgstr "Поріг безумства"

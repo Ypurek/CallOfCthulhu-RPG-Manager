@@ -240,14 +240,15 @@ def _derive_secondary_stats(stats, cthulhu_mythos=0):
     hp_max = max((_to_int(stats.get('strength')) + _to_int(stats.get('constitution'))) // 10, 1)
     mp_max = max(_to_int(stats.get('power')) // 5, 1)
     sanity_max = max(99 - _to_int(cthulhu_mythos, 0, 0, 99), 0)
+    sanity_current = min(_to_int(stats.get('power')), sanity_max)
     return {
         'hp_max': hp_max,
         'hp_current': hp_max,
         'mp_max': mp_max,
         'mp_current': mp_max,
-        'sanity_start': sanity_max,
+        'sanity_start': sanity_current,
         'sanity_max': sanity_max,
-        'sanity_current': sanity_max,
+        'sanity_current': sanity_current,
     }
 
 

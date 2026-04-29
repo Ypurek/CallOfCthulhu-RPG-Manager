@@ -31,10 +31,11 @@ def split(value, arg):
 
 @register.filter
 def percentage(value, total):
-    """Calculate percentage: (value / total) * 100"""
+    """Calculate percentage: (value / total) * 100. Returns a string with period decimal separator to avoid locale-aware formatting breaking CSS width values."""
     try:
         if float(total) == 0:
-            return 0
-        return (float(value) / float(total)) * 100
+            return "0"
+        result = (float(value) / float(total)) * 100
+        return f"{result:.4f}"
     except (ValueError, TypeError):
-        return 0
+        return "0"

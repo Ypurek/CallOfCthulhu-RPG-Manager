@@ -29,6 +29,7 @@
             <div class="stat-bar{% if status_adjustable %} stat-bar-adjustable{% endif %}"{% if status_adjustable %} data-adjust-target="sanity"{% endif %}>
                 <div class="stat-fill san-fill" data-resource-fill="sanity" style="width: {{ sheet.character.sanity_current|percentage:sheet.character.sanity_max }}%"></div>
                 <div class="stat-text" data-resource-text="sanity">{{ sheet.character.sanity_current }}/{{ sheet.character.sanity_max }}</div>
+                <div class="san-madness-threshold" style="left: {{ sheet.character.power|mul:0.2|percentage:sheet.character.sanity_max }}%" title="{% trans 'Madness threshold' %}: {{ sheet.character.power|mul:0.2|floatformat:0 }}"></div>
             </div>
         </div>
 
