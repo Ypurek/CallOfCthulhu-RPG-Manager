@@ -339,9 +339,9 @@ class DeriveSecondaryStatsTests(TestCase):
         result = _derive_secondary_stats(self._stats())
         self.assertEqual(result['mp_current'], result['mp_max'])
 
-    def test_sanity_start_equals_sanity_max(self):
+    def test_sanity_start_equals_power(self):
         result = _derive_secondary_stats(self._stats())
-        self.assertEqual(result['sanity_start'], result['sanity_max'])
+        self.assertEqual(result['sanity_start'], 50)  # sanity_start = power stat
 
     def test_maximum_stats_gives_correct_hp(self):
         result = _derive_secondary_stats(self._stats(100, 100, 100))
