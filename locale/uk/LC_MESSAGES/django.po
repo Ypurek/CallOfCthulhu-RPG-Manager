@@ -1043,3 +1043,189 @@ msgstr "Відстежує, як часто випадок сприяє слід
 
 msgid "Madness threshold"
 msgstr "Поріг безумства"
+
+# --- Modal UI strings ---
+msgid "Characteristic"
+msgstr "Характеристика"
+
+msgid "Regular"
+msgstr "Звичайний"
+
+msgid "Hard"
+msgstr "Складний"
+
+msgid "Extreme"
+msgstr "Екстремальний"
+
+msgid "Skill Value (%)"
+msgstr "Значення навички (%)"
+
+msgid "e.g., Computer Use"
+msgstr "напр., Комп'ютер"
+
+msgid "Spells"
+msgstr "Заклинання"
+
+# --- Join scenario strings ---
+msgid "Join Scenario"
+msgstr "Приєднатися до сценарію"
+
+msgid "Choose your character"
+msgstr "Оберіть персонажа"
+
+msgid "Join with Selected Character"
+msgstr "Приєднатися з обраним персонажем"
+
+msgid "You have no alive characters available to join this scenario."
+msgstr "У вас немає живих персонажів, доступних для приєднання до цього сценарію."
+
+msgid "Create a character"
+msgstr "Створити персонажа"
+
+msgid "No public notes yet."
+msgstr "Публічних нотаток ще немає."
+
+# --- Skill descriptions ---
+msgid "Your level of income and social class standing."
+msgstr "Ваш рівень доходу та соціальний статус."
+
+msgid "Skill in handling money, financial records, and identifying irregularities in accounts."
+msgstr "Навичка роботи з грошима, фінансовими записами та виявлення порушень у рахунках."
+
+msgid "The ability to study people through observation and analysis of behavior, customs, traditions, and culture."
+msgstr "Здатність вивчати людей через спостереження та аналіз поведінки, звичаїв, традицій і культури."
+
+msgid "Estimate the value, authenticity, and condition of property, antiques, or traded goods."
+msgstr "Оцінка вартості, справжності та стану майна, антикваріату чи товарів."
+
+msgid "Lets you date and identify traces of past cultures and distinguish fakes from different historical periods."
+msgstr "Дозволяє датувати та ідентифікувати сліди минулих культур і відрізняти підробки різних епох."
+
+msgid "Training to operate aircraft safely, including takeoff, navigation, and landing under normal conditions."
+msgstr "Навичка безпечного керування літаком: зліт, навігація та посадка в нормальних умовах."
+
+msgid "Ability to find books, newspapers, and archival records. Usually requires several hours of research."
+msgstr "Здатність знаходити книги, газети та архівні записи. Зазвичай потребує кількох годин досліджень."
+
+msgid "Ability to fight in close combat with fists, knives, clubs, axes, swords, and similar melee weapons."
+msgstr "Здатність битися в ближньому бою кулаками, ножами, дубинами, сокирами, мечами та подібною зброєю."
+
+msgid "Scale walls, trees, ropes, and difficult surfaces while managing fatigue and risk."
+msgstr "Підніматися по стінах, деревах, мотузках та складних поверхнях, долаючи втому та ризик."
+
+msgid "Win people over through likability, warmth, and social grace."
+msgstr "Завоювати прихильність людей через симпатичність, теплоту та соціальний такт."
+
+msgid "Convince others through reason, trust, and social influence rather than threats or trickery."
+msgstr "Переконувати інших за допомогою розуму, довіри та соціального впливу, а не погроз чи хитрощів."
+
+msgid "Create or evaluate works in a chosen art or craft specialty, from painting to carpentry."
+msgstr "Створювати або оцінювати твори у вибраній мистецькій чи ремісничій спеціалізації."
+
+msgid "Detect faint sounds, conversations, movement, or other important audio cues."
+msgstr "Виявляти слабкі звуки, розмови, рух або інші важливі аудіо-сигнали."
+
+msgid "Move quietly, stay out of sight, and avoid drawing attention."
+msgstr "Рухатися тихо, лишатися непоміченим та уникати привертання уваги."
+
+msgid "Move effectively in water, stay afloat, and handle difficult currents or long distances."
+msgstr "Ефективно рухатися у воді, триматися на плаву та долати течії чи великі відстані."
+
+msgid "Allows concealing items on your person, pickpocketing, and quick manipulations without being noticed."
+msgstr "Приховування предметів при собі, кишенькові крадіжки та швидкі маніпуляції непомітно для оточуючих."
+
+msgid "Skill in driving cars, motorcycles, or trucks, including road rules, basic repairs, and high-pressure chases."
+msgstr "Керування автомобілями, мотоциклами або вантажівками, включаючи правила дорожнього руху та погоні."
+
+msgid "Install, diagnose, and repair electrical circuits, wiring, and powered devices."
+msgstr "Встановлення, діагностика та ремонт електричних схем, проводки та електроприладів."
+
+msgid "Use of trains, bulldozers, cranes, excavators, tractors, and other heavy equipment."
+msgstr "Керування поїздами, бульдозерами, кранами, екскаваторами, тракторами та іншою важкою технікою."
+
+msgid "Use quick lies, excuses, and verbal misdirection to confuse or mislead a target."
+msgstr "Швидка брехня, відмовки та словесна маніпуляція для введення в оману цілі."
+
+msgid "Bows and crossbows require dedicated training and are treated as a separate weapon skill."
+msgstr "Луки та арбалети потребують спеціального навчання і розглядаються як окрема зброярська навичка."
+
+msgid "Skill in using handguns safely and effectively. Anyone can attempt a basic shot with a pistol."
+msgstr "Навичка безпечного та ефективного використання пістолетів. Будь-хто може спробувати базовий постріл."
+
+msgid "Skill in using rifles, shotguns, carbines, and similar long firearms."
+msgstr "Навичка використання гвинтівок, дробовиків, карабінів та подібної довгоствольної зброї."
+
+msgid "Diagnose and treat injuries and illnesses using professional medical knowledge."
+msgstr "Діагностика та лікування травм і хвороб за допомогою професійних медичних знань."
+
+msgid "Diagnosis and treatment of injuries and illnesses using professional medical knowledge."
+msgstr "Діагностика та лікування травм і хвороб за допомогою професійних медичних знань."
+
+msgid "Provide immediate treatment to stabilize injuries and prevent conditions from worsening."
+msgstr "Надання негайної допомоги для стабілізації травм та запобігання погіршенню стану."
+
+msgid "Knowledge of historical events, timelines, notable figures, and the context of past eras."
+msgstr "Знання історичних подій, хронологій, видатних осіб та контексту минулих епох."
+
+msgid "Use threats, presence, or fear to pressure others into compliance or silence."
+msgstr "Використання погроз, присутності або страху для примусу до слухняності чи мовчання."
+
+msgid "Identify cults by symbols, clothing, terminology, and rites, and recognize rituals, spells, and magical artifacts."
+msgstr "Ідентифікація культів за символами, одягом, термінологією та обрядами; розпізнавання ритуалів і артефактів."
+
+msgid "Reading, writing, and clear expression in your native language, including nuanced comprehension."
+msgstr "Читання, письмо та чітке вираження думок рідною мовою, включаючи тонке розуміння."
+
+msgid "Reading, writing, and speaking a non-native language with practical fluency."
+msgstr "Читання, письмо та розмова нерідною мовою з практичним рівнем вільного володіння."
+
+msgid "Knowledge of legal systems, procedures, crimes, and rights relevant to investigations."
+msgstr "Знання правових систем, процедур, злочинів та прав, що стосуються розслідувань."
+
+msgid "Open, bypass, or repair locks and simple security mechanisms."
+msgstr "Відкривання, обхід або ремонт замків і простих систем безпеки."
+
+msgid "Maintain and fix mechanical systems such as engines, mechanisms, and tools."
+msgstr "Обслуговування та ремонт механічних систем: двигунів, механізмів та інструментів."
+
+msgid "Alter appearance, clothing, and mannerisms to pass as someone else or avoid recognition."
+msgstr "Зміна зовнішності, одягу та манер для маскування під іншу людину або уникнення впізнавання."
+
+msgid "Notice concealed objects, subtle clues, or details others might miss."
+msgstr "Помічати приховані предмети, тонкі підказки або деталі, що інші можуть пропустити."
+
+msgid "Once per month, can restore Sanity (1d3) or lose 1d6 on a failed attempt. A success may briefly suppress a phobia, mania, or hallucination."
+msgstr "Раз на місяць може відновити Розум (1d3) або втратити 1d6 при невдачі. Успіх може короткочасно пригнітити фобію, манію або галюцинацію."
+
+msgid "Recognize plants, animals, weather patterns, and ecological signs in the environment."
+msgstr "Розпізнавати рослини, тварин, погодні закономірності та екологічні ознаки навколишнього середовища."
+
+msgid "Skill in riding horses, donkeys, camels, or similar animals, including basic care and handling."
+msgstr "Навичка їзди верхи на конях, ослах, верблюдах тощо, включаючи базовий догляд та поводження."
+
+msgid "Understanding and application of scientific principles in a chosen field such as chemistry, biology, or physics."
+msgstr "Розуміння та застосування наукових принципів у вибраній галузі: хімії, біології або фізиці."
+
+msgid "The ability to follow people, vehicles, or animals and interpret the traces they leave behind."
+msgstr "Здатність відстежувати людей, транспортні засоби або тварин та інтерпретувати залишені ними сліди."
+
+msgid "Any hand-sized object can be thrown at a target within range (up to extreme STR in meters), including knives, grenades, stones, and spears."
+msgstr "Будь-який предмет розміром з долоню можна кинути в ціль у межах дальності, включаючи ножі, гранати, каміння та списи."
+
+msgid "Find your way in unfamiliar areas using maps, compass bearings, landmarks, or stars."
+msgstr "Орієнтуватися в незнайомій місцевості за допомогою карт, компаса, орієнтирів або зірок."
+
+msgid "Wilderness survival skills: hunting, shelter building, finding food and water, and recognizing dangerous plants and animals."
+msgstr "Навички виживання: полювання, будівництво укриттів, пошук їжі та води, розпізнавання небезпечних рослин і тварин."
+
+msgid "Form judgments about motives and personality traits and detect deception. The Keeper may roll secretly to mislead investigators."
+msgstr "Оцінювати мотиви та риси особистості й виявляти обман. Хранитель може кидати кубик таємно, щоб ввести слідчих в оману."
+
+msgid "Represents knowledge of the cosmic horrors and forbidden truths. This skill is gained only through exposure to the supernatural or studying forbidden tomes. Contact with the Mythos always threatens Sanity."
+msgstr "Відображає знання космічних жахів і заборонених істин. Ця навичка набувається лише через контакт із надприродним або вивчення заборонених томів. Контакт з Міфосом завжди загрожує Розуму."
+
+msgid "You can reduce falling damage by half with a successful use. Typical jump distance is roughly equal to the character's height."
+msgstr "Успішне використання зменшує шкоду від падіння вдвічі. Типова дальність стрибка приблизно дорівнює зросту персонажа."
+
+msgid "Instinctively evade an incoming attack by stepping aside or ducking."
+msgstr "Інстинктивно ухилитися від атаки, відступивши убік або пригнувшись."

@@ -2,7 +2,8 @@
 <div class="skills-grid" data-sheet-skills-grid>
     {% for skill in sheet.skills %}
     {% trans skill.name as skill_name_t %}
-    <div class="skill-item" onclick="showSkillModal('{{ skill_name_t|escapejs }}', {{ skill.value }}, '{{ skill.description|escapejs }}')">
+    {% trans skill.description as skill_desc_t %}
+    <div class="skill-item" onclick="showSkillModal('{{ skill_name_t|escapejs }}', {{ skill.value }}, '{{ skill_desc_t|escapejs }}')">
         {% if show_skill_checkboxes %}<input type="checkbox" class="skill-update-check" title="" data-character-id="{{ sheet.character.id }}" data-skill-id="{{ skill.id }}" {% if skill.needs_update %}checked{% endif %} onclick="event.stopPropagation(); toggleSkillNeedsUpdate(this)">{% endif %}
         <span class="skill-name">
             {{ skill_name_t }}
@@ -29,7 +30,8 @@
     <div class="skills-grid">
         {% for skill in sheet.default_skills %}
         {% trans skill.name as skill_name_t %}
-        <div class="skill-item" onclick="showSkillModal('{{ skill_name_t|escapejs }}', {{ skill.value }}, '{{ skill.description|escapejs }}')">
+        {% trans skill.description as skill_desc_t %}
+    <div class="skill-item" onclick="showSkillModal('{{ skill_name_t|escapejs }}', {{ skill.value }}, '{{ skill_desc_t|escapejs }}')">
             {% if show_skill_checkboxes %}<input type="checkbox" class="skill-update-check" title="" data-character-id="{{ sheet.character.id }}" data-skill-id="{{ skill.id }}" {% if skill.needs_update %}checked{% endif %} onclick="event.stopPropagation(); toggleSkillNeedsUpdate(this)">{% endif %}
             <span class="skill-name">
                 {{ skill_name_t }}

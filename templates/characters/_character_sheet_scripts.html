@@ -32,24 +32,13 @@ function toggleSection(section, sheetId) {
     }
 }
 
-function showStatModal(name, value) {
-    const descriptions = {
-        'STR': 'Physical strength and muscle power',
-        'CON': 'Health, stamina, and resistance to disease',
-        'DEX': 'Agility, reflexes, and coordination',
-        'INT': 'Intelligence, memory, and reasoning',
-        'POW': 'Willpower, magical power, and spiritual strength',
-        'SIZ': 'Physical size and mass',
-        'APP': 'Physical attractiveness and charisma',
-        'EDU': 'Formal education and knowledge'
-    };
-
+function showStatModal(name, value, description) {
     document.getElementById('statModalTitle').textContent = name;
     document.getElementById('statValue').textContent = value;
     document.getElementById('statRegular').textContent = value;
     document.getElementById('statHard').textContent = Math.floor(value / 2);
     document.getElementById('statExtreme').textContent = Math.floor(value / 5);
-    document.getElementById('statDescription').textContent = descriptions[name] || '';
+    document.getElementById('statDescription').textContent = description || '';
 
     bootstrap.Modal.getOrCreateInstance(document.getElementById('statModal')).show();
 }

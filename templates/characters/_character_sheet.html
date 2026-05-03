@@ -52,19 +52,27 @@
 
     <div class="characteristics" id="{{ sid }}-characteristics">
         {% if show_fight_extras %}
-        <div class="characteristic" onclick="showStatModal('{% trans "STR" %}', {{ sheet.character.strength }})">
+        {% trans "Physical strength and muscle power." as desc_str %}
+        {% trans "Health, stamina, and resistance." as desc_con %}
+        {% trans "Agility, reflexes, and coordination." as desc_dex %}
+        {% trans "Reasoning, memory, and problem solving." as desc_int %}
+        {% trans "Willpower, spirit, and magical resilience." as desc_pow %}
+        {% trans "Body size, mass, and physical presence." as desc_siz %}
+        {% trans "Looks, charm, and social impression." as desc_app %}
+        {% trans "Schooling, learned knowledge, and expertise." as desc_edu %}
+        <div class="characteristic" onclick="showStatModal('{% trans "STR" %}', {{ sheet.character.strength }}, '{{ desc_str|escapejs }}')">
             <div class="stat-name">{% trans "STR" %}</div>
             <div class="stat-value" data-stat-value="strength">{{ sheet.character.strength }}</div>
         </div>
-        <div class="characteristic" onclick="showStatModal('{% trans "CON" %}', {{ sheet.character.constitution }})">
+        <div class="characteristic" onclick="showStatModal('{% trans "CON" %}', {{ sheet.character.constitution }}, '{{ desc_con|escapejs }}')">
             <div class="stat-name">{% trans "CON" %}</div>
             <div class="stat-value" data-stat-value="constitution">{{ sheet.character.constitution }}</div>
         </div>
-        <div class="characteristic" onclick="showStatModal('{% trans "DEX" %}', {{ sheet.character.dexterity }})">
+        <div class="characteristic" onclick="showStatModal('{% trans "DEX" %}', {{ sheet.character.dexterity }}, '{{ desc_dex|escapejs }}')">
             <div class="stat-name">{% trans "DEX" %}</div>
             <div class="stat-value" data-stat-value="dexterity">{{ sheet.character.dexterity }}</div>
         </div>
-        <div class="characteristic" onclick="showStatModal('{% trans "INT" %}', {{ sheet.character.intelligence }})">
+        <div class="characteristic" onclick="showStatModal('{% trans "INT" %}', {{ sheet.character.intelligence }}, '{{ desc_int|escapejs }}')">
             <div class="stat-name">{% trans "INT" %}</div>
             <div class="stat-value" data-stat-value="intelligence">{{ sheet.character.intelligence }}</div>
         </div>
@@ -72,19 +80,19 @@
             <div class="stat-name">{% trans "Build" %}</div>
             <div class="stat-value">{{ sheet.character.build }}</div>
         </div>
-        <div class="characteristic" onclick="showStatModal('{% trans "POW" %}', {{ sheet.character.power }})">
+        <div class="characteristic" onclick="showStatModal('{% trans "POW" %}', {{ sheet.character.power }}, '{{ desc_pow|escapejs }}')">
             <div class="stat-name">{% trans "POW" %}</div>
             <div class="stat-value" data-stat-value="power">{{ sheet.character.power }}</div>
         </div>
-        <div class="characteristic" onclick="showStatModal('{% trans "SIZ" %}', {{ sheet.character.size }})">
+        <div class="characteristic" onclick="showStatModal('{% trans "SIZ" %}', {{ sheet.character.size }}, '{{ desc_siz|escapejs }}')">
             <div class="stat-name">{% trans "SIZ" %}</div>
             <div class="stat-value" data-stat-value="size">{{ sheet.character.size }}</div>
         </div>
-        <div class="characteristic" onclick="showStatModal('{% trans "APP" %}', {{ sheet.character.appearance }})">
+        <div class="characteristic" onclick="showStatModal('{% trans "APP" %}', {{ sheet.character.appearance }}, '{{ desc_app|escapejs }}')">
             <div class="stat-name">{% trans "APP" %}</div>
             <div class="stat-value" data-stat-value="appearance">{{ sheet.character.appearance }}</div>
         </div>
-        <div class="characteristic" onclick="showStatModal('{% trans "EDU" %}', {{ sheet.character.education }})">
+        <div class="characteristic" onclick="showStatModal('{% trans "EDU" %}', {{ sheet.character.education }}, '{{ desc_edu|escapejs }}')">
             <div class="stat-name">{% trans "EDU" %}</div>
             <div class="stat-value" data-stat-value="education">{{ sheet.character.education }}</div>
         </div>
