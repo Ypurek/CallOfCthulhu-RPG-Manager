@@ -1,13 +1,14 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Join {{ scenario.name }} – Cthulhu RPG{% endblock %}
+{% block title %}{% blocktrans with name=scenario.name %}Join {{ name }} – Cthulhu RPG{% endblocktrans %}{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
   <div class="col-md-7">
     <div class="card">
       <div class="card-header">
-        <i class="fas fa-door-open me-2"></i>Join Scenario
+        <i class="fas fa-door-open me-2"></i>{% trans "Join Scenario" %}
       </div>
       <div class="card-body">
         <h4 class="text-warning">{{ scenario.name }}</h4>
@@ -15,7 +16,7 @@
         {% if scenario.description %}<p>{{ scenario.description }}</p>{% endif %}
 
         <hr>
-        <h5>Choose your character</h5>
+        <h5>{% trans "Choose your character" %}</h5>
 
         {% if available_characters %}
         <form method="post">
@@ -38,14 +39,14 @@
             {% endfor %}
           </div>
           <button type="submit" class="btn btn-warning w-100">
-            <i class="fas fa-check me-1"></i>Join with Selected Character
+            <i class="fas fa-check me-1"></i>{% trans "Join with Selected Character" %}
           </button>
         </form>
         {% else %}
         <div class="alert alert-danger">
           <i class="fas fa-exclamation-triangle me-2"></i>
-          You have no alive characters available to join this scenario.
-          <a href="{% url 'characters:create' %}" class="alert-link">Create a character</a> first.
+          {% trans "You have no alive characters available to join this scenario." %}
+          <a href="{% url 'characters:create' %}" class="alert-link">{% trans "Create a character" %}</a>
         </div>
         {% endif %}
       </div>
@@ -53,4 +54,3 @@
   </div>
 </div>
 {% endblock %}
-

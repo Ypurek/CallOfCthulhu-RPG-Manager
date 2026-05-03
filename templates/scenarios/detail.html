@@ -19,6 +19,9 @@
   .message-item.unread { background: rgba(212, 175, 55, 0.12); border-left-color: #d4af37; }
   .message-meta { font-size: .78rem; color: rgba(245,245,220,.7); }
   .message-content { white-space: pre-wrap; color: var(--cream); }
+  .modal-dark { background: var(--shadow); border: 1px solid var(--gold); }
+  .modal-dark-header { border-bottom: 1px solid var(--gold); }
+  .character-select-label { cursor: pointer; border: 1px solid rgba(212,175,55,.3); background: rgba(255,255,255,.04); }
 </style>
 {% endblock %}
 
@@ -71,7 +74,7 @@
         <div class="row g-2 mb-2">
           {% for ch in available_characters %}
           <div class="col-12">
-            <label class="d-flex align-items-center gap-2 p-2 rounded" style="cursor:pointer;border:1px solid rgba(212,175,55,.3);background:rgba(255,255,255,.04);">
+            <label class="d-flex align-items-center gap-2 p-2 rounded character-select-label">
               <input type="radio" name="character_id" value="{{ ch.id }}" class="form-check-input mt-0" required>
               <span>
                 <span class="fw-bold text-warning">{{ ch.name }}</span>
@@ -118,8 +121,8 @@
 {% if not is_keeper %}
 <div class="modal fade" id="playerMessagesModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content" style="background:var(--shadow);border:1px solid var(--gold);">
-      <div class="modal-header" style="border-bottom:1px solid var(--gold);">
+    <div class="modal-content modal-dark">
+      <div class="modal-header modal-dark-header">
         <h5 class="modal-title text-warning"><i class="fas fa-bell me-2"></i>{% trans "Session Messages" %}</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
@@ -153,6 +156,7 @@
 {% trans "Prepared" as wiprepared %}
 {% trans "Weapons" as wiweapons %}
 {% trans "Madness threshold" as wimadnessThreshold %}
+{% trans "No public notes yet." as winoPublicNotes %}
 <script>
 const I18N = {
   custom: '{{ wicustom|escapejs }}',
@@ -165,6 +169,7 @@ const I18N = {
   prepared: '{{ wiprepared|escapejs }}',
   weapons: '{{ wiweapons|escapejs }}',
   madnessThreshold: '{{ wimadnessThreshold|escapejs }}',
+  noPublicNotes: '{{ winoPublicNotes|escapejs }}',
 };
 (function initPlayerSessionLiveView() {
   const dayEl = document.getElementById('session-day');
@@ -603,14 +608,18 @@ const I18N = {
     renderSpellsSection(payload);
   }
 
+  let snapshotPending = false;
+
   async function refreshSnapshot() {
+    if (snapshotPending) return;
+    snapshotPending = true;
     try {
       const res = await fetch(snapshotUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
       const data = await res.json();
       if (!data.ok) return;
       if (dayEl) dayEl.textContent = data.day;
       if (timeEl) timeEl.textContent = data.time;
-      if (notesEl) notesEl.textContent = data.public_notes || 'No public notes yet.';
+      if (notesEl) notesEl.textContent = data.public_notes || I18N.noPublicNotes;
       notifyOnNewMessage(safeNumber(data.unread_messages, 0));
       if (sheetRoot && data.has_alive_character && data.sheet) {
         patchSheet(sheetRoot, data.sheet);
@@ -619,6 +628,8 @@ const I18N = {
       }
     } catch (err) {
       console.warn('Snapshot refresh failed', err);
+    } finally {
+      snapshotPending = false;
     }
   }
 
@@ -655,7 +666,3 @@ const I18N = {
 })();
 </script>
 {% endblock %}
-
-
-
-

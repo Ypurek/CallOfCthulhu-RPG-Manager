@@ -196,16 +196,14 @@
 
             <div class="mb-3">
                 <label for="player_notes" class="form-label">Player Notes</label>
-                <textarea class="form-control" id="player_notes" rows="4"
-                          style="background: rgba(44, 44, 44, 0.8); border-color: var(--gold); color: var(--cream);"
+                <textarea class="form-control input-dark" id="player_notes" rows="4"
                           onchange="updateNotes('player_notes', this.value)">{{ character.player_notes }}</textarea>
             </div>
 
             {% if user.is_keeper %}
             <div class="mb-3">
                 <label for="keeper_notes" class="form-label">Keeper Notes</label>
-                <textarea class="form-control" id="keeper_notes" rows="4"
-                          style="background: rgba(44, 44, 44, 0.8); border-color: var(--gold); color: var(--cream);"
+                <textarea class="form-control input-dark" id="keeper_notes" rows="4"
                           onchange="updateNotes('keeper_notes', this.value)">{{ character.keeper_notes }}</textarea>
             </div>
             {% endif %}
@@ -246,21 +244,20 @@
 <!-- Add Custom Skill Modal -->
 <div class="modal fade" id="addSkillModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
-        <div class="modal-content" style="background: rgba(30, 30, 30, 0.95); border: 2px solid var(--gold);">
-            <div class="modal-header" style="border-bottom: 1px solid var(--gold);">
-                <h5 class="modal-title" style="color: var(--gold); font-weight: bold;">Add Custom Skill</h5>
+        <div class="modal-content modal-dark">
+            <div class="modal-header modal-dark-header">
+                <h5 class="modal-title text-warning fw-bold">Add Custom Skill</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body" style="color: var(--cream);">
                 <div class="mb-3">
-                    <label for="add-skill-name" class="form-label" style="color: var(--gold); font-weight: bold;">Skill Name *</label>
-                    <input id="add-skill-name" type="text" class="form-control"
-                           style="background: rgba(44, 44, 44, 0.9); border: 1px solid var(--gold); color: var(--cream);"
+                    <label for="add-skill-name" class="form-label text-warning fw-bold">Skill Name *</label>
+                    <input id="add-skill-name" type="text" class="form-control input-dark"
                            placeholder="e.g., Ancient Languages">
                 </div>
-                <small style="color: rgba(245, 245, 220, 0.7);">New skill will be created with value 1. You can adjust it later.</small>
+                <small class="text-muted">New skill will be created with value 1. You can adjust it later.</small>
             </div>
-            <div class="modal-footer" style="border-top: 1px solid var(--gold);">
+            <div class="modal-footer modal-dark-footer">
                 <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-success" id="confirm-add-skill-btn" style="background: #28a745; border-color: #28a745;">
                     <i class="fas fa-plus"></i> Add Skill

@@ -1,5 +1,6 @@
+{% load i18n %}
 {% if sheet.spells %}
-<div class="compact-header"><i class="fas fa-magic"></i> Spells</div>
+<div class="compact-header"><i class="fas fa-magic"></i> {% trans "Spells" %}</div>
 <div data-sheet-spells>
     {% for spell in sheet.spells %}
         <div class="weapon-item">

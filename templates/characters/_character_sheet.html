@@ -12,7 +12,7 @@
     </div>
 
     <div class="description-popup" id="{{ sid }}-description" data-sheet-description>
-        {{ sheet.character.description|default:"Athletic build. Short brown hair styled fashionably. Raised in Catholic traditions with a healthy respect for the supernatural. Stubborn, hot-tempered, likes to argue. Never walks under ladders." }}
+        {{ sheet.character.description }}
     </div>
 
     <div class="stat-container">
@@ -163,7 +163,7 @@
         <a href="{% url 'characters:edit_wizard' sheet.character.id %}" class="btn-compact">
             <i class="fas fa-edit"></i> {% trans "Edit" %}
         </a>
-        <button type="button" class="btn-compact" data-bs-toggle="modal" data-bs-target="#deleteCharacterModal-{{ sid }}" style="border-color: rgba(220, 53, 69, 0.7); color: #ff8f98;">
+        <button type="button" class="btn-compact btn-compact-danger" data-bs-toggle="modal" data-bs-target="#deleteCharacterModal-{{ sid }}">
             <i class="fas fa-trash-alt"></i> {% trans "Delete" %}
         </button>
         <a href="{% url 'characters:list' %}" class="btn-compact">
@@ -173,8 +173,8 @@
 
     <div class="modal fade" id="deleteCharacterModal-{{ sid }}" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content" style="background: rgba(24, 24, 24, 0.98); border: 1px solid rgba(220, 53, 69, 0.55); color: var(--cream);">
-                <div class="modal-header" style="border-bottom-color: rgba(220, 53, 69, 0.35);">
+            <div class="modal-content modal-danger">
+                <div class="modal-header modal-danger-header">
                     <h5 class="modal-title text-danger"><i class="fas fa-exclamation-triangle me-2"></i>{% trans "Delete Character" %}</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
@@ -182,7 +182,7 @@
                     <p class="mb-2">{% blocktrans with name=sheet.character.name %}Are you sure you want to permanently delete <strong>{{ name }}</strong>?{% endblocktrans %}</p>
                     <p class="mb-0 text-muted">{% trans "This action cannot be undone." %}</p>
                 </div>
-                <div class="modal-footer" style="border-top-color: rgba(220, 53, 69, 0.35);">
+                <div class="modal-footer modal-danger-footer">
                     <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
                     <form method="post" action="{% url 'characters:delete' sheet.character.id %}" class="m-0">
                         {% csrf_token %}
@@ -197,11 +197,3 @@
     {% endif %}
 </div>
 {% endwith %}
-
-
-
-
-
-
-
-

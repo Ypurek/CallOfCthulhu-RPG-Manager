@@ -51,7 +51,7 @@ function showStatModal(name, value) {
     document.getElementById('statExtreme').textContent = Math.floor(value / 5);
     document.getElementById('statDescription').textContent = descriptions[name] || '';
 
-    new bootstrap.Modal(document.getElementById('statModal')).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('statModal')).show();
 }
 
 function showSkillModal(name, value, description) {
@@ -62,7 +62,7 @@ function showSkillModal(name, value, description) {
     document.getElementById('skillExtreme').textContent = Math.floor(value / 5);
     document.getElementById('skillDescription').textContent = description || '';
 
-    new bootstrap.Modal(document.getElementById('skillModal')).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('skillModal')).show();
 }
 
 function showAddSkillModal() {
@@ -95,13 +95,10 @@ function toggleDefaultSkills(sheetId) {
 
 
 function addCustomSkill() {
-    const name = document.getElementById('skillName').value;
-    const value = document.getElementById('skillValueInput').value;
-
-    if (name && value) {
-        alert(`Added skill: ${name} (${value}%)`);
-        bootstrap.Modal.getInstance(document.getElementById('addSkillModal')).hide();
-    }
+    const name = (document.getElementById('skillName')?.value || '').trim();
+    const value = document.getElementById('skillValueInput')?.value;
+    if (!name || !value) return;
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('addSkillModal')).hide();
 }
 
 function initEffectBadgePopovers(scope) {

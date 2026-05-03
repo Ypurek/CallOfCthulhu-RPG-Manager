@@ -558,21 +558,20 @@
 <!-- New Skill Modal -->
 <div class="modal fade" id="newSkillModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
-        <div class="modal-content" style="background: rgba(30, 30, 30, 0.95); border: 2px solid var(--gold);">
-            <div class="modal-header" style="border-bottom: 1px solid var(--gold);">
-                <h5 class="modal-title" id="newSkillModalTitle" style="color: var(--gold); font-weight: bold;">{% trans "Add Custom Skill" %}</h5>
+        <div class="modal-content modal-dark">
+            <div class="modal-header modal-dark-header">
+                <h5 class="modal-title text-warning fw-bold" id="newSkillModalTitle">{% trans "Add Custom Skill" %}</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body" style="color: var(--cream);">
                 <div class="mb-3">
-                    <label for="new-skill-name" class="form-label" style="color: var(--gold); font-weight: bold;">{% trans "Skill Name" %} *</label>
-                    <input id="new-skill-name" type="text" class="form-control"
-                           style="background: rgba(44, 44, 44, 0.9); border: 1px solid var(--gold); color: var(--cream);"
+                    <label for="new-skill-name" class="form-label text-warning fw-bold">{% trans "Skill Name" %} *</label>
+                    <input id="new-skill-name" type="text" class="form-control input-dark"
                            placeholder="{% trans 'e.g., Ancient Languages' %}">
                 </div>
-                <small id="newSkillModalHelp" style="color: rgba(245, 245, 220, 0.7);">{% trans "New skill will be created with value 1. You can adjust it later." %}</small>
+                <small class="text-muted">{% trans "New skill will be created with value 1. You can adjust it later." %}</small>
             </div>
-            <div class="modal-footer" style="border-top: 1px solid var(--gold);">
+            <div class="modal-footer modal-dark-footer">
                 <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
                 <button type="button" class="btn btn-success" id="confirm-new-skill-btn" style="background: #28a745; border-color: #28a745;">
                     <i class="fas fa-plus"></i> <span id="confirm-new-skill-text">{% trans "Add Skill" %}</span>

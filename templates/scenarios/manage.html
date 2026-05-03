@@ -15,6 +15,15 @@
   .tpl-option { cursor:pointer; padding:.4rem .6rem; border-radius:.3rem; }
   .tpl-option:hover, .tpl-option.selected { background: rgba(212,175,55,.2); }
   #qrcode canvas, #qrcode img { display: block; margin: 0 auto; }
+  .btn-time { font-size: .72rem; }
+  .label-tiny { font-size: .72rem; }
+  .input-time { width: 7rem; }
+  .input-day  { width: 4.5rem; }
+  .status-select { color: #fff; border-color: rgba(255,255,255,.3); cursor: pointer; font-size: .8rem; padding: .2rem .5rem; }
+  .status-select.status-active    { background: #1a7a2e; }
+  .status-select.status-paused    { background: #8b5c1c; }
+  .status-select.status-completed { background: #555; }
+  .status-select.status-planning  { background: var(--gold); color: var(--shadow); }
   .cast-wrapper { border: 1px solid rgba(212,175,55,.25); border-radius: .5rem; background: rgba(0,0,0,.22); }
   .cast-wrapper.dead-card { opacity: .6; }
   .cast-header { display: flex; justify-content: space-between; align-items: center; gap: .75rem; flex-wrap: wrap; padding: .75rem 1rem; border-bottom: 1px solid rgba(212,175,55,.2); }
@@ -90,8 +99,7 @@
         {% if scenario.place %}<i class="fas fa-map-marker-alt me-1"></i>{{ scenario.place }} &bull; {% endif %}
         <form method="post" action="{% url 'scenarios:update_status' scenario.id %}" class="d-inline" id="status-dropdown-form">
           {% csrf_token %}
-          <select name="status" id="status-select" class="form-select form-select-sm d-inline-block w-auto"
-            style="background:{% if scenario.status == 'ACTIVE' %}#1a7a2e{% elif scenario.status == 'PAUSED' %}#8b5c1c{% elif scenario.status == 'COMPLETED' %}#555{% else %}var(--gold){% endif %};color:#fff;border-color:rgba(255,255,255,.3);cursor:pointer;font-size:.8rem;padding:.2rem .5rem;"
+          <select name="status" id="status-select" class="form-select form-select-sm d-inline-block w-auto status-select status-{{ scenario.status|lower }}"
             onchange="this.form.submit()" title="Change scenario status">
             <option value="PLANNING" {% if scenario.status == 'PLANNING' %}selected{% endif %}>Not Started</option>
             <option value="ACTIVE" {% if scenario.status == 'ACTIVE' %}selected{% endif %}>Ongoing</option>
@@ -111,25 +119,25 @@
       <div class="d-flex align-items-center gap-1 flex-wrap">
         <form method="post" action="{% url 'scenarios:advance_time' scenario.id %}" class="time-advance-form d-inline">
           {% csrf_token %}<input type="hidden" name="minutes" value="30">
-          <button type="submit" class="btn btn-outline-warning btn-sm py-0 px-1" style="font-size:.72rem;" title="+30 min">+30m</button>
+          <button type="submit" class="btn btn-outline-warning btn-sm py-0 px-1 btn-time" title="+30 min">+30m</button>
         </form>
         <form method="post" action="{% url 'scenarios:advance_time' scenario.id %}" class="time-advance-form d-inline">
           {% csrf_token %}<input type="hidden" name="minutes" value="60">
-          <button type="submit" class="btn btn-outline-warning btn-sm py-0 px-1" style="font-size:.72rem;" title="+1 hour">+1h</button>
+          <button type="submit" class="btn btn-outline-warning btn-sm py-0 px-1 btn-time" title="+1 hour">+1h</button>
         </form>
         <form method="post" action="{% url 'scenarios:advance_time' scenario.id %}" class="time-advance-form d-inline">
           {% csrf_token %}<input type="hidden" name="minutes" value="120">
-          <button type="submit" class="btn btn-outline-warning btn-sm py-0 px-1" style="font-size:.72rem;" title="+2 hours">+2h</button>
+          <button type="submit" class="btn btn-outline-warning btn-sm py-0 px-1 btn-time" title="+2 hours">+2h</button>
         </form>
         <form method="post" action="{% url 'scenarios:advance_time' scenario.id %}" class="time-advance-form d-inline">
           {% csrf_token %}<input type="hidden" name="minutes" value="300">
-          <button type="submit" class="btn btn-outline-warning btn-sm py-0 px-1" style="font-size:.72rem;" title="+5 hours">+5h</button>
+          <button type="submit" class="btn btn-outline-warning btn-sm py-0 px-1 btn-time" title="+5 hours">+5h</button>
         </form>
         <form method="post" action="{% url 'scenarios:advance_time' scenario.id %}" class="time-advance-form d-inline">
           {% csrf_token %}<input type="hidden" name="minutes" value="1440">
-          <button type="submit" class="btn btn-outline-secondary btn-sm py-0 px-1" style="font-size:.72rem;" title="+1 day">+1d</button>
+          <button type="submit" class="btn btn-outline-secondary btn-sm py-0 px-1 btn-time" title="+1 day">+1d</button>
         </form>
-        <button class="btn btn-outline-light btn-sm py-0 px-1" style="font-size:.72rem;" type="button"
+        <button class="btn btn-outline-light btn-sm py-0 px-1 btn-time" type="button"
           data-bs-toggle="collapse" data-bs-target="#setTimeCollapse" aria-expanded="false" title="Set time">
           <i class="fas fa-pen"></i>
         </button>
@@ -138,14 +146,12 @@
         <form method="post" action="{% url 'scenarios:set_time' scenario.id %}" class="d-flex gap-2 align-items-end flex-wrap mt-1" id="set-time-form">
           {% csrf_token %}
           <div>
-            <label class="form-label small text-muted mb-0" style="font-size:.72rem;">Time</label>
-            <input type="time" name="in_game_time" class="form-control form-control-sm"
-              style="width:7rem;" value="{{ scenario.in_game_time|date:'H:i' }}">
+            <label class="form-label small text-muted mb-0 label-tiny">Time</label>
+            <input type="time" name="in_game_time" class="form-control form-control-sm input-time" value="{{ scenario.in_game_time|date:'H:i' }}">
           </div>
           <div>
-            <label class="form-label small text-muted mb-0" style="font-size:.72rem;">Day</label>
-            <input type="number" name="in_game_day" class="form-control form-control-sm"
-              style="width:4.5rem;" min="1" value="{{ scenario.in_game_day }}">
+            <label class="form-label small text-muted mb-0 label-tiny">Day</label>
+            <input type="number" name="in_game_day" class="form-control form-control-sm input-day" min="1" value="{{ scenario.in_game_day }}">
           </div>
           <button type="submit" class="btn btn-warning btn-sm py-0"><i class="fas fa-check"></i> Set</button>
         </form>
@@ -472,8 +478,8 @@
 <!-- NPC Actions Modal -->
 <div class="modal fade" id="npcActionsModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content" style="background:var(--shadow);border:1px solid var(--gold);">
-      <div class="modal-header" style="border-bottom:1px solid var(--gold);">
+    <div class="modal-content modal-dark">
+      <div class="modal-header modal-dark-header">
         <h5 class="modal-title text-warning"><i class="fas fa-user-plus me-2"></i>Add NPC</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
@@ -545,8 +551,8 @@
 <!-- QR Code Modal -->
 <div class="modal fade" id="qrModal" tabindex="-1">
   <div class="modal-dialog modal-sm modal-dialog-centered">
-    <div class="modal-content" style="background:var(--shadow);border:1px solid var(--gold);">
-      <div class="modal-header" style="border-bottom:1px solid var(--gold);">
+    <div class="modal-content modal-dark">
+      <div class="modal-header modal-dark-header">
         <h5 class="modal-title text-warning"><i class="fas fa-qrcode me-2"></i>Invite QR Code</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
@@ -561,15 +567,15 @@
 <!-- NPC Template Preview Modal -->
 <div class="modal fade" id="npcPreviewModal" tabindex="-1">
   <div class="modal-dialog modal-lg">
-    <div class="modal-content" style="background:var(--shadow);border:1px solid var(--gold);">
-      <div class="modal-header" style="border-bottom:1px solid var(--gold);">
+    <div class="modal-content modal-dark">
+      <div class="modal-header modal-dark-header">
         <h5 class="modal-title text-warning" id="previewModalTitle">NPC Preview</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body" id="previewModalBody">
         <!-- Filled by JS -->
       </div>
-      <div class="modal-footer" style="border-top:1px solid var(--gold);">
+      <div class="modal-footer modal-dark-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
         <button type="button" class="btn btn-warning" id="modalAddBtn">
           <i class="fas fa-plus me-1"></i>Add NPC
@@ -585,8 +591,8 @@
   data-add-url-template="{% url 'scenarios:character_add_effect' scenario.id 0 %}"
   data-remove-url-template="{% url 'scenarios:character_remove_effect' scenario.id 0 0 %}">
   <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content" style="background:var(--shadow);border:1px solid var(--gold);">
-      <div class="modal-header" style="border-bottom:1px solid var(--gold);">
+    <div class="modal-content modal-dark">
+      <div class="modal-header modal-dark-header">
         <h5 class="modal-title text-warning" id="effectsModalTitle"><i class="fas fa-heartbeat me-2"></i>Manage effects</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
@@ -744,8 +750,8 @@ function applyTimeUpdateResponse(data) {
   if (!data || !data.ok) return;
   document.getElementById('game-time-text').textContent = data.in_game_time;
   document.getElementById('game-day-text').textContent = 'Day ' + data.in_game_day;
-  if (Array.isArray(data.updated_cards) && data.updated_cards.length > 0) {
-    patchUpdatedCards(data.updated_cards || []);
+  if (Array.isArray(data.updated_cards) && data.updated_cards.length) {
+    patchUpdatedCards(data.updated_cards);
   }
 }
 
@@ -857,22 +863,22 @@ if (tplSearch) {
 function buildPreviewHtml(tpl) {
   const stats = tpl.stats || {};
   const statHtml = Object.entries(stats).map(([k, v]) =>
-    `<span class="stat-mini">${k} ${v}</span>`).join(' ');
+    `<span class="stat-mini">${escapeHtmlAttr(k)} ${escapeHtmlAttr(String(v))}</span>`).join(' ');
   return `
-    <h5 class="text-warning">${tpl.name}</h5>
-    ${tpl.occupation ? `<p class="text-muted mb-1"><em>${tpl.occupation}</em></p>` : ''}
-    ${tpl.description ? `<p class="small mb-3">${tpl.description}</p>` : ''}
+    <h5 class="text-warning">${escapeHtmlAttr(tpl.name)}</h5>
+    ${tpl.occupation ? `<p class="text-muted mb-1"><em>${escapeHtmlAttr(tpl.occupation)}</em></p>` : ''}
+    ${tpl.description ? `<p class="small mb-3">${escapeHtmlAttr(tpl.description)}</p>` : ''}
     <div class="row g-2 mb-3">
       <div class="col-4 text-center">
-        <div class="fw-bold text-danger">${tpl.hp_current}/${tpl.hp_max}</div>
+        <div class="fw-bold text-danger">${escapeHtmlAttr(String(tpl.hp_current))}/${escapeHtmlAttr(String(tpl.hp_max))}</div>
         <small class="text-muted">HP</small>
       </div>
       <div class="col-4 text-center">
-        <div class="fw-bold text-success">${tpl.san_max}</div>
+        <div class="fw-bold text-success">${escapeHtmlAttr(String(tpl.san_max))}</div>
         <small class="text-muted">SAN max</small>
       </div>
       <div class="col-4 text-center">
-        <div class="fw-bold text-primary">${tpl.mp_max}</div>
+        <div class="fw-bold text-primary">${escapeHtmlAttr(String(tpl.mp_max))}</div>
         <small class="text-muted">MP max</small>
       </div>
     </div>
@@ -1329,7 +1335,7 @@ if (modalAddBtn) {
 
   function renderCurrentEffects(effects) {
     if (!effects || !effects.length) {
-      currentListEl.innerHTML = '<p class="mb-0" style="color: rgba(245, 245, 220, 0.82);">No active effects.</p>';
+      currentListEl.innerHTML = '<p class="mb-0 text-muted">No active effects.</p>';
       return;
     }
     currentListEl.innerHTML = effects.map((effect) => `
@@ -1411,7 +1417,7 @@ if (modalAddBtn) {
     if (!btn) return;
     activeCharacterId = Number(btn.dataset.characterId);
     activeCharacterName = btn.dataset.characterName || 'Character';
-    titleEl.innerHTML = `<i class="fas fa-heartbeat me-2"></i>Manage effects - ${activeCharacterName}`;
+    titleEl.innerHTML = `<i class="fas fa-heartbeat me-2"></i>Manage effects - ${escapeHtmlAttr(activeCharacterName)}`;
     loadEffects();
   });
 
@@ -1468,7 +1474,11 @@ if (modalAddBtn) {
     `).join('');
   }
 
+  let messagesPending = false;
+
   async function loadMessages() {
+    if (messagesPending) return;
+    messagesPending = true;
     try {
       const res = await fetch(messagesUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
       const data = await res.json();
@@ -1476,6 +1486,8 @@ if (modalAddBtn) {
       renderMessages(data.messages || []);
     } catch (err) {
       console.warn('Failed to load keeper messages', err);
+    } finally {
+      messagesPending = false;
     }
   }
 
@@ -1512,32 +1524,3 @@ if (modalAddBtn) {
 })();
 </script>
 {% endblock %}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

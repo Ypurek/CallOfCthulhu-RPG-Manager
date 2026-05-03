@@ -6,13 +6,13 @@
         {% if show_skill_checkboxes %}<input type="checkbox" class="skill-update-check" title="" data-character-id="{{ sheet.character.id }}" data-skill-id="{{ skill.id }}" {% if skill.needs_update %}checked{% endif %} onclick="event.stopPropagation(); toggleSkillNeedsUpdate(this)">{% endif %}
         <span class="skill-name">
             {{ skill_name_t }}
-            {% if skill.is_custom %}<span class="badge bg-info text-dark ms-1" style="font-size: 0.7rem;">{% trans "Custom" %}</span>{% endif %}
+            {% if skill.is_custom %}<span class="badge bg-info text-dark ms-1 badge-xs">{% trans "Custom" %}</span>{% endif %}
         </span>
         <span class="skill-value">{{ skill.value }}%</span>
     </div>
     {% empty %}
     <div class="skill-item">
-        <span class="skill-name">No improved skills yet.</span>
+        <span class="skill-name">{% trans "No improved skills yet." %}</span>
     </div>
     {% endfor %}
 </div>
@@ -33,7 +33,7 @@
             {% if show_skill_checkboxes %}<input type="checkbox" class="skill-update-check" title="" data-character-id="{{ sheet.character.id }}" data-skill-id="{{ skill.id }}" {% if skill.needs_update %}checked{% endif %} onclick="event.stopPropagation(); toggleSkillNeedsUpdate(this)">{% endif %}
             <span class="skill-name">
                 {{ skill_name_t }}
-                {% if skill.is_custom %}<span class="badge bg-info text-dark ms-1" style="font-size: 0.7rem;">{% trans "Custom" %}</span>{% endif %}
+                {% if skill.is_custom %}<span class="badge bg-info text-dark ms-1 badge-xs">{% trans "Custom" %}</span>{% endif %}
             </span>
             <span class="skill-value">{{ skill.value }}%</span>
         </div>
@@ -44,6 +44,6 @@
 
 {% if sheet.can_add_custom_skill %}
 <div class="add-skill-btn" onclick="showAddSkillModal()">
-    <i class="fas fa-plus"></i> Add Custom Skill
+    <i class="fas fa-plus"></i> {% trans "Add Custom Skill" %}
 </div>
 {% endif %}

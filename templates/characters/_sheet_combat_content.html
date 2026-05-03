@@ -11,7 +11,7 @@
         {% if show_skill_checkboxes %}<input type="checkbox" class="skill-update-check" title="" data-character-id="{{ sheet.character.id }}" data-skill-id="{{ skill.id }}" {% if skill.needs_update %}checked{% endif %} onclick="event.stopPropagation(); toggleSkillNeedsUpdate(this)">{% endif %}
         <span class="skill-name">
             {{ skill_name_t }}
-            {% if skill.is_custom %}<span class="badge bg-info text-dark ms-1" style="font-size: 0.7rem;">{% trans "Custom" %}</span>{% endif %}
+            {% if skill.is_custom %}<span class="badge bg-info text-dark ms-1 badge-xs">{% trans "Custom" %}</span>{% endif %}
         </span>
         <span class="skill-value">{{ skill.value }}%</span>
     </div>
@@ -20,12 +20,12 @@
 
 
 {% if sheet.weapons %}
-    <div class="compact-header"><i class="fas fa-crosshairs"></i> Weapons</div>
+    <div class="compact-header"><i class="fas fa-crosshairs"></i> {% trans "Weapons" %}</div>
     <div data-sheet-weapons>
         {% for weapon in sheet.weapons %}
         <div class="weapon-item">
             <strong>{{ weapon.name }}</strong> {{ weapon.damage }}
-            {% if weapon.is_prepared %}<span class="text-success"> ✓ Prepared</span>{% endif %}
+            {% if weapon.is_prepared %}<span class="text-success"> ✓ {% trans "Prepared" %}</span>{% endif %}
         </div>
         {% endfor %}
     </div>

@@ -5,27 +5,25 @@
         margin: 0 auto;
         font-family: 'Cinzel', 'Times New Roman', serif;
         background: transparent;
-        border-radius: 0;
-        box-shadow: none;
         padding: 12px;
         color: var(--cream);
     }
 
     .character-name {
-        font-size: 1.8rem;
+        font-size: clamp(1.4rem, 4vw, 1.8rem);
         font-weight: bold;
         text-align: center;
         color: var(--gold);
         text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
         cursor: pointer;
-        transition: all 0.3s ease;
+        transition: color 0.2s ease, border-bottom-color 0.2s ease;
         margin-bottom: 5px;
         border-bottom: 1px solid transparent;
+        word-break: break-word;
     }
 
     .character-name:hover {
         color: #fff;
-        transform: scale(1.02);
         border-bottom-color: var(--gold);
     }
 
@@ -33,7 +31,7 @@
         text-align: center;
         font-size: 0.9rem;
         color: rgba(245, 245, 220, 0.8);
-        margin-bottom: 20px;
+        margin-bottom: 16px;
     }
 
     .character-effects {
@@ -45,10 +43,10 @@
     .effect-badge {
         display: inline-block;
         margin: 0 2px 4px 2px;
-        padding: 0.24rem 0.48rem;
+        padding: 0.24rem 0.6rem;
         border: 1px solid rgba(255, 255, 255, 0.28);
         border-radius: 999px;
-        font-size: 0.68rem;
+        font-size: 0.72rem;
         font-weight: 700;
         letter-spacing: 0.2px;
         text-shadow: none;
@@ -111,22 +109,23 @@
         background: rgba(44, 44, 44, 0.95);
         border: 1px solid var(--gold);
         border-radius: 8px;
-        padding: 15px;
-        margin: 10px 0;
+        padding: 12px 14px;
+        margin: 8px 0;
         font-style: italic;
         line-height: 1.4;
+        font-size: 0.9rem;
     }
 
+    /* ── Resource bars ───────────────────────────────────────── */
     .stat-container {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 8px;
-        margin-bottom: 20px;
+        margin-bottom: 16px;
     }
 
     .stat-bar-container {
         position: relative;
-        margin-bottom: 8px;
     }
 
     .stat-bar-adjustable {
@@ -143,12 +142,13 @@
         z-index: 3;
         text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.9);
         color: white;
+        pointer-events: none;
     }
 
     .stat-bar {
-        height: 18px;
+        height: 22px;
         background: rgba(0, 0, 0, 0.4);
-        border-radius: 9px;
+        border-radius: 11px;
         border: 1px solid rgba(255, 255, 255, 0.2);
         position: relative;
         overflow: hidden;
@@ -156,13 +156,15 @@
 
     .stat-fill {
         height: 100%;
-        border-radius: 9px;
+        border-radius: 11px;
         transition: width 0.4s ease;
         background: linear-gradient(90deg, var(--fill-color), var(--fill-light));
     }
 
-    .hp-fill { --fill-color: #dc3545; --fill-light: #ff6b6b; }
+    .hp-fill  { --fill-color: #dc3545; --fill-light: #ff6b6b; }
     .san-fill { --fill-color: #28a745; --fill-light: #66bb6a; }
+    .mp-fill  { --fill-color: #007bff; --fill-light: #42a5f5; }
+    .luck-fill{ --fill-color: #ffc107; --fill-light: #ffeb3b; }
 
     .san-madness-threshold {
         position: absolute;
@@ -174,8 +176,6 @@
         pointer-events: none;
         z-index: 2;
     }
-    .mp-fill { --fill-color: #007bff; --fill-light: #42a5f5; }
-    .luck-fill { --fill-color: #ffc107; --fill-light: #ffeb3b; }
 
     .stat-text {
         position: absolute;
@@ -183,7 +183,7 @@
         top: 50%;
         transform: translateY(-50%);
         font-weight: 900;
-        font-size: 0.85rem;
+        font-size: 0.82rem;
         z-index: 2;
         text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95), 0 0 6px rgba(0, 0, 0, 0.75);
         color: #fffdf2;
@@ -192,8 +192,10 @@
         padding: 1px 6px;
         border-radius: 999px;
         letter-spacing: 0.5px;
+        pointer-events: none;
     }
 
+    /* ── Characteristics grid ────────────────────────────────── */
     .characteristics {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
@@ -205,17 +207,16 @@
         background: linear-gradient(145deg, rgba(212, 175, 55, 0.35), rgba(212, 175, 55, 0.45));
         border: 2px solid rgba(212, 175, 55, 0.8);
         border-radius: 8px;
-        padding: 6px 5px;
+        padding: 6px 4px;
         text-align: center;
         cursor: pointer;
-        transition: all 0.3s ease;
+        transition: background 0.2s ease, box-shadow 0.2s ease;
         font-size: 0.8rem;
         box-shadow: 0 2px 6px rgba(212, 175, 55, 0.3);
     }
 
     .characteristic:hover {
         background: linear-gradient(145deg, rgba(212, 175, 55, 0.5), rgba(212, 175, 55, 0.6));
-        transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(212, 175, 55, 0.5);
         border-color: rgba(212, 175, 55, 1);
     }
@@ -223,7 +224,7 @@
     .characteristic .stat-name {
         font-weight: bold;
         color: #fff;
-        font-size: 0.75rem;
+        font-size: 0.72rem;
         line-height: 1;
         text-transform: uppercase;
         letter-spacing: 0.3px;
@@ -231,22 +232,23 @@
     }
 
     .characteristic .stat-value {
-        font-size: 1.15rem;
+        font-size: 1.1rem;
         font-weight: 900;
         color: #ffff00;
         line-height: 1.2;
         text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9), 0 0 8px rgba(212, 175, 55, 0.6);
     }
 
+    /* ── Collapsible sections ────────────────────────────────── */
     .skills-container {
-        margin-bottom: 12px;
+        margin-bottom: 10px;
     }
 
     .section-header {
         background: linear-gradient(90deg, rgba(26, 60, 46, 0.78), rgba(44, 44, 44, 0.55));
         border: 1px solid rgba(150, 185, 165, 0.35);
         border-radius: 6px;
-        padding: 8px 10px;
+        padding: 9px 12px;
         cursor: pointer;
         display: flex;
         justify-content: space-between;
@@ -254,14 +256,14 @@
         font-weight: bold;
         font-size: 0.9rem;
         line-height: 1.2;
-        transition: all 0.3s ease;
+        transition: background 0.2s ease, border-color 0.2s ease;
         margin-bottom: 4px;
+        user-select: none;
     }
 
     .section-header:hover {
         background: linear-gradient(90deg, rgba(36, 78, 61, 0.86), rgba(58, 58, 58, 0.62));
         border-color: rgba(189, 219, 201, 0.45);
-        transform: translateY(-1px);
     }
 
     .section-header.combat {
@@ -273,9 +275,7 @@
         background: linear-gradient(90deg, rgba(46, 83, 69, 0.88), rgba(64, 78, 70, 0.66));
     }
 
-    .section-header i {
-        font-size: 0.85rem;
-    }
+    .section-header i { font-size: 0.85rem; }
 
     .section-content {
         display: none;
@@ -284,61 +284,68 @@
 
     .section-content.show {
         display: block;
-        animation: slideDown 0.3s ease;
+        animation: slideDown 0.25s ease;
     }
 
     @keyframes slideDown {
-        from { opacity: 0; transform: translateY(-10px); }
-        to { opacity: 1; transform: translateY(0); }
+        from { opacity: 0; transform: translateY(-8px); }
+        to   { opacity: 1; transform: translateY(0); }
     }
 
+    /* ── Skills grid ─────────────────────────────────────────── */
     .skills-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 4px;
-        margin: 8px 0;
+        margin: 6px 0;
     }
 
     .skill-item {
         background: rgba(44, 44, 44, 0.4);
         border-left: 3px solid var(--gold);
         border-radius: 4px;
-        padding: 6px 8px;
+        padding: 7px 8px;
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: background 0.15s ease;
         font-size: 0.85rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 4px;
+        min-width: 0;
     }
 
     .skill-item:hover {
         background: rgba(44, 44, 44, 0.7);
-        transform: translateX(3px);
         border-left-width: 4px;
     }
 
-    .skill-item.combat {
-        border-left-color: #dc3545;
-    }
-
-    .skill-item.combat:hover {
-        border-left-color: #ff6b6b;
-    }
+    .skill-item.combat { border-left-color: #dc3545; }
+    .skill-item.combat:hover { border-left-color: #ff6b6b; }
 
     .skill-name {
         font-size: 0.8rem;
         color: rgba(245, 245, 220, 0.9);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 1;
+        min-width: 0;
     }
 
     .skill-value {
         font-weight: bold;
         color: var(--gold);
-        float: right;
+        flex-shrink: 0;
+        white-space: nowrap;
     }
 
+    /* ── Compact sections (items, weapons) ───────────────────── */
     .compact-section {
         background: rgba(44, 44, 44, 0.3);
         border-radius: 8px;
         padding: 10px;
-        margin: 10px 0;
+        margin: 8px 0;
     }
 
     .compact-header {
@@ -358,7 +365,7 @@
         background: rgba(212, 175, 55, 0.2);
         border: 1px solid rgba(212, 175, 55, 0.4);
         border-radius: 12px;
-        padding: 3px 8px;
+        padding: 3px 10px;
         font-size: 0.75rem;
         color: var(--gold);
     }
@@ -374,22 +381,23 @@
         background: rgba(139, 28, 28, 0.2);
         border: 1px solid rgba(139, 28, 28, 0.4);
         border-radius: 6px;
-        padding: 6px;
+        padding: 6px 8px;
         margin: 2px 0;
         font-size: 0.8rem;
     }
 
+    /* ── Helper buttons ──────────────────────────────────────── */
     .add-skill-btn {
         background: rgba(212, 175, 55, 0.1);
         border: 1px dashed rgba(212, 175, 55, 0.5);
         border-radius: 4px;
-        padding: 6px;
+        padding: 7px;
         text-align: center;
         cursor: pointer;
         color: var(--gold);
         font-size: 0.8rem;
-        transition: all 0.3s ease;
-        margin-top: 8px;
+        transition: background 0.2s ease, border-color 0.2s ease;
+        margin-top: 6px;
     }
 
     .add-skill-btn:hover {
@@ -399,7 +407,7 @@
 
     .toggle-default-btn {
         width: 100%;
-        margin-top: 8px;
+        margin-top: 6px;
         background: rgba(245, 245, 220, 0.08);
         border: 1px solid rgba(245, 245, 220, 0.3);
         color: rgba(245, 245, 220, 0.9);
@@ -408,14 +416,8 @@
         font-size: 0.8rem;
     }
 
-    .default-skills {
-        display: none;
-    }
-
-    .default-skills.show {
-        display: block;
-        margin-top: 8px;
-    }
+    .default-skills { display: none; }
+    .default-skills.show { display: block; margin-top: 6px; }
 
     .notes-textarea {
         width: 100%;
@@ -439,6 +441,7 @@
         gap: 8px;
         margin-top: 20px;
         justify-content: center;
+        flex-wrap: wrap;
     }
 
     .btn-compact {
@@ -448,38 +451,35 @@
         border: 1px solid var(--gold);
         background: rgba(212, 175, 55, 0.1);
         color: var(--gold);
-        transition: all 0.3s ease;
+        transition: background 0.2s ease, color 0.2s ease;
     }
 
     .btn-compact:hover {
         background: var(--gold);
         color: var(--shadow);
-        transform: translateY(-2px);
     }
 
-    .modal {
-        color: #333;
+    .modal { color: #333; }
+
+    /* ── Responsive ──────────────────────────────────────────── */
+    @media (max-width: 480px) {
+        .character-sheet { padding: 8px 6px; }
+
+        .stat-bar { height: 24px; }
+
+        /* Keep 4 cols on small phones — each box is still readable */
+        .characteristics { grid-template-columns: repeat(4, 1fr); gap: 4px; }
+        .characteristic { padding: 5px 2px; }
+        .characteristic .stat-name { font-size: 0.65rem; }
+        .characteristic .stat-value { font-size: 1rem; }
+
+        /* Single-column skills on very narrow screens */
+        .skills-grid { grid-template-columns: 1fr; }
+
+        .skill-item { padding: 8px 10px; }
     }
 
     @media (max-width: 768px) {
-        .character-sheet {
-            max-width: 100%;
-            margin: 0;
-            padding: 8px;
-        }
-
-        .skills-grid {
-            grid-template-columns: 1fr 1fr;
-        }
-
-        .characteristics {
-            grid-template-columns: repeat(2, 1fr);
-        }
+        .character-sheet { max-width: 100%; }
     }
 </style>
-
-
-
-
-
-
