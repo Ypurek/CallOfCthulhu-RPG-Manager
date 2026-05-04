@@ -223,7 +223,7 @@
                     </button>
                   </div>
                   <div class="d-flex gap-2 align-items-center">
-                    <span class="cast-meta">Player {{ card.sp.player.username }} • Joined {{ card.sp.joined_at|date:"d M Y" }}</span>
+                    <span class="cast-meta">{{ card.sp.player.username }}</span>
                     <button type="button" class="btn btn-sm btn-outline-warning manage-effects-btn"
                       data-character-id="{{ card.sp.character.id }}"
                       data-character-name="{{ card.sheet.character.name }}"
