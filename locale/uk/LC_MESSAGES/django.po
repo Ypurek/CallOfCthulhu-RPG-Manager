@@ -940,7 +940,7 @@ msgid "SIZ"
 msgstr "РОЗ"
 
 msgid "APP"
-msgstr "ЗОВ"
+msgstr "ПРИ"
 
 msgid "EDU"
 msgstr "ОСВ"
@@ -1232,3 +1232,168 @@ msgstr "Успішне використання зменшує шкоду від
 
 msgid "Instinctively evade an incoming attack by stepping aside or ducking."
 msgstr "Інстинктивно ухилитися від атаки, відступивши убік або пригнувшись."
+
+# --- Stats/Characteristics ---
+msgid "STR"
+msgstr "СИЛ"
+
+msgid "CON"
+msgstr "СТА"
+
+msgid "DEX"
+msgstr "СПР"
+
+msgid "INT"
+msgstr "ІНТ"
+
+msgid "POW"
+msgstr "ВОЛ"
+
+msgid "SIZ"
+msgstr "РОЗ"
+
+msgid "APP"
+msgstr "ПРИ"
+
+msgid "EDU"
+msgstr "ОСВ"
+
+# --- Skill Names ---
+msgid "Accounting"
+msgstr "Бухгалтерія"
+
+msgid "Anthropology"
+msgstr "Антропологія"
+
+msgid "Appraise"
+msgstr "Оцінювання"
+
+msgid "Archaeology"
+msgstr "Археологія"
+
+msgid "Art/Craft"
+msgstr "Мистецтво/Ремесло"
+
+msgid "Charm"
+msgstr "Чаклунство"
+
+msgid "Climb"
+msgstr "Скалолазання"
+
+msgid "Credit Rating"
+msgstr "Кредитний рейтинг"
+
+msgid "Cthulhu Mythos"
+msgstr "Міфос Ктулху"
+
+msgid "Disguise"
+msgstr "Переряджання"
+
+msgid "Drive Auto"
+msgstr "Водіння автомобіля"
+
+msgid "Fast Talk"
+msgstr "Швидка мова"
+
+msgid "Fighting (Brawl)"
+msgstr "Бійка"
+
+msgid "Firearms (Bow/Crossbow)"
+msgstr "Вогнепальна зброя (Лук/Арбалет)"
+
+msgid "Firearms (Handgun)"
+msgstr "Вогнепальна зброя (Пістолет)"
+
+msgid "Firearms (Rifle/Shotgun)"
+msgstr "Вогнепальна зброя (Гвинтівка/Дробовик)"
+
+msgid "First Aid"
+msgstr "Перша допомога"
+
+msgid "Foreign Language"
+msgstr "Іноземна мова"
+
+msgid "History"
+msgstr "Історія"
+
+msgid "Intimidate"
+msgstr "Залякування"
+
+msgid "Jump"
+msgstr "Стрибок"
+
+msgid "Law"
+msgstr "Право"
+
+msgid "Library Use"
+msgstr "Робота з бібліотекою"
+
+msgid "Listen"
+msgstr "Слухання"
+
+msgid "Locksmith"
+msgstr "Слюсарна справа"
+
+msgid "Medicine"
+msgstr "Медицина"
+
+msgid "Natural World"
+msgstr "Природний світ"
+
+msgid "Navigate"
+msgstr "Навігація"
+
+msgid "Occult"
+msgstr "Окультизм"
+
+msgid "Operate Heavy Machinery"
+msgstr "Керування важкою технікою"
+
+msgid "Own Language"
+msgstr "Рідна мова"
+
+msgid "Persuade"
+msgstr "Переконання"
+
+msgid "Pilot"
+msgstr "Пілотування"
+
+msgid "Psychoanalysis"
+msgstr "Психоаналіз"
+
+msgid "Psychology"
+msgstr "Психологія"
+
+msgid "Repair (Electrical)"
+msgstr "Ремонт (Електричний)"
+
+msgid "Repair (Mechanical)"
+msgstr "Ремонт (Механічний)"
+
+msgid "Ride"
+msgstr "Їзда верхи"
+
+msgid "Science"
+msgstr "Наука"
+
+msgid "Sleight of Hand"
+msgstr "Ловкість рук"
+
+msgid "Spot Hidden"
+msgstr "Помітити прихований"
+
+msgid "Stealth"
+msgstr "Таємність"
+
+msgid "Survival"
+msgstr "Виживання"
+
+msgid "Swim"
+msgstr "Плавання"
+
+msgid "Throw"
+msgstr "Кидання"
+
+msgid "Track"
+msgstr "Стеження"
+

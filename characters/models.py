@@ -1,7 +1,7 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext_lazy as _, gettext
 from core.models import User
 
 
@@ -157,6 +157,16 @@ class Skill(models.Model):
     category = models.CharField(max_length=10, choices=SKILL_CATEGORY_CHOICES)
     base_value = models.IntegerField(default=0)
     description = models.TextField()
+
+    @property
+    def name_uk(self):
+        """Return translated skill name for Ukrainian locale"""
+        return gettext(self.name)
+
+    @property
+    def description_uk(self):
+        """Return translated skill description for Ukrainian locale"""
+        return gettext(self.description)
 
     def __str__(self):
         return self.name

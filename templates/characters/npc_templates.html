@@ -45,29 +45,29 @@
                 {% endif %}
 
                 <div class="d-flex flex-wrap gap-1 justify-content-center">
-                    <span class="badge bg-secondary text-warning fw-bold">STR {{ t.STR }}</span>
-                    <span class="badge bg-secondary text-warning fw-bold">CON {{ t.CON }}</span>
-                    <span class="badge bg-secondary text-warning fw-bold">DEX {{ t.DEX }}</span>
-                    <span class="badge bg-secondary text-warning fw-bold">INT {{ t.INT }}</span>
-                    <span class="badge bg-secondary text-warning fw-bold">POW {{ t.POW }}</span>
-                    <span class="badge bg-secondary text-warning fw-bold">SIZ {{ t.SIZ }}</span>
-                    <span class="badge bg-secondary text-warning fw-bold">APP {{ t.APP }}</span>
-                    <span class="badge bg-secondary text-warning fw-bold">EDU {{ t.EDU }}</span>
-                    <span class="badge bg-warning text-dark fw-bold">LCK {{ t.luck }}</span>
+                    <span class="badge bg-secondary text-warning fw-bold">{% trans "STR" %} {{ t.STR }}</span>
+                    <span class="badge bg-secondary text-warning fw-bold">{% trans "CON" %} {{ t.CON }}</span>
+                    <span class="badge bg-secondary text-warning fw-bold">{% trans "DEX" %} {{ t.DEX }}</span>
+                    <span class="badge bg-secondary text-warning fw-bold">{% trans "INT" %} {{ t.INT }}</span>
+                    <span class="badge bg-secondary text-warning fw-bold">{% trans "POW" %} {{ t.POW }}</span>
+                    <span class="badge bg-secondary text-warning fw-bold">{% trans "SIZ" %} {{ t.SIZ }}</span>
+                    <span class="badge bg-secondary text-warning fw-bold">{% trans "APP" %} {{ t.APP }}</span>
+                    <span class="badge bg-secondary text-warning fw-bold">{% trans "EDU" %} {{ t.EDU }}</span>
+                    <span class="badge bg-warning text-dark fw-bold">{% trans "LCK" %} {{ t.luck }}</span>
                 </div>
 
                 <div class="d-flex gap-4 justify-content-center text-center">
                     <div>
                         <div class="text-danger fw-bold fs-5">{{ t.hp_max }}</div>
-                        <div class="text-muted" style="font-size:.7rem;">HP</div>
+                        <div class="text-muted" style="font-size:.7rem;">{% trans "HP" %}</div>
                     </div>
                     <div>
                         <div class="text-info fw-bold fs-5">{{ t.mp_max }}</div>
-                        <div class="text-muted" style="font-size:.7rem;">MP</div>
+                        <div class="text-muted" style="font-size:.7rem;">{% trans "MP" %}</div>
                     </div>
                     <div>
                         <div class="text-success fw-bold fs-5">{{ t.sanity }}</div>
-                        <div class="text-muted" style="font-size:.7rem;">SAN</div>
+                        <div class="text-muted" style="font-size:.7rem;">{% trans "SAN" %}</div>
                     </div>
                 </div>
 

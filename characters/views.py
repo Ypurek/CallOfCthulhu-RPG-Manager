@@ -9,6 +9,7 @@ from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.db import DatabaseError
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.translation import gettext
 from .models import (
     Character,
     CharacterChangeLog,
@@ -164,7 +165,7 @@ def _build_skill_options_from_draft(draft):
     skill_options = [
         {
             'id': skill.id,
-            'name': skill.name,
+            'name': gettext(skill.name),
             'category': skill.category,
             'value': draft['skills'].get(str(skill.id), skill.base_value),
             'base_value': skill.base_value,
@@ -739,8 +740,8 @@ def _build_character_sheet_context(character, skill_values=None, weapons=None, i
             value = education
         return {
             'id': skill.id,
-            'name': skill.name,
-            'description': skill.description,
+            'name': gettext(skill.name),
+            'description': gettext(skill.description),
             'value': value,
             'base_value': skill.base_value,
             'is_default': value == skill.base_value,
@@ -1249,11 +1250,14 @@ def _load_character_templates():
             info = data.get('character_info', {})
             chars = data.get('characteristics', {})
             skills = data.get('skills', {})
+            status_data = data.get('status', {}) if isinstance(data.get('status'), dict) else {}
+            sanity_data = status_data.get('Sanity', {}) if isinstance(status_data.get('Sanity'), dict) else {}
             hp_max = max((_to_int(chars.get('STR')) + _to_int(chars.get('CON'))) // 10, 1)
             mp_max = max(_to_int(chars.get('POW')) // 5, 1)
-            sanity = max(99 - _to_int(skills.get('Cthulhu_Mythos'), 0, 0, 99), 0)
+            sanity_max = max(99 - _to_int(skills.get('Cthulhu_Mythos'), 0, 0, 99), 0)
+            sanity_current = _to_int(sanity_data.get('current'), min(_to_int(chars.get('POW')), sanity_max), 0, sanity_max)
             top_skills = sorted(
-                [(name.replace('_', ' '), _to_int(value)) for name, value in skills.items() if _to_int(value) > 25],
+                [(gettext(name.replace('_', ' ')), _to_int(value)) for name, value in skills.items() if _to_int(value) > 25],
                 key=lambda x: -x[1],
             )[:6]
             templates.append({
@@ -1273,7 +1277,7 @@ def _load_character_templates():
                 'luck': _to_int(chars.get('Luck')),
                 'hp_max': hp_max,
                 'mp_max': mp_max,
-                'sanity': sanity,
+                'sanity': sanity_current,
                 'top_skills': top_skills,
                 'weapons': [w.get('name', '') for w in data.get('weapons', []) if isinstance(w, dict)],
             })
@@ -1618,10 +1622,13 @@ def _load_npc_templates():
             status_data = data.get('status', {}) if isinstance(data.get('status'), dict) else {}
             hp_data = status_data.get('HP', {}) if isinstance(status_data.get('HP'), dict) else {}
             mp_data = status_data.get('MP', {}) if isinstance(status_data.get('MP'), dict) else {}
+            sanity_data = status_data.get('Sanity', {}) if isinstance(status_data.get('Sanity'), dict) else {}
             hp_max = _to_int(hp_data.get('max'), max((_to_int(chars.get('STR')) + _to_int(chars.get('CON'))) // 10, 1), 1)
             mp_max = _to_int(mp_data.get('max'), max(_to_int(chars.get('POW')) // 5, 1), 1)
+            sanity_max = _to_int(sanity_data.get('max'), max(99 - _to_int(skills.get('Cthulhu_Mythos'), 0, 0, 99), 0), 0)
+            sanity_current = _to_int(sanity_data.get('current'), min(_to_int(chars.get('POW')), sanity_max), 0, sanity_max)
             top_skills = sorted(
-                [(name.replace('_', ' '), val) for name, val in skills.items() if val > 25],
+                [(gettext(name.replace('_', ' ')), val) for name, val in skills.items() if val > 25],
                 key=lambda x: -x[1],
             )[:6]
             templates.append({
@@ -1641,7 +1648,7 @@ def _load_npc_templates():
                 'luck': chars.get('Luck', 0),
                 'hp_max': hp_max,
                 'mp_max': mp_max,
-                'sanity': chars.get('POW', 50),
+                'sanity': sanity_current,
                 'top_skills': top_skills,
                 'weapons': [w.get('name', '') for w in data.get('weapons', [])],
             })
