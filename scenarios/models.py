@@ -98,6 +98,32 @@ class Invitation(models.Model):
         return f"Invitation to {self.scenario.name}"
 
 
+class Hint(models.Model):
+    """Reusable gameplay hints shown to players or keepers."""
+
+    AUDIENCE_PLAYER = 'PLAYER'
+    AUDIENCE_KEEPER = 'KEEPER'
+    AUDIENCE_CHOICES = [
+        (AUDIENCE_PLAYER, _('Player')),
+        (AUDIENCE_KEEPER, _('Keeper')),
+    ]
+
+    title = models.CharField(max_length=120, blank=True)
+    text = models.TextField()
+    audience = models.CharField(max_length=10, choices=AUDIENCE_CHOICES)
+    sort_order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['audience', 'sort_order', 'id']
+
+    def __str__(self):
+        label = self.title or self.text[:40]
+        return f"{self.get_audience_display()}: {label}"
+
+
 class FightEncounter(models.Model):
     """Fight encounters during scenarios"""
 

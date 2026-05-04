@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Scenario, ScenarioPlayer, ScenarioNPC, Invitation,
-    FightEncounter, FightParticipant, Message
+    FightEncounter, FightParticipant, Message, Hint
 )
 
 
@@ -40,3 +40,11 @@ class FightEncounterAdmin(admin.ModelAdmin):
 class MessageAdmin(admin.ModelAdmin):
     list_display = ['scenario', 'sender', 'recipient', 'message_type', 'is_read', 'sent_at']
     list_filter = ['message_type', 'is_read']
+
+
+@admin.register(Hint)
+class HintAdmin(admin.ModelAdmin):
+    list_display = ['title', 'audience', 'sort_order', 'is_active', 'updated_at']
+    list_filter = ['audience', 'is_active']
+    search_fields = ['title', 'text']
+    ordering = ['audience', 'sort_order', 'id']

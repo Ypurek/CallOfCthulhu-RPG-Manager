@@ -22,6 +22,9 @@
   .modal-dark { background: var(--shadow); border: 1px solid var(--gold); }
   .modal-dark-header { border-bottom: 1px solid var(--gold); }
   .character-select-label { cursor: pointer; border: 1px solid rgba(212,175,55,.3); background: rgba(255,255,255,.04); }
+  .hint-card { border: 1px solid rgba(212,175,55,.3); background: rgba(255,255,255,.04); border-radius: .5rem; }
+  .hint-card .card-body { min-height: 190px; }
+  .hint-text { white-space: pre-wrap; }
 </style>
 {% endblock %}
 
@@ -45,6 +48,9 @@
     <button type="button" class="btn btn-sm btn-outline-warning message-bell-btn" id="player-messages-button" data-bs-toggle="modal" data-bs-target="#playerMessagesModal" title="Session messages">
       <i class="fas fa-bell"></i>
       <span class="badge bg-danger" id="player-message-badge" {% if not unread_messages %}style="display:none;"{% endif %}>{{ unread_messages }}</span>
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#playerHintsModal" title="Hints">
+      <i class="fas fa-lightbulb me-1"></i>{% trans "Hints" %}
     </button>
     {% endif %}
     {% if is_keeper %}
@@ -129,6 +135,55 @@
       <div class="modal-body">
         <div id="player-messages-list" class="message-list"></div>
         <div id="player-messages-status" class="small text-muted mt-2"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="playerHintsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content modal-dark">
+      <div class="modal-header modal-dark-header">
+        <h5 class="modal-title text-warning"><i class="fas fa-lightbulb me-2"></i>{% trans "Player Hints" %}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        {% if player_hints %}
+          <div id="playerHintsCarousel" class="carousel slide" data-bs-touch="true" data-bs-interval="false">
+            <div class="carousel-indicators mb-0">
+              {% for hint in player_hints %}
+                <button type="button" data-bs-target="#playerHintsCarousel" data-bs-slide-to="{{ forloop.counter0 }}" {% if forloop.first %}class="active" aria-current="true"{% endif %} aria-label="Hint {{ forloop.counter }}"></button>
+              {% endfor %}
+            </div>
+            <div class="carousel-inner pb-4">
+              {% for hint in player_hints %}
+                <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                  <div class="card hint-card">
+                    <div class="card-header text-warning">
+                      {% if hint.title %}{{ hint.title }}{% else %}{% trans "Hint" %} {{ forloop.counter }}{% endif %}
+                    </div>
+                    <div class="card-body">
+                      <p class="hint-text mb-0">{{ hint.text }}</p>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+            <button class="carousel-control-prev" type="button" data-bs-target="#playerHintsCarousel" data-bs-slide="prev">
+              <span class="carousel-control-prev-icon"></span>
+              <span class="visually-hidden">{% trans "Previous" %}</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#playerHintsCarousel" data-bs-slide="next">
+              <span class="carousel-control-next-icon"></span>
+              <span class="visually-hidden">{% trans "Next" %}</span>
+            </button>
+          </div>
+        {% else %}
+          <p class="text-muted mb-0">{% trans "No player hints yet." %}</p>
+        {% endif %}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-warning btn-sm" data-bs-dismiss="modal">{% trans "Back to character" %}</button>
       </div>
     </div>
   </div>

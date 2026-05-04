@@ -22,6 +22,7 @@ urlpatterns = [
 
     # Keeper management
     path('<int:scenario_id>/manage/', views.scenario_manage, name='manage'),
+    path('<int:scenario_id>/hints/keeper/', views.scenario_keeper_hints, name='keeper_hints'),
     path('<int:scenario_id>/fight/', views.fight_encounter, name='fight'),
     path('<int:scenario_id>/fight/state/', views.scenario_fight_state, name='fight_state'),
     path('<int:scenario_id>/fight/start/', views.scenario_fight_start, name='fight_start'),

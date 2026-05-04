@@ -25,6 +25,7 @@ from characters.models import Character, CharacterStatusEffect, NPCTemplate, Sta
 from scenarios.models import (
     FightEncounter,
     FightParticipant,
+    Hint,
     Invitation,
     Message,
     MessageReceipt,
@@ -184,6 +185,21 @@ class InvitationModelTest(TestCase):
             invite_code='abc123',
         )
         self.assertIn(self.scenario.name, str(inv))
+
+
+class HintModelTest(TestCase):
+
+    def test_hint_str_uses_audience_and_title(self):
+        hint = Hint.objects.create(audience=Hint.AUDIENCE_PLAYER, title='Stay in character', text='Keep roleplay focused.')
+        self.assertIn(hint.get_audience_display(), str(hint))
+        self.assertIn('Stay in character', str(hint))
+
+    def test_hint_default_ordering_by_audience_then_sort(self):
+        h3 = Hint.objects.create(audience=Hint.AUDIENCE_PLAYER, title='B', text='B', sort_order=2)
+        h1 = Hint.objects.create(audience=Hint.AUDIENCE_KEEPER, title='A', text='A', sort_order=1)
+        h2 = Hint.objects.create(audience=Hint.AUDIENCE_PLAYER, title='A', text='A', sort_order=1)
+        expected = sorted([h1, h2, h3], key=lambda h: (h.audience, h.sort_order, h.id))
+        self.assertEqual(list(Hint.objects.values_list('id', flat=True)), [h.id for h in expected])
 
 
 # ===========================================================================
@@ -1092,6 +1108,58 @@ class ScenarioDetailTest(TestCase):
         self.assertTrue(r.json()['ok'])
         sp.refresh_from_db()
         self.assertEqual(sp.private_notes, 'My secret clue notes')
+
+    def test_player_detail_shows_hints_button_and_player_hints_modal(self):
+        ScenarioPlayer.objects.create(scenario=self.scenario, player=self.player, character=self.char)
+        Hint.objects.create(audience=Hint.AUDIENCE_PLAYER, title='Player Tip', text='Check your sanity often.', is_active=True)
+        Hint.objects.create(audience=Hint.AUDIENCE_KEEPER, title='Keeper Tip', text='Not for players.', is_active=True)
+        self.client.force_login(self.player)
+        r = self.client.get(reverse('scenarios:detail', kwargs={'scenario_id': self.scenario.id}))
+        self.assertContains(r, 'playerHintsModal')
+        self.assertContains(r, 'Player Tip')
+        self.assertNotContains(r, 'Keeper Tip')
+
+    def test_keeper_detail_does_not_render_player_hints_modal(self):
+        Hint.objects.create(audience=Hint.AUDIENCE_PLAYER, title='Player Tip', text='Visible to players')
+        self.client.force_login(self.keeper)
+        r = self.client.get(reverse('scenarios:detail', kwargs={'scenario_id': self.scenario.id}))
+        self.assertNotContains(r, 'playerHintsModal')
+
+
+class ScenarioKeeperHintsViewTest(TestCase):
+
+    def setUp(self):
+        self.keeper = make_user('kh_keeper', is_keeper=True)
+        self.player = make_user('kh_player')
+        self.other_keeper = make_user('kh_other', is_keeper=True)
+        self.admin = make_user('kh_admin', is_staff=True)
+        self.scenario = make_scenario(self.keeper)
+        Hint.objects.create(audience=Hint.AUDIENCE_KEEPER, title='Read pacing', text='Pause between reveals.', is_active=True)
+        Hint.objects.create(audience=Hint.AUDIENCE_KEEPER, title='Hidden', text='Inactive one.', is_active=False)
+        Hint.objects.create(audience=Hint.AUDIENCE_PLAYER, title='Player card', text='For players only.', is_active=True)
+
+    def test_keeper_can_view_keeper_hints_page(self):
+        self.client.force_login(self.keeper)
+        r = self.client.get(reverse('scenarios:keeper_hints', kwargs={'scenario_id': self.scenario.id}))
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'Read pacing')
+        self.assertNotContains(r, 'Inactive one.')
+        self.assertNotContains(r, 'Player card')
+
+    def test_player_cannot_view_keeper_hints_page(self):
+        self.client.force_login(self.player)
+        r = self.client.get(reverse('scenarios:keeper_hints', kwargs={'scenario_id': self.scenario.id}))
+        self.assertRedirects(r, reverse('dashboard'))
+
+    def test_other_keeper_cannot_view_foreign_scenario_keeper_hints(self):
+        self.client.force_login(self.other_keeper)
+        r = self.client.get(reverse('scenarios:keeper_hints', kwargs={'scenario_id': self.scenario.id}))
+        self.assertEqual(r.status_code, 404)
+
+    def test_admin_can_view_keeper_hints_for_any_scenario(self):
+        self.client.force_login(self.admin)
+        r = self.client.get(reverse('scenarios:keeper_hints', kwargs={'scenario_id': self.scenario.id}))
+        self.assertEqual(r.status_code, 200)
 
 
 # ===========================================================================

@@ -20,6 +20,7 @@ from .services import apply_daily_hp_restore, apply_hourly_mp_restore, get_chara
 from .models import (
     FightEncounter,
     FightParticipant,
+    Hint,
     Invitation,
     Message,
     MessageReceipt,
@@ -961,6 +962,13 @@ def scenario_detail(request, scenario_id):
             Character.objects.filter(owner=request.user, is_alive=True, character_type="PC")
         )
 
+    player_hints = []
+    if not is_keeper:
+        player_hints = list(
+            Hint.objects.filter(audience=Hint.AUDIENCE_PLAYER, is_active=True)
+            .order_by('sort_order', 'id')
+        )
+
     return render(request, "scenarios/detail.html", {
         "scenario": scenario,
         "character": character,
@@ -969,6 +977,18 @@ def scenario_detail(request, scenario_id):
         "unread_messages": _get_unread_message_count(scenario, request.user) if not is_keeper else 0,
         "scenario_player": scenario_player,
         "available_characters": available_characters,
+        "player_hints": player_hints,
+    })
+
+
+@_keeper_required
+def scenario_keeper_hints(request, scenario_id):
+    """Dedicated page with all keeper hints for quick reference."""
+    scenario = _get_scenario_for_keeper(request, scenario_id)
+    keeper_hints = Hint.objects.filter(audience=Hint.AUDIENCE_KEEPER, is_active=True).order_by('sort_order', 'id')
+    return render(request, 'scenarios/keeper_hints.html', {
+        'scenario': scenario,
+        'keeper_hints': keeper_hints,
     })
 
 

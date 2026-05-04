@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{{ scenario.name }} - Keeper Hints{% endblock %}
+
+{% block extra_css %}
+<style>
+  .hint-grid { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+  .hint-card { border: 1px solid rgba(212, 175, 55, .35); background: rgba(0, 0, 0, .22); }
+  .hint-text { white-space: pre-wrap; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+  <h2 class="text-warning mb-0"><i class="fas fa-lightbulb me-2"></i>{% trans "Keeper Hints" %}</h2>
+  <a href="{% url 'scenarios:manage' scenario.id %}" class="btn btn-outline-secondary btn-sm">
+    <i class="fas fa-arrow-left me-1"></i>{% trans "Back to Manage" %}
+  </a>
+</div>
+
+<p class="text-muted mb-3">{% trans "Quick reminders for session flow, table etiquette, and edge-case rulings." %}</p>
+
+{% if keeper_hints %}
+  <div class="hint-grid">
+    {% for hint in keeper_hints %}
+      <article class="card hint-card">
+        <div class="card-header text-warning">
+          {% if hint.title %}{{ hint.title }}{% else %}{% trans "Hint" %} {{ forloop.counter }}{% endif %}
+        </div>
+        <div class="card-body">
+          <p class="hint-text mb-0">{{ hint.text }}</p>
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="alert alert-secondary mb-0">{% trans "No keeper hints yet." %}</div>
+{% endif %}
+{% endblock %}
+
