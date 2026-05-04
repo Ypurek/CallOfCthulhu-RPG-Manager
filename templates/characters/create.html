@@ -594,7 +594,7 @@
                 <select id="weapon-template-select" class="form-select mb-3">
                     <option value="">{% trans "Custom weapon..." %}</option>
                     {% for weapon in weapon_templates %}
-                    <option value="{{ weapon.id }}" data-name="{{ weapon.name }}" data-damage="{{ weapon.damage }}" data-skill-name="{{ weapon.skill_name }}">{{ weapon.name }} ({{ weapon.damage }})</option>
+                    <option value="{{ weapon.id }}" data-name="{{ weapon.name }}" data-damage="{{ weapon.damage }}" data-skill-name="{{ weapon.skill_name }}">{% trans weapon.name %} ({{ weapon.damage }})</option>
                     {% endfor %}
                 </select>
                 <label for="weapon-custom-name" class="form-label">{% trans "Custom weapon name" %}</label>
@@ -641,6 +641,7 @@
 {% trans "Save" as wtsave %}
 {% trans "Add Weapon" as wtaddWeapon %}
 {% trans "Add" as wtadd %}
+{% trans "Unarmed Brawl" as wtunarmedBrawl %}
 {% trans "STR" as wtSTR %}{% trans "CON" as wtCON %}{% trans "DEX" as wtDEX %}{% trans "INT" as wtINT %}{% trans "POW" as wtPOW %}{% trans "SIZ" as wtSIZ %}{% trans "APP" as wtAPP %}{% trans "EDU" as wtEDU %}{% trans "LCK" as wtLCK %}
 {% trans "Measures raw muscle power, lifting strength, grappling force, and how much punishment your body can impose physically." as wtdSTR %}
 {% trans "Represents endurance, toughness, breath, and how well the body resists exhaustion, injury, poison, or disease." as wtdCON %}
@@ -673,6 +674,7 @@ const WIZ_I18N = {
   saveWeapon: '{{ wtsave|escapejs }}',
   addWeapon: '{{ wtaddWeapon|escapejs }}',
   addWeaponBtn: '{{ wtadd|escapejs }}',
+  unarmedBrawl: '{{ wtunarmedBrawl|escapejs }}',
   statDescriptions: {
     '{{ wtSTR|escapejs }}': '{{ wtdSTR|escapejs }}',
     '{{ wtCON|escapejs }}': '{{ wtdCON|escapejs }}',
@@ -685,6 +687,11 @@ const WIZ_I18N = {
     '{{ wtLCK|escapejs }}': '{{ wtdLCK|escapejs }}',
   },
 };
+// Keep internal weapon keys unchanged, localize only display labels.
+const WEAPON_NAME_I18N = {
+  'Unarmed Brawl': WIZ_I18N.unarmedBrawl,
+};
+
 const initialWeaponsData = JSON.parse(document.getElementById('initial-weapons').textContent || '[]');
 const initialItemsData = JSON.parse(document.getElementById('initial-items').textContent || '[]');
 let weaponEntries = Array.isArray(initialWeaponsData) ? initialWeaponsData : [];
@@ -712,6 +719,7 @@ function renderWeapons() {
     }
     weaponEntries.forEach((entry, index) => {
         const name = entry.custom_name || entry.name || `${WIZ_I18N.weaponFallback} #${index + 1}`;
+        const displayName = WEAPON_NAME_I18N[name] || name;
         const damage = entry.damage || '1D4';
         const skillName = entry.skill_name || WIZ_I18N.noCombatSkill;
         const prepared = entry.is_prepared ? ` <span class="badge text-bg-info">${WIZ_I18N.preparedBadge}</span>` : '';
@@ -722,7 +730,7 @@ function renderWeapons() {
                 <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeWeapon(${index})"><i class="fas fa-trash"></i></button>
                </div>`;
         weaponList.innerHTML += `<div class="list-group-item d-flex justify-content-between align-items-center gap-2">
-            <span><strong>${name}</strong> <span class="text-muted">(${damage})</span> &middot; ${skillName}${prepared}</span>
+            <span><strong>${displayName}</strong> <span class="text-muted">(${damage})</span> &middot; ${skillName}${prepared}</span>
             ${actions}
         </div>`;
     });
@@ -889,7 +897,6 @@ document.getElementById('inline-item-name').addEventListener('keydown', (event) 
 renderWeapons();
 renderItems();
 </script>
-{% endif %}
 
 <!-- Custom skill management -->
 <script>
@@ -1016,6 +1023,7 @@ function removeCustomSkill(skillId) {
 }
 syncCustomSkillsJson();
 </script>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
@@ -1041,3 +1049,4 @@ function showWizardStatModal(statName, statValue) {
 {% include 'characters/_character_sheet_scripts.html' %}
 {% endif %}
 {% endblock %}
+

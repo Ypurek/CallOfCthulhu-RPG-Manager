@@ -24,11 +24,11 @@
     <div class="compact-header"><i class="fas fa-crosshairs"></i> {% trans "Weapons" %}</div>
     <div data-sheet-weapons>
         {% for weapon in sheet.weapons %}
+        {% trans weapon.name as weapon_name_t %}
         <div class="weapon-item">
-            <strong>{{ weapon.name }}</strong> {{ weapon.damage }}
+            <strong>{{ weapon_name_t }}</strong> {{ weapon.damage }}
             {% if weapon.is_prepared %}<span class="text-success"> ✓ {% trans "Prepared" %}</span>{% endif %}
         </div>
         {% endfor %}
     </div>
 {% endif %}
-

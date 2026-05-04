@@ -491,6 +491,9 @@ msgstr "Власна"
 msgid "Weapons"
 msgstr "Зброя"
 
+msgid "Unarmed Brawl"
+msgstr "Рукопашний бій"
+
 # --- Model choices ---
 msgid "Player"
 msgstr "Гравець"

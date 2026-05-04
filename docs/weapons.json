@@ -1,11 +1,4 @@
 {
-  "unarmed": {
-    "price": 0,
-    "base_damage": "1D3 + DB",
-    "extreme_damage": "3",
-    "rounds": 0,
-    "description": "When you have nothing else, you are the weapon yourself!"
-  },
   "small_knife": {
     "price": 1.00,
     "base_damage": "1D4 + DB",
