@@ -27,7 +27,7 @@ jobs:
         run: uv sync
 
       - name: Run migrations check
-        run: uv run python manage.py migrate --check
+        run: uv run python manage.py makemigrations --check --dry-run
 
       - name: Run tests
         run: uv run python manage.py test --verbosity=2 --parallel auto
