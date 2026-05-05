@@ -1099,6 +1099,11 @@
             document.getElementById('weapon-skill-select').value = '';
         }
 
+        function getNextCustomSkillId() {
+            const existingIds = Object.keys(state.customSkillEntries).map(k => parseInt(k, 10)).filter(n => !isNaN(n) && n < 0);
+            return String(existingIds.length > 0 ? Math.min(...existingIds) - 1 : -1);
+        }
+
         window.setSkillCategory = function setSkillCategory(category) {
             state.editingCustomSkillId = null;
             state.currentSkillCategory = category;
