@@ -10,3 +10,5 @@ __pycache__/
 *.db
 *.env
 *.egg-info/
+staticfiles/*
+!staticfiles/.gitkeep

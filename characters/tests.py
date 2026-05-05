@@ -68,11 +68,11 @@ def make_character(owner, **kwargs):
 
 def make_skills():
     """Return a dict of commonly needed Skill objects."""
-    own_lang = Skill.objects.create(name='Own Language', category='language', base_value=0, description='Native language.')
-    dodge = Skill.objects.create(name='Dodge', category='general', base_value=0, description='Dodge attacks.')
-    brawl = Skill.objects.create(name='Fighting (Brawl)', category='combat', base_value=25, description='Brawl.')
-    track = Skill.objects.create(name='Track', category='general', base_value=10, description='Track.')
-    mythos = Skill.objects.create(name='Cthulhu Mythos', category='general', base_value=0, description='Mythos.')
+    own_lang, _ = Skill.objects.get_or_create(name='Own Language', defaults={'category': 'language', 'base_value': 0, 'description': 'Native language.'})
+    dodge, _ = Skill.objects.get_or_create(name='Dodge', defaults={'category': 'general', 'base_value': 0, 'description': 'Dodge attacks.'})
+    brawl, _ = Skill.objects.get_or_create(name='Fighting (Brawl)', defaults={'category': 'combat', 'base_value': 25, 'description': 'Brawl.'})
+    track, _ = Skill.objects.get_or_create(name='Track', defaults={'category': 'general', 'base_value': 10, 'description': 'Track.'})
+    mythos, _ = Skill.objects.get_or_create(name='Cthulhu Mythos', defaults={'category': 'general', 'base_value': 0, 'description': 'Mythos.'})
     return {'own_language': own_lang, 'dodge': dodge, 'brawl': brawl, 'track': track, 'mythos': mythos}
 
 
@@ -203,11 +203,11 @@ class CharacterStrTests(TestCase):
 class SkillModelTests(TestCase):
 
     def test_str(self):
-        skill = Skill.objects.create(name='Listen', category='general', base_value=20, description='')
+        skill, _ = Skill.objects.get_or_create(name='Listen', defaults={'category': 'general', 'base_value': 20, 'description': ''})
         self.assertEqual(str(skill), 'Listen')
 
     def test_unique_name_constraint(self):
-        Skill.objects.create(name='Spot Hidden', category='general', base_value=25, description='')
+        Skill.objects.get_or_create(name='Spot Hidden', defaults={'category': 'general', 'base_value': 25, 'description': ''})
         from django.db import IntegrityError
         with self.assertRaises(IntegrityError):
             Skill.objects.create(name='Spot Hidden', category='general', base_value=25, description='')
@@ -724,7 +724,7 @@ class UseTemplateViewTests(TestCase):
 
     def setUp(self):
         self.player = User.objects.create_user(username='p', password='x', role='PLAYER')
-        Skill.objects.create(name='Fighting (Brawl)', category='combat', base_value=25, description='')
+        Skill.objects.get_or_create(name='Fighting (Brawl)', defaults={'category': 'combat', 'base_value': 25, 'description': ''})
         self.template = CharacterTemplate.objects.create(
             name='Quick Character',
             payload={
@@ -771,7 +771,7 @@ class NPCTemplateViewTests(TestCase):
     def setUp(self):
         self.player = User.objects.create_user(username='p_npc', password='x', role='PLAYER')
         self.keeper = User.objects.create_user(username='k_npc', password='x', role='KEEPER')
-        Skill.objects.create(name='Fighting (Brawl)', category='combat', base_value=25, description='')
+        Skill.objects.get_or_create(name='Fighting (Brawl)', defaults={'category': 'combat', 'base_value': 25, 'description': ''})
         self.template = NPCTemplate.objects.create(
             name='Dock Guard',
             payload={
@@ -878,12 +878,12 @@ class CharacterCreateWizardTests(TestCase):
     def setUp(self):
         self.player = User.objects.create_user(username='player', password='secret', role='PLAYER')
         self.keeper = User.objects.create_user(username='keeper', password='secret', role='KEEPER')
-        self.skill_own_language = Skill.objects.create(
-            name='Own Language', category='language', base_value=0, description='Native language skill.')
-        self.skill_track = Skill.objects.create(
-            name='Track', category='general', base_value=10, description='Track people and creatures.')
-        self.skill_brawl = Skill.objects.create(
-            name='Fighting (Brawl)', category='combat', base_value=25, description='Close combat.')
+        self.skill_own_language, _ = Skill.objects.get_or_create(
+            name='Own Language', defaults={'category': 'language', 'base_value': 0, 'description': 'Native language skill.'})
+        self.skill_track, _ = Skill.objects.get_or_create(
+            name='Track', defaults={'category': 'general', 'base_value': 10, 'description': 'Track people and creatures.'})
+        self.skill_brawl, _ = Skill.objects.get_or_create(
+            name='Fighting (Brawl)', defaults={'category': 'combat', 'base_value': 25, 'description': 'Close combat.'})
         self.weapon = Weapon.objects.create(name='Knife', skill_name='Fighting (Brawl)', damage='1D4')
         self.item = Item.objects.create(name='Flashlight', description='Useful light source.')
 
@@ -1197,8 +1197,8 @@ class CharacterImportExportTests(TestCase):
 
     def setUp(self):
         self.player = User.objects.create_user(username='p', password='x', role='PLAYER')
-        Skill.objects.create(name='Fighting (Brawl)', category='combat', base_value=25, description='')
-        Skill.objects.create(name='Own Language', category='language', base_value=0, description='')
+        Skill.objects.get_or_create(name='Fighting (Brawl)', defaults={'category': 'combat', 'base_value': 25, 'description': ''})
+        Skill.objects.get_or_create(name='Own Language', defaults={'category': 'language', 'base_value': 0, 'description': ''})
 
     def test_export_returns_json_attachment(self):
         self.client.login(username='p', password='x')
@@ -1240,8 +1240,8 @@ class CharacterImportExportTests(TestCase):
     def test_import_ventwort_character(self):
         """Simulate importing docs/characters/ventwort_evbery.json payload."""
         self.client.login(username='p', password='x')
-        Skill.objects.create(name='Library Use', category='general', base_value=20, description='')
-        Skill.objects.create(name='Persuade', category='general', base_value=15, description='')
+        Skill.objects.get_or_create(name='Library Use', defaults={'category': 'general', 'base_value': 20, 'description': ''})
+        Skill.objects.get_or_create(name='Persuade', defaults={'category': 'general', 'base_value': 15, 'description': ''})
         payload = {
             'character_info': {
                 'name': 'Вентворт Ейвбері', 'occupation': 'Професор лінгвістики', 'age': 58},
@@ -1290,9 +1290,9 @@ class TemplateToCharacterStateTransitionTests(TestCase):
     def setUp(self):
         self.keeper = User.objects.create_user(username='k', password='x', role='KEEPER')
         self.player = User.objects.create_user(username='p', password='x', role='PLAYER')
-        Skill.objects.create(name='Own Language', category='language', base_value=0, description='')
-        Skill.objects.create(name='Fighting (Brawl)', category='combat', base_value=25, description='')
-        Skill.objects.create(name='Spot Hidden', category='general', base_value=25, description='')
+        Skill.objects.get_or_create(name='Own Language', defaults={'category': 'language', 'base_value': 0, 'description': ''})
+        Skill.objects.get_or_create(name='Fighting (Brawl)', defaults={'category': 'combat', 'base_value': 25, 'description': ''})
+        Skill.objects.get_or_create(name='Spot Hidden', defaults={'category': 'general', 'base_value': 25, 'description': ''})
 
     def _keeper_creates_template(self, name='Brave Scholar'):
         self.client.login(username='k', password='x')
@@ -1377,7 +1377,7 @@ class TemplateEditStateTransitionTests(TestCase):
 
     def setUp(self):
         self.keeper = User.objects.create_user(username='k', password='x', role='KEEPER')
-        Skill.objects.create(name='Fighting (Brawl)', category='combat', base_value=25, description='')
+        Skill.objects.get_or_create(name='Fighting (Brawl)', defaults={'category': 'combat', 'base_value': 25, 'description': ''})
         self.template = CharacterTemplate.objects.create(
             name='Old Name',
             payload={
@@ -1438,8 +1438,8 @@ class CharacterEditWizardStateTransitionTests(TestCase):
     def setUp(self):
         self.player = User.objects.create_user(username='p', password='x', role='PLAYER')
         self.keeper = User.objects.create_user(username='k', password='x', role='KEEPER')
-        self.skill_brawl = Skill.objects.create(
-            name='Fighting (Brawl)', category='combat', base_value=25, description='')
+        self.skill_brawl, _ = Skill.objects.get_or_create(
+            name='Fighting (Brawl)', defaults={'category': 'combat', 'base_value': 25, 'description': ''})
         self.char = make_character(
             self.player, name='Original Name', occupation='Soldier',
             strength=50, constitution=50, dexterity=50, intelligence=50,
@@ -1495,14 +1495,17 @@ class CharacterEditWizardStateTransitionTests(TestCase):
         self.assertTrue(CharacterChangeLog.objects.filter(character=self.char).exists())
 
     def test_no_changelog_when_nothing_changed(self):
-        # Pre-populate every skill the wizard computes so the diff sees 0 changes.
-        own_lang = Skill.objects.create(
-            name='Own Language', category='language', base_value=0, description='Native.')
-        track = Skill.objects.create(
-            name='Track', category='general', base_value=10, description='Track.')
-        CharacterSkill.objects.create(character=self.char, skill=self.skill_brawl, value=25)
-        CharacterSkill.objects.create(character=self.char, skill=own_lang, value=50)  # EDU=50
-        CharacterSkill.objects.create(character=self.char, skill=track, value=10)
+        # Pre-populate ALL skills the wizard computes (all seeded skills at base value,
+        # Own Language at EDU=50) so the diff sees 0 changes.
+        edu = self.char.education  # 50
+        for skill in Skill.objects.all():
+            if str(skill.description or '').startswith('Custom skill:'):
+                continue
+            if skill.name in {'Own Language', 'English'}:
+                value = edu
+            else:
+                value = skill.base_value
+            CharacterSkill.objects.get_or_create(character=self.char, skill=skill, defaults={'value': value})
         unarmed, _ = Weapon.objects.get_or_create(
             name=DEFAULT_UNARMED_WEAPON_NAME,
             defaults={'skill_name': 'Fighting (Brawl)', 'damage': DEFAULT_UNARMED_WEAPON_DAMAGE},
@@ -1541,7 +1544,7 @@ class CharacterEditWizardImportExportTests(TestCase):
 
     def setUp(self):
         self.player = User.objects.create_user(username='p', password='x', role='PLAYER')
-        Skill.objects.create(name='Fighting (Brawl)', category='combat', base_value=25, description='')
+        Skill.objects.get_or_create(name='Fighting (Brawl)', defaults={'category': 'combat', 'base_value': 25, 'description': ''})
         self.char = make_character(self.player, name='Export Me')
 
     def test_export_returns_json(self):

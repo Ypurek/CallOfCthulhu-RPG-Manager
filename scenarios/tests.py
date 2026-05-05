@@ -1512,8 +1512,8 @@ class ScenarioFightModeTest(TestCase):
     def test_manage_page_has_fight_tab(self):
         r = self.client.get(reverse('scenarios:manage', kwargs={'scenario_id': self.scenario.id}))
         self.assertEqual(r.status_code, 200)
-        self.assertContains(r, 'Fight')
-        self.assertContains(r, 'Add to fight')
+        self.assertContains(r, 'id="tab-fight"')
+        self.assertContains(r, 'fight-add-btn')
 
     def test_add_participant_auto_starts_encounter(self):
         response = self.client.post(
