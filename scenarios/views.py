@@ -213,6 +213,21 @@ def _get_unread_message_count(scenario: Scenario, user: _User) -> int:
     ).count()
 
 
+def _get_latest_unread_private_message_id(scenario: Scenario, user: _User) -> int:
+    latest_message_id = (
+        MessageReceipt.objects.filter(
+            message__scenario=scenario,
+            message__message_type="PRIVATE",
+            user=user,
+            read_at__isnull=True,
+        )
+        .order_by("-message_id")
+        .values_list("message_id", flat=True)
+        .first()
+    )
+    return int(latest_message_id or 0)
+
+
 def _get_active_fight_encounter(scenario: Scenario):
     return FightEncounter.objects.filter(scenario=scenario, is_active=True).order_by('-started_at').first()
 
@@ -1001,6 +1016,7 @@ def scenario_detail(request, scenario_id):
         "character_sheet": character_sheet,
         "is_keeper": is_keeper,
         "unread_messages": _get_unread_message_count(scenario, request.user) if not is_keeper else 0,
+        "unread_private_message_id": _get_latest_unread_private_message_id(scenario, request.user) if not is_keeper else 0,
         "scenario_player": scenario_player,
         "available_characters": available_characters,
         "player_hints": player_hints,
@@ -1074,6 +1090,7 @@ def scenario_player_snapshot(request, scenario_id):
         "time": scenario.in_game_time.strftime("%H:%M"),
         "public_notes": scenario.public_notes,
         "unread_messages": _get_unread_message_count(scenario, request.user) if not is_keeper else 0,
+        "latest_unread_private_message_id": _get_latest_unread_private_message_id(scenario, request.user) if not is_keeper else 0,
         "has_alive_character": bool(character and character.is_alive),
         "sheet": sheet_payload,
     })

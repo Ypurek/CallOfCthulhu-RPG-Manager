@@ -1333,6 +1333,20 @@ class ScenarioMessagingTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['unread_messages'], 1)
 
+    def test_snapshot_includes_latest_unread_private_message_id(self):
+        self.client.post(
+            reverse('scenarios:send_message', kwargs={'scenario_id': self.scenario.id}),
+            {'message_type': 'PRIVATE', 'recipient_id': self.player.id, 'content': 'Vibration marker'},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        latest_message = Message.objects.latest('id')
+
+        self.client.force_login(self.player)
+        response = self.client.get(reverse('scenarios:player_snapshot', kwargs={'scenario_id': self.scenario.id}))
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload['latest_unread_private_message_id'], latest_message.id)
+
     def test_get_messages_does_not_auto_mark_read(self):
         self.client.post(
             reverse('scenarios:send_message', kwargs={'scenario_id': self.scenario.id}),

@@ -245,8 +245,9 @@ const I18N = {
     items: null,
     spells: null,
   };
-  let unreadBaselineReady = false;
+  let unreadBaselineReady = true;
   let lastUnreadCount = safeNumber(messageBadge?.textContent || 0, 0);
+  let lastUnreadPrivateMessageId = safeNumber('{{ unread_private_message_id|default:0 }}', 0);
 
   function toSignature(value) {
     return JSON.stringify(value ?? null);
@@ -276,24 +277,29 @@ const I18N = {
     }
   }
 
-  function notifyOnNewMessage(unreadCount) {
+  function notifyOnNewMessage(unreadCount, latestUnreadPrivateMessageId) {
+    const hasNewPrivateMessage = latestUnreadPrivateMessageId > lastUnreadPrivateMessageId;
+
     if (!unreadBaselineReady) {
       unreadBaselineReady = true;
       lastUnreadCount = unreadCount;
+      lastUnreadPrivateMessageId = latestUnreadPrivateMessageId;
       setUnreadMessages(unreadCount);
       return;
     }
 
-    if (unreadCount > lastUnreadCount) {
+    if (hasNewPrivateMessage) {
       if (messagesModalEl && !messagesModalEl.classList.contains('show') && window.bootstrap?.Modal) {
         bootstrap.Modal.getOrCreateInstance(messagesModalEl).show();
       }
-      if (navigator.vibrate) {
-        navigator.vibrate([120, 80, 180]);
+      if (typeof navigator.vibrate === 'function') {
+          // Long pulse followed by rapid-fire decay
+          navigator.vibrate([500, 200, 300, 100, 100, 50, 50, 50, 50, 50]);
       }
     }
 
     lastUnreadCount = unreadCount;
+    lastUnreadPrivateMessageId = latestUnreadPrivateMessageId;
     setUnreadMessages(unreadCount);
   }
 
@@ -675,7 +681,10 @@ const I18N = {
       if (dayEl) dayEl.textContent = data.day;
       if (timeEl) timeEl.textContent = data.time;
       if (notesEl) notesEl.textContent = data.public_notes || I18N.noPublicNotes;
-      notifyOnNewMessage(safeNumber(data.unread_messages, 0));
+      notifyOnNewMessage(
+        safeNumber(data.unread_messages, 0),
+        safeNumber(data.latest_unread_private_message_id, 0)
+      );
       if (sheetRoot && data.has_alive_character && data.sheet) {
         patchSheet(sheetRoot, data.sheet);
       } else if ((sheetRoot && !data.has_alive_character) || (!sheetRoot && data.has_alive_character)) {
