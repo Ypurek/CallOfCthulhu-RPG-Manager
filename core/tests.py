@@ -65,6 +65,54 @@ class AuthViewsTest(TestCase):
         response = self.client.get(reverse('dashboard'))
         self.assertEqual(response.status_code, 200)
 
+    def test_profile_requires_login(self):
+        response = self.client.get(reverse('profile'))
+        self.assertRedirects(response, f"{reverse('login')}?next={reverse('profile')}")
+
+    def test_profile_page_accessible_when_logged_in(self):
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.get(reverse('profile'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'testuser')
+
+    def test_profile_password_change_success(self):
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.post(reverse('profile'), {
+            'old_password': 'testpass123',
+            'new_password1': 'newpass456',
+            'new_password2': 'newpass456',
+        })
+        self.assertRedirects(response, reverse('profile'))
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password('newpass456'))
+
+    def test_profile_password_change_keeps_session_active(self):
+        self.client.login(username='testuser', password='testpass123')
+        self.client.post(reverse('profile'), {
+            'old_password': 'testpass123',
+            'new_password1': 'newpass456',
+            'new_password2': 'newpass456',
+        })
+        response = self.client.get(reverse('dashboard'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_profile_password_change_rejects_wrong_old_password(self):
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.post(reverse('profile'), {
+            'old_password': 'wrongpass',
+            'new_password1': 'newpass456',
+            'new_password2': 'newpass456',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password('testpass123'))
+
+    def test_authenticated_nav_shows_profile_and_hides_settings(self):
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.get(reverse('dashboard'))
+        self.assertContains(response, reverse('profile'))
+        self.assertNotContains(response, '>Settings<')
+
     def test_logout(self):
         self.client.login(username='testuser', password='testpass123')
         response = self.client.post(reverse('logout'))

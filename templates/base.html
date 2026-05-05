@@ -223,8 +223,7 @@
                                 {% endif %}
                             </a>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="#">{% trans "Profile" %}</a></li>
-                                <li><a class="dropdown-item" href="#">{% trans "Settings" %}</a></li>
+                                <li><a class="dropdown-item" href="{% url 'profile' %}">{% trans "Profile" %}</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{% url 'logout' %}">{% trans "Logout" %}</a></li>
                             </ul>

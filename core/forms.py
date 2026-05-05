@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth import get_user_model
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import PasswordChangeForm, UserCreationForm
 
 
 class CustomUserCreationForm(UserCreationForm):
@@ -43,4 +43,28 @@ class AuthenticationForm(forms.Form):
             'autocomplete': 'current-password',
         })
     )
+
+
+class ProfilePasswordChangeForm(PasswordChangeForm):
+    """Password change form styled for the profile page."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        placeholders = {
+            'old_password': 'Поточний пароль',
+            'new_password1': 'Новий пароль',
+            'new_password2': 'Підтвердити новий пароль',
+        }
+        autocomplete = {
+            'old_password': 'current-password',
+            'new_password1': 'new-password',
+            'new_password2': 'new-password',
+        }
+        for field_name, field in self.fields.items():
+            field.widget.attrs.update({
+                'class': 'form-control',
+                'placeholder': placeholders.get(field_name, field.label),
+                'autocomplete': autocomplete.get(field_name, 'off'),
+            })
+
 

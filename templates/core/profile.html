@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Profile - Cthulhu RPG Manager" %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-4 gy-4">
+    <div class="col-lg-4">
+        <div class="card border-warning h-100">
+            <div class="card-header bg-dark border-warning">
+                <h4 class="mb-0">
+                    <i class="fas fa-user text-warning me-2"></i>{% trans "Профіль" %}
+                </h4>
+            </div>
+            <div class="card-body p-4">
+                <div class="mb-3">
+                    <div class="text-muted small text-uppercase">{% trans "Користувач" %}</div>
+                    <div class="fs-5 text-warning fw-bold">{{ request.user.username }}</div>
+                </div>
+                <div class="mb-3">
+                    <div class="text-muted small text-uppercase">{% trans "Роль" %}</div>
+                    <div>
+                        {% if request.user.is_staff %}
+                            <span class="badge bg-danger">Admin</span>
+                        {% elif request.user.is_keeper %}
+                            <span class="badge bg-warning text-dark">{% trans "Keeper" %}</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{% trans "Player" %}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div>
+                    <div class="text-muted small text-uppercase">{% trans "Що тут ще можна додати" %}</div>
+                    <ul class="small text-muted mb-0 ps-3 mt-2">
+                        <li>{% trans "аватар або портрет" %}</li>
+                        <li>{% trans "email для сповіщень" %}</li>
+                        <li>{% trans "мову інтерфейсу" %}</li>
+                        <li>{% trans "налаштування звуку та вібрації" %}</li>
+                        <li>{% trans "історію сесій та останню активність" %}</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card border-warning">
+            <div class="card-header bg-dark border-warning">
+                <h4 class="mb-0">
+                    <i class="fas fa-key text-warning me-2"></i>{% trans "Зміна пароля" %}
+                </h4>
+            </div>
+            <div class="card-body p-4">
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="fas fa-exclamation-circle me-1"></i>
+                        {% for error in form.non_field_errors %}
+                            <div>{{ error }}</div>
+                        {% endfor %}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endif %}
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label for="{{ form.old_password.id_for_label }}" class="form-label">{% trans "Поточний пароль" %}</label>
+                        {{ form.old_password }}
+                        {% if form.old_password.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.old_password.errors %}
+                                    <i class="fas fa-times-circle"></i> {{ error }}<br>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.new_password1.id_for_label }}" class="form-label">{% trans "Новий пароль" %}</label>
+                        {{ form.new_password1 }}
+                        {% if form.new_password1.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.new_password1.errors %}
+                                    <i class="fas fa-times-circle"></i> {{ error }}<br>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        {% if form.new_password1.help_text %}
+                            <small class="form-text text-muted d-block mt-1">
+                                <i class="fas fa-info-circle"></i> {{ form.new_password1.help_text|safe }}
+                            </small>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="{{ form.new_password2.id_for_label }}" class="form-label">{% trans "Підтвердіть новий пароль" %}</label>
+                        {{ form.new_password2 }}
+                        {% if form.new_password2.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.new_password2.errors %}
+                                    <i class="fas fa-times-circle"></i> {{ error }}<br>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-save me-1"></i>{% trans "Оновити пароль" %}
+                        </button>
+                        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>{% trans "Назад до панелі" %}
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    #id_old_password, #id_new_password1, #id_new_password2 {
+        border-color: #6c757d;
+    }
+    #id_old_password:focus, #id_new_password1:focus, #id_new_password2:focus {
+        border-color: #ffc107;
+        box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.25);
+    }
+    .invalid-feedback {
+        color: #dc3545;
+        font-size: 0.875em;
+    }
+</style>
+{% endblock %}
+

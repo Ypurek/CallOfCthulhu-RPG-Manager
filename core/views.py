@@ -1,12 +1,12 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth import login, logout, authenticate, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.views.decorators.http import require_http_methods
 from characters.models import Character
 from scenarios.models import Scenario
 from .models import User
-from .forms import CustomUserCreationForm, AuthenticationForm
+from .forms import CustomUserCreationForm, AuthenticationForm, ProfilePasswordChangeForm
 
 
 def home(request):
@@ -48,6 +48,25 @@ def dashboard(request):
     }
 
     return render(request, 'core/dashboard.html', context)
+
+
+@login_required
+def profile(request):
+    """Simple account profile page with password change support."""
+    if request.method == 'POST':
+        form = ProfilePasswordChangeForm(user=request.user, data=request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)
+            messages.success(request, 'Пароль успішно змінено.')
+            return redirect('profile')
+        messages.error(request, 'Не вдалося змінити пароль. Перевірте форму нижче.')
+    else:
+        form = ProfilePasswordChangeForm(user=request.user)
+
+    return render(request, 'core/profile.html', {
+        'form': form,
+    })
 
 
 @require_http_methods(["GET", "POST"])
