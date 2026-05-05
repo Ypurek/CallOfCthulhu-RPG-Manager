@@ -256,7 +256,7 @@
                 </div>
                 <div class="collapse show cast-body" id="pc-card-{{ card.sp.id }}">
                   {% url 'scenarios:character_adjust_stats' scenario.id card.sp.character.id as pc_adjust_url %}
-                  {% include 'characters/_character_sheet.html' with sheet=card.sheet sheet_id=card.sheet_id show_notes=False notes_editable=False show_actions=False status_adjustable=True adjust_url=pc_adjust_url show_skill_checkboxes=True %}
+                  {% include 'characters/_character_sheet.html' with sheet=card.sheet sheet_id=card.sheet_id show_notes=False notes_editable=False show_actions=False status_adjustable=True adjust_url=pc_adjust_url show_skill_checkboxes=True show_madness_threshold=True %}
                 </div>
               </div>
             </div>
@@ -310,7 +310,7 @@
                       </div>
                       <div class="collapse show cast-body" id="npc-card-{{ card.snpc.id }}">
                         {% url 'scenarios:character_adjust_stats' scenario.id card.snpc.npc.id as npc_adjust_url %}
-                        {% include 'characters/_character_sheet.html' with sheet=card.sheet sheet_id=card.sheet_id show_notes=False notes_editable=False show_actions=False status_adjustable=True adjust_url=npc_adjust_url %}
+                        {% include 'characters/_character_sheet.html' with sheet=card.sheet sheet_id=card.sheet_id show_notes=False notes_editable=False show_actions=False status_adjustable=True adjust_url=npc_adjust_url show_madness_threshold=True %}
                       </div>
                     </div>
                   </div>
@@ -661,13 +661,57 @@ document.querySelectorAll('#manageTabs .nav-link').forEach(el => {
   el.addEventListener('shown.bs.tab', e => localStorage.setItem(STORAGE_KEY, e.target.getAttribute('href')));
 });
 
-// Copy invite link
+// Copy invite link (works in secure and legacy browser contexts)
+async function copyTextToClipboard(text) {
+  if (!text) {
+    return false;
+  }
+
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (error) {
+      // Fallback below for restricted clipboard contexts.
+    }
+  }
+
+  try {
+    const tempInput = document.createElement('textarea');
+    tempInput.value = text;
+    tempInput.setAttribute('readonly', 'readonly');
+    tempInput.style.position = 'fixed';
+    tempInput.style.left = '-9999px';
+    document.body.appendChild(tempInput);
+    tempInput.focus();
+    tempInput.select();
+    const copied = document.execCommand('copy');
+    document.body.removeChild(tempInput);
+    return copied;
+  } catch (error) {
+    return false;
+  }
+}
+
+function setCopyButtonState(btn, iconClass, titleText) {
+  btn.innerHTML = `<i class="${iconClass}"></i>`;
+  btn.title = titleText;
+}
+
 document.querySelectorAll('.copy-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    navigator.clipboard.writeText(btn.dataset.url).then(() => {
-      btn.innerHTML = '<i class="fas fa-check"></i>';
-      setTimeout(() => btn.innerHTML = '<i class="fas fa-copy"></i>', 2000);
-    });
+  btn.addEventListener('click', async () => {
+    const originalTitle = btn.title || 'Copy invite link';
+    const copied = await copyTextToClipboard(btn.dataset.url || '');
+
+    if (copied) {
+      setCopyButtonState(btn, 'fas fa-check', 'Copied');
+    } else {
+      setCopyButtonState(btn, 'fas fa-exclamation-triangle', 'Copy failed. Copy manually from the link text.');
+    }
+
+    setTimeout(() => {
+      setCopyButtonState(btn, 'fas fa-copy', originalTitle);
+    }, 2000);
   });
 });
 

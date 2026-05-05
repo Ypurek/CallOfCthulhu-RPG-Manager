@@ -18,6 +18,7 @@ urlpatterns = [
     path('<int:scenario_id>/snapshot/', views.scenario_player_snapshot, name='player_snapshot'),
     path('<int:scenario_id>/snapshot-json/', views.scenario_player_snapshot_json, name='player_snapshot_json'),
     path('<int:scenario_id>/private-notes/', views.scenario_player_save_private_notes, name='player_private_notes'),
+    path('<int:scenario_id>/join/', views.join_public_scenario, name='public_join'),
     path('join/<str:invite_code>/', views.join_scenario, name='join'),
 
     # Keeper management

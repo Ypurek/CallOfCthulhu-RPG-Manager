@@ -159,6 +159,43 @@
         transform: translateY(-1px);
     }
 
+    .inline-add-item-btn {
+        min-height: calc(1.5em + 0.5rem + 2px);
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.15rem;
+        line-height: 1;
+        font-weight: 700;
+    }
+
+    .wizard-footer {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .wizard-footer-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .wizard-footer-primary {
+        display: flex;
+        align-items: center;
+    }
+
+    .wizard-footer .btn {
+        white-space: nowrap;
+        font-size: 0.875rem;
+        padding: 0.25rem 0.6rem;
+        line-height: 1.5;
+    }
+
     #weaponModal .modal-content {
         background: rgba(30, 30, 30, 0.96);
         border: 1px solid var(--gold);
@@ -437,7 +474,7 @@
                         <p class="text-muted small mb-2">{% trans "Unarmed brawl is added automatically and cannot be removed." %}</p>
                         <div id="weapon-list" class="list-group"></div>
                     </div>
-                <div class="row g-4">
+                    <div class="col-lg-6">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <h6 class="mb-0">{% trans "Items" %}</h6>
                         </div>
@@ -451,7 +488,7 @@
                                 <input id="inline-item-quantity" type="number" min="1" value="1" class="form-control form-control-sm">
                             </div>
                             <div class="col-2 d-flex align-items-end">
-                                <button id="confirm-add-item" type="button" class="btn btn-sm btn-outline-primary w-100">{% trans "Add" %}</button>
+                                <button id="confirm-add-item" type="button" class="btn btn-sm btn-outline-primary w-100 inline-add-item-btn" aria-label="{% trans 'Add item' %}" title="{% trans 'Add item' %}">+</button>
                             </div>
                         </div>
                         <p class="text-muted small mb-2">{% trans "Enter on the item name field adds a new item to the list." %}</p>
@@ -473,10 +510,9 @@
                 </div>
                 {% endif %}
             </div>
-            <div class="card-footer d-flex justify-content-between">
+            <div class="card-footer wizard-footer">
                 {% trans "Back" as default_back_text %}
-                <a href="{{ wizard_back_url }}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left"></i> {{ wizard_back_text|default:default_back_text }}</a>
-                <div class="d-flex gap-2">
+                <div class="wizard-footer-actions">
                     {% if current_step != wizard_steps.0 %}
                     <button type="submit" name="action" value="prev" class="btn btn-outline-secondary">{% trans "Previous" %}</button>
                     {% endif %}
@@ -493,6 +529,9 @@
                     <button type="submit" name="action" value="next" class="btn btn-primary">{% trans "Next" %}</button>
                     {% endif %}
                     {% endif %}
+                </div>
+                <div class="wizard-footer-primary">
+                    <a href="{{ wizard_back_url }}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left"></i> {{ wizard_back_text|default:default_back_text }}</a>
                 </div>
             </div>
         </form>

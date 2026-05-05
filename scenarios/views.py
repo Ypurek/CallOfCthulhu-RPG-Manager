@@ -323,16 +323,40 @@ def _build_fight_state(scenario: Scenario):
 @login_required
 def scenario_list(request):
     """Scenarios the current user is involved in (active / not completed)."""
+    active_statuses = ["PLANNING", "ACTIVE", "PAUSED"]
     as_player = Scenario.objects.filter(
         players__player=request.user,
-        status__in=["PLANNING", "ACTIVE", "PAUSED"],
+        status__in=active_statuses,
     )
     as_keeper = Scenario.objects.filter(
         keeper=request.user,
-        status__in=["PLANNING", "ACTIVE", "PAUSED"],
+        status__in=active_statuses,
     )
-    all_active = (as_player | as_keeper).distinct().order_by("-created_at")
-    return render(request, "scenarios/list.html", {"scenarios": all_active})
+    public_discoverable = Scenario.objects.filter(
+        visibility="PUBLIC",
+        status__in=active_statuses,
+    ).exclude(
+        keeper=request.user,
+    ).exclude(
+        players__player=request.user,
+    )
+    all_active = (as_player | as_keeper | public_discoverable).distinct().order_by("-created_at")
+
+    member_scenario_ids = set(
+        ScenarioPlayer.objects.filter(
+            player=request.user,
+            is_active=True,
+            scenario__status__in=active_statuses,
+        ).values_list("scenario_id", flat=True)
+    )
+    member_scenario_ids.update(
+        Scenario.objects.filter(keeper=request.user, status__in=active_statuses).values_list("id", flat=True)
+    )
+
+    return render(request, "scenarios/list.html", {
+        "scenarios": all_active,
+        "member_scenario_ids": member_scenario_ids,
+    })
 
 
 @login_required
@@ -949,6 +973,8 @@ def scenario_detail(request, scenario_id):
         try:
             scenario_player = ScenarioPlayer.objects.get(scenario=scenario, player=request.user)
         except ScenarioPlayer.DoesNotExist:
+            if scenario.visibility == "PUBLIC" and scenario.status in {"PLANNING", "ACTIVE", "PAUSED"}:
+                return redirect("scenarios:public_join", scenario_id=scenario.id)
             messages.error(request, "You are not a participant in this scenario.")
             return redirect("scenarios:list")
 
@@ -1089,6 +1115,46 @@ def join_scenario(request, invite_code):
             invitation.save()
             messages.success(request, f"Joined '{scenario.name}' with {character.name}!")
             return redirect("scenarios:detail", scenario_id=scenario.id)
+
+    available_chars = Character.objects.filter(owner=request.user, is_alive=True, character_type="PC")
+    return render(request, "scenarios/join.html", {
+        "scenario": scenario,
+        "available_characters": available_chars,
+    })
+
+
+@login_required
+def join_public_scenario(request, scenario_id):
+    """Join a public scenario without an invitation link."""
+    scenario = get_object_or_404(
+        Scenario,
+        id=scenario_id,
+        visibility="PUBLIC",
+        status__in=["PLANNING", "ACTIVE", "PAUSED"],
+    )
+
+    is_keeper = scenario.keeper == request.user or request.user.is_staff
+    if is_keeper:
+        return redirect("scenarios:detail", scenario_id=scenario.id)
+
+    if ScenarioPlayer.objects.filter(scenario=scenario, player=request.user).exists():
+        messages.info(request, "You are already participating in this scenario.")
+        return redirect("scenarios:detail", scenario_id=scenario.id)
+
+    if request.method == "POST":
+        character_id = request.POST.get("character_id")
+        if character_id:
+            character = get_object_or_404(
+                Character,
+                id=character_id,
+                owner=request.user,
+                is_alive=True,
+                character_type="PC",
+            )
+            ScenarioPlayer.objects.create(scenario=scenario, player=request.user, character=character)
+            messages.success(request, f"Joined '{scenario.name}' with {character.name}!")
+            return redirect("scenarios:detail", scenario_id=scenario.id)
+        messages.error(request, "Please choose a character to join.")
 
     available_chars = Character.objects.filter(owner=request.user, is_alive=True, character_type="PC")
     return render(request, "scenarios/join.html", {

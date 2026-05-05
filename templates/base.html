@@ -173,7 +173,7 @@
                                 </ul>
                             </li>
                         {% endif %}
-                        {% if user.is_keeper %}
+                        {% if user.is_keeper or user.is_staff %}
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="keeperDropdown" role="button" data-bs-toggle="dropdown">
                                     <i class="fas fa-crown"></i> {% trans "Keeper" %}

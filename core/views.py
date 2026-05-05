@@ -44,7 +44,7 @@ def dashboard(request):
         'alive_characters': alive_characters,
         'ongoing_scenarios': ongoing_scenarios,
         'keeping_scenarios': keeping_scenarios,
-        'is_keeper': user.is_keeper(),
+        'is_keeper': user.is_keeper() or user.is_staff,
     }
 
     return render(request, 'core/dashboard.html', context)

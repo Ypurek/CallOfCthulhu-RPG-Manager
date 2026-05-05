@@ -12,7 +12,7 @@
         <a href="{% url 'scenarios:archive' %}" class="btn btn-outline-secondary">
           <i class="fas fa-archive me-1"></i>{% trans "Archive" %}
         </a>
-        {% if user.is_keeper %}
+        {% if user.is_keeper or user.is_staff %}
         <a href="{% url 'scenarios:create' %}" class="btn btn-warning">
           <i class="fas fa-plus me-1"></i>{% trans "New Scenario" %}
         </a>
@@ -45,10 +45,16 @@
           {% endif %}
         </p>
         <div class="d-flex gap-2 flex-wrap">
+          {% if scenario.id in member_scenario_ids or user.is_staff %}
           <a href="{% url 'scenarios:detail' scenario.id %}" class="btn btn-sm btn-outline-light">
             <i class="fas fa-play me-1"></i>{% trans "Enter" %}
           </a>
-          {% if scenario.keeper == user %}
+          {% else %}
+          <a href="{% url 'scenarios:public_join' scenario.id %}" class="btn btn-sm btn-outline-success">
+            <i class="fas fa-door-open me-1"></i>{% trans "Join" %}
+          </a>
+          {% endif %}
+          {% if scenario.keeper == user or user.is_staff %}
           <a href="{% url 'scenarios:manage' scenario.id %}" class="btn btn-sm btn-outline-warning">
             <i class="fas fa-crown me-1"></i>{% trans "Manage" %}
           </a>
@@ -72,13 +78,13 @@
       <i class="fas fa-book fa-5x text-muted mb-4"></i>
       <h3>{% trans "No Active Scenarios" %}</h3>
       <p class="lead text-muted">
-        {% if user.is_keeper %}
+        {% if user.is_keeper or user.is_staff %}
           {% trans "Create your first scenario to start a new adventure!" %}
         {% else %}
           {% trans "Ask a Keeper to invite you to a scenario!" %}
         {% endif %}
       </p>
-      {% if user.is_keeper %}
+      {% if user.is_keeper or user.is_staff %}
       <a href="{% url 'scenarios:create' %}" class="btn btn-warning btn-lg">
         <i class="fas fa-plus me-1"></i>{% trans "Create Scenario" %}
       </a>

@@ -247,6 +247,19 @@ class PermissionTests(TestCase):
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
 
+    def test_admin_can_create_scenario(self):
+        admin = make_user('admin_creator', is_staff=True)
+        self.client.force_login(admin)
+        response = self.client.post(reverse('scenarios:create'), {
+            'name': 'Admin Session',
+            'visibility': 'PRIVATE',
+            'status': 'PLANNING',
+        })
+        self.assertEqual(Scenario.objects.filter(name='Admin Session').count(), 1)
+        created = Scenario.objects.get(name='Admin Session')
+        self.assertEqual(created.keeper, admin)
+        self.assertRedirects(response, reverse('scenarios:manage', kwargs={'scenario_id': created.id}))
+
     def test_unauthenticated_redirected_to_login(self):
         url = reverse('scenarios:list')
         r = self.client.get(url)
@@ -1026,6 +1039,26 @@ class ScenarioListTest(TestCase):
         r = self.client.get(reverse('scenarios:archive'))
         self.assertContains(r, 'Old Haunting')
 
+    def test_admin_sees_new_scenario_action(self):
+        admin = make_user('list_admin', is_staff=True)
+        self.client.force_login(admin)
+        response = self.client.get(reverse('scenarios:list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse('scenarios:create'))
+
+    def test_player_sees_public_scenarios_without_membership(self):
+        public_scenario = make_scenario(self.keeper, name='Open Table', visibility='PUBLIC', status='ACTIVE')
+        response = self.client.get(reverse('scenarios:list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Open Table')
+        self.assertContains(response, reverse('scenarios:public_join', kwargs={'scenario_id': public_scenario.id}))
+
+    def test_player_does_not_see_private_scenarios_without_membership(self):
+        make_scenario(self.keeper, name='Hidden Table', visibility='PRIVATE', status='ACTIVE')
+        response = self.client.get(reverse('scenarios:list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'Hidden Table')
+
 
 # ===========================================================================
 # XI. SCENARIO DETAIL (PLAYER VIEW) TESTS
@@ -1124,6 +1157,29 @@ class ScenarioDetailTest(TestCase):
         self.client.force_login(self.keeper)
         r = self.client.get(reverse('scenarios:detail', kwargs={'scenario_id': self.scenario.id}))
         self.assertNotContains(r, 'playerHintsModal')
+
+    def test_non_participant_redirected_to_public_join_for_public_scenario(self):
+        public_scenario = make_scenario(self.keeper, visibility='PUBLIC', status='ACTIVE')
+        self.client.force_login(self.player)
+        response = self.client.get(reverse('scenarios:detail', kwargs={'scenario_id': public_scenario.id}))
+        self.assertRedirects(response, reverse('scenarios:public_join', kwargs={'scenario_id': public_scenario.id}))
+
+    def test_player_can_join_public_scenario(self):
+        public_scenario = make_scenario(self.keeper, visibility='PUBLIC', status='ACTIVE')
+        self.client.force_login(self.player)
+
+        join_page = self.client.get(reverse('scenarios:public_join', kwargs={'scenario_id': public_scenario.id}))
+        self.assertEqual(join_page.status_code, 200)
+        self.assertContains(join_page, self.char.name)
+
+        submit = self.client.post(
+            reverse('scenarios:public_join', kwargs={'scenario_id': public_scenario.id}),
+            {'character_id': self.char.id}
+        )
+        self.assertRedirects(submit, reverse('scenarios:detail', kwargs={'scenario_id': public_scenario.id}))
+        self.assertTrue(
+            ScenarioPlayer.objects.filter(scenario=public_scenario, player=self.player, character=self.char).exists()
+        )
 
 
 class ScenarioKeeperHintsViewTest(TestCase):

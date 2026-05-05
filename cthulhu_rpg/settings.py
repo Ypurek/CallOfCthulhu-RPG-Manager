@@ -26,7 +26,7 @@ SECRET_KEY = os.getenv('DJANGO_SECRET', default='debug secret key')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DJANGO_DEBUG", "True") in ('True', 'true', '1')
 
-ALLOWED_HOSTS = ["cthulhu.webfeya.com", "127.0.0.1"]
+ALLOWED_HOSTS = ["*"] if DEBUG else [os.getenv("DJANGO_ALLOWED_HOSTS", "cthulhu.webfeya.com").split(",")]
 
 
 # Application definition
