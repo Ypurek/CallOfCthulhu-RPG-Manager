@@ -35,6 +35,9 @@ NPC_WIZARD_SESSION_KEY = 'npc_create_draft'
 NPC_WIZARD_STEPS = ['basic', 'stats', 'skills', 'inventory', 'review']
 NPC_TEMPLATE_WIZARD_META_KEY = 'npc_template_wizard_meta'
 NPC_WIZARD_TARGET_SCENARIO = 'npc_wizard_target_scenario'
+# NPCs (monsters, enemies) may have base stats well above 100
+NPC_STAT_MAX = 999
+PC_STAT_MAX = 100
 
 
 def _to_int(value, default=0, minimum=None, maximum=None):
@@ -331,7 +334,7 @@ def _save_draft(request, draft):
     request.session.modified = True
 
 
-def _export_payload_from_draft(draft):
+def _export_payload_from_draft(draft, stat_max=PC_STAT_MAX):
     basic = draft['basic']
     draft = _sync_custom_skill_values(draft)
     skills_by_id = {str(skill.id): skill for skill in Skill.objects.all()}
@@ -359,15 +362,15 @@ def _export_payload_from_draft(draft):
         },
         'description': basic.get('description', ''),
         'characteristics': {
-            'STR': draft['stats'].get('strength', 0),
-            'CON': draft['stats'].get('constitution', 0),
-            'DEX': draft['stats'].get('dexterity', 0),
-            'INT': draft['stats'].get('intelligence', 0),
-            'APP': draft['stats'].get('appearance', 0),
-            'POW': draft['stats'].get('power', 0),
-            'SIZ': draft['stats'].get('size', 0),
-            'EDU': draft['stats'].get('education', 0),
-            'Luck': draft['stats'].get('luck', 0),
+            'STR': _to_int(draft['stats'].get('strength', 0), 0, 0, stat_max),
+            'CON': _to_int(draft['stats'].get('constitution', 0), 0, 0, stat_max),
+            'DEX': _to_int(draft['stats'].get('dexterity', 0), 0, 0, stat_max),
+            'INT': _to_int(draft['stats'].get('intelligence', 0), 0, 0, stat_max),
+            'APP': _to_int(draft['stats'].get('appearance', 0), 0, 0, stat_max),
+            'POW': _to_int(draft['stats'].get('power', 0), 0, 0, stat_max),
+            'SIZ': _to_int(draft['stats'].get('size', 0), 0, 0, stat_max),
+            'EDU': _to_int(draft['stats'].get('education', 0), 0, 0, stat_max),
+            'Luck': _to_int(draft['stats'].get('luck', 0), 0, 0, stat_max),
         },
         'skills': exported_skills,
         'weapons': [
@@ -414,11 +417,13 @@ def _normalize_imported_custom_skill_name(raw_name):
     return normalized_name
 
 
-def _draft_from_import(data):
+def _draft_from_import(data, stat_max=PC_STAT_MAX):
     draft = _default_draft()
     if 'basic' in data and 'stats' in data:
         draft['basic'].update(data.get('basic', {}))
-        draft['stats'].update(data.get('stats', {}))
+        imported_stats = data.get('stats', {}) if isinstance(data.get('stats'), dict) else {}
+        for field in ['strength', 'constitution', 'dexterity', 'intelligence', 'power', 'size', 'appearance', 'education', 'luck']:
+            draft['stats'][field] = _to_int(imported_stats.get(field), draft['stats'].get(field, 0), 0, stat_max)
         draft['skills'] = _initialize_skill_values(draft['stats'].get('education', 0), data.get('skills', {}))
         draft['inventory'] = data.get('inventory', draft['inventory'])
         draft['inventory'].setdefault('weapons', [])
@@ -454,15 +459,15 @@ def _draft_from_import(data):
     characteristics = data.get('characteristics', {})
     status = data.get('status', {})
     draft['stats'].update({
-        'strength': _to_int(characteristics.get('STR', 0), 0, 0, 100),
-        'constitution': _to_int(characteristics.get('CON', 0), 0, 0, 100),
-        'dexterity': _to_int(characteristics.get('DEX', 0), 0, 0, 100),
-        'intelligence': _to_int(characteristics.get('INT', 0), 0, 0, 100),
-        'power': _to_int(characteristics.get('POW', 0), 0, 0, 100),
-        'size': _to_int(characteristics.get('SIZ', 0), 0, 0, 100),
-        'appearance': _to_int(characteristics.get('APP', 0), 0, 0, 100),
-        'education': _to_int(characteristics.get('EDU', 0), 0, 0, 100),
-        'luck': _to_int(characteristics.get('Luck', 0), 0, 0, 100),
+        'strength': _to_int(characteristics.get('STR', 0), 0, 0, stat_max),
+        'constitution': _to_int(characteristics.get('CON', 0), 0, 0, stat_max),
+        'dexterity': _to_int(characteristics.get('DEX', 0), 0, 0, stat_max),
+        'intelligence': _to_int(characteristics.get('INT', 0), 0, 0, stat_max),
+        'power': _to_int(characteristics.get('POW', 0), 0, 0, stat_max),
+        'size': _to_int(characteristics.get('SIZ', 0), 0, 0, stat_max),
+        'appearance': _to_int(characteristics.get('APP', 0), 0, 0, stat_max),
+        'education': _to_int(characteristics.get('EDU', 0), 0, 0, stat_max),
+        'luck': _to_int(characteristics.get('Luck', 0), 0, 0, stat_max),
     })
 
     # Preserve optional status values (HP/MP/SAN/LCK) for wizards that support bar adjustments.
@@ -1192,6 +1197,7 @@ def character_create(request):
         'final_submit_label': 'Save Template' if template_mode else 'Create Character',
         'show_change_history': False,
         'enable_status_adjustments': False,
+        'stat_max': 100,  # PCs are capped at 100
     }
     return render(request, 'characters/create.html', context)
 
@@ -1209,7 +1215,7 @@ def character_import_json(request):
 
     try:
         payload = json.loads(uploaded_file.read().decode('utf-8'))
-        draft = _draft_from_import(payload)
+        draft = _draft_from_import(payload, stat_max=PC_STAT_MAX)
         draft['step'] = 'review'
         _save_draft(request, draft)
         messages.success(request, 'Character draft imported successfully.')
@@ -1393,7 +1399,7 @@ def _skill_name_to_export_key(skill_name, category=None):
     return '_'.join(normalized.split())
 
 
-def _template_payload_from_draft(draft):
+def _template_payload_from_draft(draft, stat_max=PC_STAT_MAX):
     stats = draft.get('stats', {})
     skills = draft.get('skills', {})
     basic = draft.get('basic', {})
@@ -1422,15 +1428,15 @@ def _template_payload_from_draft(draft):
             'age': basic.get('age', ''),
         },
         'characteristics': {
-            'STR': _to_int(stats.get('strength'), 0, 0, 100),
-            'CON': _to_int(stats.get('constitution'), 0, 0, 100),
-            'DEX': _to_int(stats.get('dexterity'), 0, 0, 100),
-            'INT': _to_int(stats.get('intelligence'), 0, 0, 100),
-            'APP': _to_int(stats.get('appearance'), 0, 0, 100),
-            'POW': _to_int(stats.get('power'), 0, 0, 100),
-            'SIZ': _to_int(stats.get('size'), 0, 0, 100),
-            'EDU': _to_int(stats.get('education'), 0, 0, 100),
-            'Luck': _to_int(stats.get('luck'), 0, 0, 100),
+            'STR': _to_int(stats.get('strength'), 0, 0, stat_max),
+            'CON': _to_int(stats.get('constitution'), 0, 0, stat_max),
+            'DEX': _to_int(stats.get('dexterity'), 0, 0, stat_max),
+            'INT': _to_int(stats.get('intelligence'), 0, 0, stat_max),
+            'APP': _to_int(stats.get('appearance'), 0, 0, stat_max),
+            'POW': _to_int(stats.get('power'), 0, 0, stat_max),
+            'SIZ': _to_int(stats.get('size'), 0, 0, stat_max),
+            'EDU': _to_int(stats.get('education'), 0, 0, stat_max),
+            'Luck': _to_int(stats.get('luck'), 0, 0, stat_max),
         },
         'skills': exported_skills,
         'weapons': [
@@ -1492,15 +1498,15 @@ def _create_npc_character_from_draft(user, draft):
     adjustments = draft.get('adjustments', {})
 
     base_stats = {
-        'strength': _to_int(stats.get('strength'), 0, 0, 100),
-        'constitution': _to_int(stats.get('constitution'), 0, 0, 100),
-        'dexterity': _to_int(stats.get('dexterity'), 0, 0, 100),
-        'intelligence': _to_int(stats.get('intelligence'), 0, 0, 100),
-        'power': _to_int(stats.get('power'), 0, 0, 100),
-        'size': _to_int(stats.get('size'), 0, 0, 100),
-        'appearance': _to_int(stats.get('appearance'), 0, 0, 100),
-        'education': _to_int(stats.get('education'), 0, 0, 100),
-        'luck': _to_int(stats.get('luck'), 0, 0, 100),
+        'strength': _to_int(stats.get('strength'), 0, 0, NPC_STAT_MAX),
+        'constitution': _to_int(stats.get('constitution'), 0, 0, NPC_STAT_MAX),
+        'dexterity': _to_int(stats.get('dexterity'), 0, 0, NPC_STAT_MAX),
+        'intelligence': _to_int(stats.get('intelligence'), 0, 0, NPC_STAT_MAX),
+        'power': _to_int(stats.get('power'), 0, 0, NPC_STAT_MAX),
+        'size': _to_int(stats.get('size'), 0, 0, NPC_STAT_MAX),
+        'appearance': _to_int(stats.get('appearance'), 0, 0, NPC_STAT_MAX),
+        'education': _to_int(stats.get('education'), 0, 0, NPC_STAT_MAX),
+        'luck': _to_int(stats.get('luck'), 0, 0, NPC_STAT_MAX),
     }
 
     skill_values, custom_skill_id_map = _resolve_skill_values_for_storage(draft, base_stats['education'])
@@ -1689,7 +1695,7 @@ def npc_use_template(request, template_id):
     payload = template.payload if isinstance(template.payload, dict) else {}
 
     try:
-        draft = _draft_from_import(payload)
+        draft = _draft_from_import(payload, stat_max=NPC_STAT_MAX)
         draft['step'] = 'basic'
         request.session[NPC_WIZARD_SESSION_KEY] = draft
         request.session.modified = True
@@ -1727,7 +1733,7 @@ def npc_template_edit_wizard(request, template_id):
 
     payload = template.payload if isinstance(template.payload, dict) else {}
     try:
-        draft = _draft_from_import(payload)
+        draft = _draft_from_import(payload, stat_max=NPC_STAT_MAX)
     except (TypeError, ValueError):
         messages.error(request, 'NPC template data is invalid.')
         return redirect('characters:npc_templates')
@@ -1799,8 +1805,9 @@ def npc_create(request):
             })
         elif step == 'stats':
             stats = draft['stats']
+            # NPCs may have base stats above 100 (e.g. large monsters)
             for field in ['strength', 'constitution', 'dexterity', 'intelligence', 'power', 'size', 'appearance', 'education', 'luck']:
-                stats[field] = _to_int(request.POST.get(field), stats.get(field, 0), 0, 100)
+                stats[field] = _to_int(request.POST.get(field), stats.get(field, 0), 0, NPC_STAT_MAX)
             draft['skills'] = _initialize_skill_values(stats['education'], draft.get('skills', {}))
             _sync_custom_skill_values(draft)
         elif step == 'skills':
@@ -1899,7 +1906,7 @@ def npc_create(request):
                     messages.error(request, f'Failed to add NPC to scenario: {str(e)}')
                     return redirect('characters:npc_create')
             try:
-                payload = _template_payload_from_draft(draft)
+                payload = _template_payload_from_draft(draft, stat_max=NPC_STAT_MAX)
                 payload['status'] = _status_from_draft(draft)
                 template_id = (template_meta or {}).get('template_id')
                 template_name = str(draft.get('basic', {}).get('name', '')).strip() or 'Unnamed NPC'
@@ -2056,6 +2063,7 @@ def npc_create(request):
         'final_submit_label': 'Create NPC' if target_scenario_id else 'Save NPC Template',
         'show_change_history': False,
         'enable_status_adjustments': True,
+        'stat_max': NPC_STAT_MAX,  # NPCs may have stats above 100
     })
 
 
@@ -2076,7 +2084,7 @@ def npc_import_json(request):
 
     try:
         payload = json.loads(uploaded_file.read().decode('utf-8'))
-        draft = _draft_from_import(payload)
+        draft = _draft_from_import(payload, stat_max=NPC_STAT_MAX)
         draft['step'] = 'basic'
         request.session[NPC_WIZARD_SESSION_KEY] = draft
         request.session.modified = True
@@ -2094,7 +2102,7 @@ def npc_export_json(request):
         return redirect('characters:npc_create')
 
     draft = request.session.get(NPC_WIZARD_SESSION_KEY, _default_draft())
-    payload = _export_payload_from_draft(draft)
+    payload = _export_payload_from_draft(draft, stat_max=NPC_STAT_MAX)
     payload['status'] = _status_from_draft(draft)
 
     response = HttpResponse(
@@ -2136,6 +2144,7 @@ def _build_edit_change_entries(character, draft):
     changes = []
     basic = draft.get('basic', {})
     stats = draft.get('stats', {})
+    stat_max = NPC_STAT_MAX if character.character_type == 'NPC' else PC_STAT_MAX
 
     def add_change(label, before, after):
         before_text = '' if before is None else str(before)
@@ -2160,14 +2169,14 @@ def _build_edit_change_entries(character, draft):
         ('LCK', 'luck'),
     ]
     for label, field in stat_mappings:
-        add_change(label, getattr(character, field), _to_int(stats.get(field), getattr(character, field), 0, 100))
+        add_change(label, getattr(character, field), _to_int(stats.get(field), getattr(character, field), 0, stat_max))
 
     skills_by_id = {skill.id: skill for skill in Skill.objects.all()}
     current_skills = {cs.skill_id: cs.value for cs in CharacterSkill.objects.filter(character=character)}
     next_skills = {
         int(skill_id): _to_int(value, 0, 0, 100)
         for skill_id, value in _initialize_skill_values(
-            _to_int(stats.get('education'), character.education, 0, 100),
+            _to_int(stats.get('education'), character.education, 0, stat_max),
             draft.get('skills', {}),
         ).items()
         if str(skill_id).isdigit()
@@ -2295,15 +2304,16 @@ def _apply_edit_draft_to_character(character, draft):
     character.age = _to_int(raw_age, None) if raw_age else None
 
     # Stats
-    character.strength = _to_int(stats.get('strength'), character.strength, 0, 100)
-    character.constitution = _to_int(stats.get('constitution'), character.constitution, 0, 100)
-    character.dexterity = _to_int(stats.get('dexterity'), character.dexterity, 0, 100)
-    character.intelligence = _to_int(stats.get('intelligence'), character.intelligence, 0, 100)
-    character.power = _to_int(stats.get('power'), character.power, 0, 100)
-    character.size = _to_int(stats.get('size'), character.size, 0, 100)
-    character.appearance = _to_int(stats.get('appearance'), character.appearance, 0, 100)
-    character.education = _to_int(stats.get('education'), character.education, 0, 100)
-    character.luck = _to_int(stats.get('luck'), character.luck, 0, 100)
+    _stat_max = NPC_STAT_MAX if character.character_type == 'NPC' else PC_STAT_MAX
+    character.strength = _to_int(stats.get('strength'), character.strength, 0, _stat_max)
+    character.constitution = _to_int(stats.get('constitution'), character.constitution, 0, _stat_max)
+    character.dexterity = _to_int(stats.get('dexterity'), character.dexterity, 0, _stat_max)
+    character.intelligence = _to_int(stats.get('intelligence'), character.intelligence, 0, _stat_max)
+    character.power = _to_int(stats.get('power'), character.power, 0, _stat_max)
+    character.size = _to_int(stats.get('size'), character.size, 0, _stat_max)
+    character.appearance = _to_int(stats.get('appearance'), character.appearance, 0, _stat_max)
+    character.education = _to_int(stats.get('education'), character.education, 0, _stat_max)
+    character.luck = _to_int(stats.get('luck'), character.luck, 0, _stat_max)
 
     # Recalculate derived stats
     skill_values_draft, custom_skill_id_map = _resolve_skill_values_for_storage(draft, character.education)
@@ -2329,7 +2339,7 @@ def _apply_edit_draft_to_character(character, draft):
     character.sanity_max = derived['sanity_max']
     character.sanity_start = derived['sanity_start']
     character.sanity_current = _to_int(sanity_base + sanity_delta, sanity_base, 0, derived['sanity_max'])
-    character.luck = _to_int(character.luck + luck_delta, character.luck, 0, 100)
+    character.luck = _to_int(character.luck + luck_delta, character.luck, 0, _stat_max)
 
     character.cash = _to_int(draft.get('inventory', {}).get('cash'), character.cash, 0)
 
@@ -2427,7 +2437,8 @@ def _build_edit_wizard_context(request, character, draft):
     hp_base = min(character.hp_current, derived_stats['hp_max'])
     mp_base = min(character.mp_current, derived_stats['mp_max'])
     sanity_base = min(character.sanity_current, derived_stats['sanity_max'])
-    luck_base = _to_int(draft_stats.get('luck', character.luck), character.luck, 0, 100)
+    _stat_max = NPC_STAT_MAX if character.character_type == 'NPC' else PC_STAT_MAX
+    luck_base = _to_int(draft_stats.get('luck', character.luck), character.luck, 0, _stat_max)
 
     review_current_values = {
         'hp': _to_int(hp_base + hp_delta, hp_base, 0, derived_stats['hp_max']),
@@ -2436,7 +2447,7 @@ def _build_edit_wizard_context(request, character, draft):
         'mp_max': derived_stats['mp_max'],
         'sanity': _to_int(sanity_base + sanity_delta, sanity_base, 0, derived_stats['sanity_max']),
         'sanity_max': derived_stats['sanity_max'],
-        'luck': _to_int(luck_base + luck_delta, luck_base, 0, 100),
+        'luck': _to_int(luck_base + luck_delta, luck_base, 0, _stat_max),
     }
 
     preview_character = type('PreviewCharacter', (), {
@@ -2520,6 +2531,7 @@ def _build_edit_wizard_context(request, character, draft):
         'wizard_back_text': 'Back to Session' if next_url else 'Back to Character',
         'show_change_history': True,
         'enable_status_adjustments': True,
+        'stat_max': NPC_STAT_MAX if is_npc else 100,
         'review_current_values': review_current_values,
         'character_change_logs': CharacterChangeLog.objects.filter(character=character).select_related('changed_by')[:50],
     }
@@ -2589,8 +2601,10 @@ def character_edit_wizard(request, character_id):
             })
         elif step == 'stats':
             stats = draft['stats']
+            # Allow NPC stats above 100 (for monsters etc.)
+            _edit_stat_max = NPC_STAT_MAX if character.character_type == 'NPC' else PC_STAT_MAX
             for field in ['strength', 'constitution', 'dexterity', 'intelligence', 'power', 'size', 'appearance', 'education', 'luck']:
-                stats[field] = _to_int(request.POST.get(field), stats.get(field, 0), 0, 100)
+                stats[field] = _to_int(request.POST.get(field), stats.get(field, 0), 0, _edit_stat_max)
             draft['skills'] = _initialize_skill_values(stats['education'], draft.get('skills', {}))
             _sync_custom_skill_values(draft)
         elif step == 'skills':
@@ -2715,7 +2729,14 @@ def character_edit_wizard_export(request, character_id):
     character = get_object_or_404(Character, id=character_id, owner=request.user)
     draft = request.session.get(_edit_session_key(character_id)) or _load_edit_draft_from_character(character)
     response = HttpResponse(
-        json.dumps(_export_payload_from_draft(draft), indent=2, ensure_ascii=False),
+        json.dumps(
+            _export_payload_from_draft(
+                draft,
+                stat_max=NPC_STAT_MAX if character.character_type == 'NPC' else PC_STAT_MAX,
+            ),
+            indent=2,
+            ensure_ascii=False,
+        ),
         content_type='application/json',
     )
     name_slug = character.name.replace(' ', '_').lower()
@@ -2751,8 +2772,7 @@ def character_edit_wizard_import(request, character_id):
         return wizard_redirect()
     try:
         payload = json.loads(uploaded_file.read().decode('utf-8'))
-        draft = _draft_from_import(payload)
-        draft.setdefault('adjustments', {'hp': 0, 'mp': 0, 'sanity': 0, 'luck': 0})
+        draft = _draft_from_import(payload, stat_max=NPC_STAT_MAX if is_npc else PC_STAT_MAX)
         draft['step'] = 'review'
         request.session[_edit_session_key(character_id)] = draft
         request.session.modified = True

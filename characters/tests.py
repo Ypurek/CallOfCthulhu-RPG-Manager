@@ -33,6 +33,7 @@ from characters.models import (
 from characters.views import (
     DEFAULT_UNARMED_WEAPON_NAME,
     DEFAULT_UNARMED_WEAPON_DAMAGE,
+    NPC_STAT_MAX,
     NPC_TEMPLATE_WIZARD_META_KEY,
     NPC_WIZARD_SESSION_KEY,
     TEMPLATE_WIZARD_META_KEY,
@@ -1580,6 +1581,164 @@ class CharacterEditWizardImportExportTests(TestCase):
         self.client.login(username='p', password='x')
         response = self.client.get(reverse('characters:edit_wizard_import', args=[self.char.id]))
         self.assertRedirects(response, reverse('characters:edit_wizard', args=[self.char.id]))
+
+
+# ===========================================================================
+# VIII. NPC STAT BOUNDARY TESTS  (stats above 100 allowed for NPCs only)
+# ===========================================================================
+
+class NPCStatAbove100ModelTests(TestCase):
+    """NPC Character objects may have base stats above 100; model-level validator removed."""
+
+    def setUp(self):
+        self.keeper = User.objects.create_user(username='k', password='x', role='KEEPER')
+
+    def test_npc_model_accepts_strength_above_100(self):
+        """Creating an NPC Character with strength=130 should not raise."""
+        npc = make_character(self.keeper, character_type='NPC', strength=130, size=100)
+        self.assertEqual(npc.strength, 130)
+
+    def test_npc_model_accepts_size_above_100(self):
+        npc = make_character(self.keeper, character_type='NPC', size=150, strength=70)
+        self.assertEqual(npc.size, 150)
+
+    def test_npc_hp_max_scales_beyond_20(self):
+        """HP = (STR+CON)//10 should work for stats > 100."""
+        npc = make_character(self.keeper, character_type='NPC', strength=130, constitution=130)
+        self.assertEqual(npc.calculate_hp_max(), 26)
+
+    def test_npc_mp_max_scales_beyond_20(self):
+        """MP = POW//5 should work for POW > 100."""
+        npc = make_character(self.keeper, character_type='NPC', power=150)
+        self.assertEqual(npc.calculate_mp_max(), 30)
+
+    def test_pc_model_creation_still_stores_any_value(self):
+        """The PC 100-cap is applied at the view layer, not the model layer."""
+        pc = make_character(self.keeper, character_type='PC', strength=50)
+        self.assertEqual(pc.strength, 50)
+
+
+class NPCStatAbove100WizardTests(TestCase):
+    """NPC wizard stores and saves stats above 100 correctly."""
+
+    def setUp(self):
+        self.keeper = User.objects.create_user(username='k', password='x', role='KEEPER')
+        Skill.objects.get_or_create(
+            name='Fighting (Brawl)',
+            defaults={'category': 'combat', 'base_value': 25, 'description': ''},
+        )
+
+    def _bootstrap_npc(self):
+        """Start a fresh NPC template wizard session."""
+        self.client.login(username='k', password='x')
+        self.client.get(reverse('characters:npc_template_create'))
+
+    def test_npc_wizard_stats_step_stores_value_above_100(self):
+        """POSTing STR=130 on the NPC stats step must store 130 in the session draft."""
+        self._bootstrap_npc()
+        self.client.post(reverse('characters:npc_create'), {
+            'step': 'stats', 'action': 'next',
+            'strength': 130, 'constitution': 100, 'dexterity': 50,
+            'intelligence': 40, 'power': 80, 'size': 150,
+            'appearance': 10, 'education': 10, 'luck': 50,
+        })
+        draft = self.client.session[NPC_WIZARD_SESSION_KEY]
+        self.assertEqual(draft['stats']['strength'], 130)
+        self.assertEqual(draft['stats']['size'], 150)
+
+    def test_npc_template_payload_stores_stat_above_100(self):
+        """After completing the NPC wizard, the saved template payload keeps STR=130."""
+        self._bootstrap_npc()
+        self.client.post(reverse('characters:npc_create'), {
+            'step': 'basic', 'action': 'next',
+            'name': 'Giant Monster', 'description': 'Huge', 'occupation': 'Monster', 'age': '500',
+        })
+        self.client.post(reverse('characters:npc_create'), {
+            'step': 'stats', 'action': 'next',
+            'strength': 130, 'constitution': 100, 'dexterity': 50,
+            'intelligence': 40, 'power': 80, 'size': 150,
+            'appearance': 10, 'education': 10, 'luck': 50,
+        })
+        self.client.post(reverse('characters:npc_create'), {
+            'step': 'skills', 'action': 'next',
+        })
+        self.client.post(reverse('characters:npc_create'), {
+            'step': 'inventory', 'action': 'next',
+            'weapons_json': '[]', 'items_json': '[]',
+        })
+        self.client.post(reverse('characters:npc_create'), {
+            'step': 'review', 'action': 'save',
+        })
+        template = NPCTemplate.objects.get(name='Giant Monster')
+        self.assertEqual(template.payload['characteristics']['STR'], 130)
+        self.assertEqual(template.payload['characteristics']['SIZ'], 150)
+
+    def test_pc_wizard_still_clamps_stat_at_100(self):
+        """PC creation wizard must still clamp stats to 100."""
+        player = User.objects.create_user(username='p', password='x', role='PLAYER')
+        self.client.login(username='p', password='x')
+        self.client.post(reverse('characters:create'), {
+            'step': 'stats', 'action': 'next',
+            'strength': 130, 'constitution': 50, 'dexterity': 50,
+            'intelligence': 50, 'power': 50, 'size': 50,
+            'appearance': 50, 'education': 50, 'luck': 50,
+        })
+        draft = self.client.session[WIZARD_SESSION_KEY]
+        self.assertEqual(draft['stats']['strength'], 100)
+
+    def test_npc_import_json_stat_above_100_preserved_in_draft(self):
+        """Importing an NPC JSON file with STR=130 stores 130 in the wizard draft."""
+        self.client.login(username='k', password='x')
+        payload = {
+            'character_info': {'name': 'Deep One', 'occupation': 'Monster', 'age': ''},
+            'characteristics': {
+                'STR': 130, 'CON': 120, 'DEX': 60, 'INT': 50,
+                'APP': 15, 'POW': 90, 'SIZ': 160, 'EDU': 20, 'Luck': 50,
+            },
+            'skills': {}, 'weapons': [], 'inventory': [],
+        }
+        uploaded = SimpleUploadedFile(
+            'deep_one.json', json.dumps(payload).encode(), content_type='application/json'
+        )
+        self.client.post(reverse('characters:npc_import_json'), {'json_file': uploaded})
+        draft = self.client.session[NPC_WIZARD_SESSION_KEY]
+        self.assertEqual(draft['stats']['strength'], 130)
+        self.assertEqual(draft['stats']['size'], 160)
+
+    def test_npc_stat_capped_at_npc_stat_max(self):
+        """Values beyond NPC_STAT_MAX (999) are clamped."""
+        self._bootstrap_npc()
+        self.client.post(reverse('characters:npc_create'), {
+            'step': 'stats', 'action': 'next',
+            'strength': 9999, 'constitution': 50, 'dexterity': 50,
+            'intelligence': 50, 'power': 50, 'size': 50,
+            'appearance': 50, 'education': 50, 'luck': 50,
+        })
+        draft = self.client.session[NPC_WIZARD_SESSION_KEY]
+        self.assertEqual(draft['stats']['strength'], NPC_STAT_MAX)
+
+
+class DeriveSecondaryStatsAbove100Tests(TestCase):
+    """_derive_secondary_stats correctly scales when stats exceed 100."""
+
+    def test_hp_max_with_stats_above_100(self):
+        stats = {
+            'strength': 130, 'constitution': 130, 'power': 80,
+            'dexterity': 50, 'intelligence': 50, 'size': 150,
+            'appearance': 10, 'education': 10, 'luck': 50,
+        }
+        result = _derive_secondary_stats(stats)
+        self.assertEqual(result['hp_max'], 26)  # (130+130)//10
+
+    def test_mp_max_with_power_above_100(self):
+        stats = {
+            'strength': 50, 'constitution': 50, 'power': 150,
+            'dexterity': 50, 'intelligence': 50, 'size': 50,
+            'appearance': 50, 'education': 50, 'luck': 50,
+        }
+        result = _derive_secondary_stats(stats)
+        self.assertEqual(result['mp_max'], 30)  # 150//5
+
 
 
 

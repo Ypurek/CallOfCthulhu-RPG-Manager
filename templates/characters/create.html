@@ -85,7 +85,7 @@
                             <div class="wizard-stat-help">{% trans "Physical strength and muscle power." %}</div>
                         </div>
                         <label class="visually-hidden" for="strength">Strength</label>
-                        <input id="strength" type="number" name="strength" min="0" max="100" class="form-control wizard-stat-input" value="{{ draft.stats.strength }}">
+                        <input id="strength" type="number" name="strength" min="0" max="{{ stat_max|default:100 }}" class="form-control wizard-stat-input" value="{{ draft.stats.strength }}">
                     </div>
                     <div class="wizard-stat-item">
                         <div class="wizard-stat-meta">
@@ -93,7 +93,7 @@
                             <div class="wizard-stat-help">{% trans "Health, stamina, and resistance." %}</div>
                         </div>
                         <label class="visually-hidden" for="constitution">Constitution</label>
-                        <input id="constitution" type="number" name="constitution" min="0" max="100" class="form-control wizard-stat-input" value="{{ draft.stats.constitution }}">
+                        <input id="constitution" type="number" name="constitution" min="0" max="{{ stat_max|default:100 }}" class="form-control wizard-stat-input" value="{{ draft.stats.constitution }}">
                     </div>
                     <div class="wizard-stat-item">
                         <div class="wizard-stat-meta">
@@ -101,7 +101,7 @@
                             <div class="wizard-stat-help">{% trans "Agility, reflexes, and coordination." %}</div>
                         </div>
                         <label class="visually-hidden" for="dexterity">Dexterity</label>
-                        <input id="dexterity" type="number" name="dexterity" min="0" max="100" class="form-control wizard-stat-input" value="{{ draft.stats.dexterity }}">
+                        <input id="dexterity" type="number" name="dexterity" min="0" max="{{ stat_max|default:100 }}" class="form-control wizard-stat-input" value="{{ draft.stats.dexterity }}">
                     </div>
                     <div class="wizard-stat-item">
                         <div class="wizard-stat-meta">
@@ -109,7 +109,7 @@
                             <div class="wizard-stat-help">{% trans "Reasoning, memory, and problem solving." %}</div>
                         </div>
                         <label class="visually-hidden" for="intelligence">Intelligence</label>
-                        <input id="intelligence" type="number" name="intelligence" min="0" max="100" class="form-control wizard-stat-input" value="{{ draft.stats.intelligence }}">
+                        <input id="intelligence" type="number" name="intelligence" min="0" max="{{ stat_max|default:100 }}" class="form-control wizard-stat-input" value="{{ draft.stats.intelligence }}">
                     </div>
                     <div class="wizard-stat-item">
                         <div class="wizard-stat-meta">
@@ -117,7 +117,7 @@
                             <div class="wizard-stat-help">{% trans "Willpower, spirit, and magical resilience." %}</div>
                         </div>
                         <label class="visually-hidden" for="power">Power</label>
-                        <input id="power" type="number" name="power" min="0" max="100" class="form-control wizard-stat-input" value="{{ draft.stats.power }}">
+                        <input id="power" type="number" name="power" min="0" max="{{ stat_max|default:100 }}" class="form-control wizard-stat-input" value="{{ draft.stats.power }}">
                     </div>
                     <div class="wizard-stat-item">
                         <div class="wizard-stat-meta">
@@ -125,7 +125,7 @@
                             <div class="wizard-stat-help">{% trans "Body size, mass, and physical presence." %}</div>
                         </div>
                         <label class="visually-hidden" for="size">Size</label>
-                        <input id="size" type="number" name="size" min="0" max="100" class="form-control wizard-stat-input" value="{{ draft.stats.size }}">
+                        <input id="size" type="number" name="size" min="0" max="{{ stat_max|default:100 }}" class="form-control wizard-stat-input" value="{{ draft.stats.size }}">
                     </div>
                     <div class="wizard-stat-item">
                         <div class="wizard-stat-meta">
@@ -133,7 +133,7 @@
                             <div class="wizard-stat-help">{% trans "Looks, charm, and social impression." %}</div>
                         </div>
                         <label class="visually-hidden" for="appearance">Appearance</label>
-                        <input id="appearance" type="number" name="appearance" min="0" max="100" class="form-control wizard-stat-input" value="{{ draft.stats.appearance }}">
+                        <input id="appearance" type="number" name="appearance" min="0" max="{{ stat_max|default:100 }}" class="form-control wizard-stat-input" value="{{ draft.stats.appearance }}">
                     </div>
                     <div class="wizard-stat-item">
                         <div class="wizard-stat-meta">
@@ -141,7 +141,7 @@
                             <div class="wizard-stat-help">{% trans "Schooling, learned knowledge, and expertise." %}</div>
                         </div>
                         <label class="visually-hidden" for="education">Education</label>
-                        <input id="education" type="number" name="education" min="0" max="100" class="form-control wizard-stat-input" value="{{ draft.stats.education }}">
+                        <input id="education" type="number" name="education" min="0" max="{{ stat_max|default:100 }}" class="form-control wizard-stat-input" value="{{ draft.stats.education }}">
                     </div>
                     <div class="wizard-stat-item">
                         <div class="wizard-stat-meta">
@@ -149,7 +149,7 @@
                             <div class="wizard-stat-help">{% trans "Fortune, coincidence, and narrative luck." %}</div>
                         </div>
                         <label class="visually-hidden" for="luck">Luck</label>
-                        <input id="luck" type="number" name="luck" min="0" max="100" class="form-control wizard-stat-input" value="{{ draft.stats.luck }}">
+                        <input id="luck" type="number" name="luck" min="0" max="{{ stat_max|default:100 }}" class="form-control wizard-stat-input" value="{{ draft.stats.luck }}">
                     </div>
                 </div>
                 {% elif current_step == 'skills' %}

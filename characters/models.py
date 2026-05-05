@@ -29,15 +29,15 @@ class Character(models.Model):
     age = models.IntegerField(null=True, blank=True)
     description = models.TextField(blank=True)
 
-    # Characteristics (0-100)
-    strength = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)])
-    constitution = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)])
-    dexterity = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)])
-    intelligence = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)])
-    power = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)])
-    size = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)])
-    appearance = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)])
-    education = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)])
+    # Characteristics (0–100 for PCs; NPCs may exceed 100 – enforced at the view layer)
+    strength = models.IntegerField(validators=[MinValueValidator(0)])
+    constitution = models.IntegerField(validators=[MinValueValidator(0)])
+    dexterity = models.IntegerField(validators=[MinValueValidator(0)])
+    intelligence = models.IntegerField(validators=[MinValueValidator(0)])
+    power = models.IntegerField(validators=[MinValueValidator(0)])
+    size = models.IntegerField(validators=[MinValueValidator(0)])
+    appearance = models.IntegerField(validators=[MinValueValidator(0)])
+    education = models.IntegerField(validators=[MinValueValidator(0)])
 
     # Status
     hp_current = models.IntegerField()
@@ -47,7 +47,7 @@ class Character(models.Model):
     sanity_current = models.IntegerField()
     sanity_max = models.IntegerField()
     sanity_start = models.IntegerField()
-    luck = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)])
+    luck = models.IntegerField(validators=[MinValueValidator(0)])
 
     # Derived values
     movement = models.IntegerField(default=9)
