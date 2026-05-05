@@ -1403,6 +1403,49 @@ class ScenarioMessagingTest(TestCase):
         self.assertContains(response, 'Messages')
         self.assertContains(response, 'Send Message')
 
+    def test_non_ajax_private_message_redirects_to_manage_tab(self):
+        response = self.client.post(
+            reverse('scenarios:send_message', kwargs={'scenario_id': self.scenario.id}),
+            {'recipient_id': self.player.id, 'content': 'Fallback submit'},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response['Location'],
+            f"{reverse('scenarios:manage', kwargs={'scenario_id': self.scenario.id})}#tab-messages",
+        )
+        self.assertEqual(Message.objects.count(), 1)
+
+    def test_non_ajax_private_message_validation_redirects_without_message(self):
+        response = self.client.post(
+            reverse('scenarios:send_message', kwargs={'scenario_id': self.scenario.id}),
+            {'recipient_id': '', 'content': 'Missing recipient'},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response['Location'],
+            f"{reverse('scenarios:manage', kwargs={'scenario_id': self.scenario.id})}#tab-messages",
+        )
+        self.assertEqual(Message.objects.count(), 0)
+
+    def test_keeper_get_messages_includes_sent_private_message(self):
+        self.client.post(
+            reverse('scenarios:send_message', kwargs={'scenario_id': self.scenario.id}),
+            {'recipient_id': self.player.id, 'content': 'Keeper visible message'},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+
+        response = self.client.get(
+            reverse('scenarios:get_messages', kwargs={'scenario_id': self.scenario.id}),
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload['ok'])
+        self.assertGreaterEqual(len(payload['messages']), 1)
+        self.assertEqual(payload['messages'][0]['content'], 'Keeper visible message')
+
 
 # ===========================================================================
 # XIV. MANAGE PAGE TESTS
@@ -1471,6 +1514,19 @@ class ScenarioFightModeTest(TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, 'Fight')
         self.assertContains(r, 'Add to fight')
+
+    def test_add_participant_auto_starts_encounter(self):
+        response = self.client.post(
+            reverse('scenarios:fight_add_participant', kwargs={'scenario_id': self.scenario.id}),
+            {'character_id': self.char_a.id},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload['ok'])
+        self.assertTrue(payload['active'])
+        self.assertEqual(len(payload['participants']), 1)
+        self.assertEqual(payload['participants'][0]['character_id'], self.char_a.id)
 
     def test_fight_start_and_add_participants_sorted_by_dex(self):
         self.client.post(reverse('scenarios:fight_start', kwargs={'scenario_id': self.scenario.id}))

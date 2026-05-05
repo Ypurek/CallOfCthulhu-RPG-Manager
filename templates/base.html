@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load i18n static %}
 <!DOCTYPE html>
 <html lang="uk">
 <head>
@@ -9,119 +9,7 @@
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-
-    <style>
-        :root {
-            --dark-green: #1a3c2e;
-            --deep-red: #8b1c1c;
-            --gold: #d4af37;
-            --cream: #f5f5dc;
-            --shadow: #2c2c2c;
-        }
-
-        body {
-            background: linear-gradient(135deg, var(--dark-green), var(--shadow));
-            color: var(--cream);
-            min-height: 100vh;
-            font-family: 'Times New Roman', serif;
-        }
-
-        .navbar {
-            background: rgba(26, 60, 46, 0.95) !important;
-            border-bottom: 2px solid var(--gold);
-        }
-
-        .navbar-brand {
-            color: var(--gold) !important;
-            font-weight: bold;
-            font-size: 1.5rem;
-        }
-
-        .navbar-nav .nav-link {
-            color: var(--cream) !important;
-        }
-
-        .navbar-nav .nav-link:hover {
-            color: var(--gold) !important;
-        }
-
-        .card {
-            background: rgba(44, 44, 44, 0.9);
-            border: 1px solid var(--gold);
-            color: var(--cream);
-        }
-
-        .card-header {
-            background: rgba(26, 60, 46, 0.8);
-            border-bottom: 1px solid var(--gold);
-            color: var(--gold);
-            font-weight: bold;
-        }
-
-        .btn-primary {
-            background: var(--deep-red);
-            border-color: var(--deep-red);
-        }
-
-        .btn-primary:hover {
-            background: #a52323;
-            border-color: #a52323;
-        }
-
-        .btn-secondary {
-            background: var(--dark-green);
-            border-color: var(--dark-green);
-        }
-
-        .btn-warning {
-            background: var(--gold);
-            border-color: var(--gold);
-            color: var(--shadow);
-        }
-
-        .alert-success {
-            background: rgba(26, 60, 46, 0.8);
-            border-color: var(--gold);
-            color: var(--cream);
-        }
-
-        .alert-danger,
-        .alert-error {
-            background: rgba(139, 28, 28, 0.8);
-            border-color: var(--deep-red);
-            color: var(--cream);
-        }
-
-        .progress-bar {
-            background: var(--deep-red);
-        }
-
-        .badge {
-            background: var(--gold);
-            color: var(--shadow);
-        }
-
-        .modal-dark { background: var(--shadow); border: 1px solid var(--gold); }
-        .modal-dark-header { border-bottom: 1px solid var(--gold); }
-        .modal-dark-footer { border-top: 1px solid var(--gold); }
-        .modal-danger { background: rgba(24, 24, 24, 0.98); border: 1px solid rgba(220, 53, 69, 0.55); color: var(--cream); }
-        .modal-danger-header { border-bottom: 1px solid rgba(220, 53, 69, 0.35); }
-        .modal-danger-footer { border-top: 1px solid rgba(220, 53, 69, 0.35); }
-        .input-dark { background: rgba(44, 44, 44, 0.9); border-color: var(--gold); color: var(--cream); }
-        .input-dark::placeholder { color: rgba(245, 245, 220, 0.5); }
-        .btn-compact-danger { border-color: rgba(220, 53, 69, 0.7) !important; color: #ff8f98 !important; }
-        .badge-xs { font-size: 0.7rem; }
-
-        @media (max-width: 768px) {
-            .container-fluid {
-                padding: 0 10px;
-            }
-
-            .card {
-                margin-bottom: 15px;
-            }
-        }
-    </style>
+    <link href="{% static 'css/style.css' %}" rel="stylesheet">
 
     {% block extra_css %}{% endblock %}
 </head>
@@ -292,6 +180,7 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'js/script.js' %}"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

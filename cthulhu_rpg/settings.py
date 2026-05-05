@@ -26,7 +26,13 @@ SECRET_KEY = os.getenv('DJANGO_SECRET', default='debug secret key')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DJANGO_DEBUG", "True") in ('True', 'true', '1')
 
-ALLOWED_HOSTS = ["*"] if DEBUG else [os.getenv("DJANGO_ALLOWED_HOSTS", "cthulhu.webfeya.com").split(",")]
+
+def _csv_env(name: str, default: str) -> list[str]:
+    raw = os.getenv(name, default)
+    return [value.strip() for value in raw.split(",") if value.strip()]
+
+
+ALLOWED_HOSTS = ["*"] if DEBUG else _csv_env("DJANGO_ALLOWED_HOSTS", "cthulhu.webfeya.com")
 
 
 # Application definition
@@ -125,7 +131,8 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_DIRS = [BASE_DIR / 'static']
+PROJECT_STATIC_DIR = BASE_DIR / 'static'
+STATICFILES_DIRS = [PROJECT_STATIC_DIR] if PROJECT_STATIC_DIR.exists() else []
 
 # WhiteNoise compression
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'

@@ -2,16 +2,8 @@
 
 {% block title %}{{ sheet.character.name }} - Character Sheet{% endblock %}
 
-{% block extra_css %}
-{% include 'characters/_character_sheet_styles.html' %}
-{% endblock %}
-
 {% block content %}
 {% include 'characters/_character_sheet.html' with sheet=sheet show_notes=show_notes notes_editable=notes_editable show_actions=show_actions %}
 {% include 'characters/_character_sheet_modals.html' with sheet=sheet %}
-{% endblock %}
-
-{% block extra_js %}
-{% include 'characters/_character_sheet_scripts.html' %}
 {% endblock %}
 

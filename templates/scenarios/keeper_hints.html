@@ -3,13 +3,6 @@
 
 {% block title %}{{ scenario.name }} - Keeper Hints{% endblock %}
 
-{% block extra_css %}
-<style>
-  .hint-grid { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
-  .hint-card { border: 1px solid rgba(212, 175, 55, .35); background: rgba(0, 0, 0, .22); }
-  .hint-text { white-space: pre-wrap; }
-</style>
-{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">

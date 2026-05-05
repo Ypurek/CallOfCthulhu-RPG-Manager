@@ -526,7 +526,7 @@ def scenario_manage(request, scenario_id):
         "npc_cards": npc_cards,
         "invitation": invitation,
         "npc_templates": npc_templates,
-        "npc_templates_json": _json.dumps(npc_templates_data),
+        "npc_templates_json": npc_templates_data,
         "status_effects": StatusEffect.objects.all().order_by("effect_type", "name"),
         "status_choices": Scenario.STATUS_CHOICES,
         "visibility_choices": Scenario.VISIBILITY_CHOICES,
@@ -1332,12 +1332,20 @@ def scenario_send_message(request, scenario_id):
     scenario = _get_scenario_for_keeper(request, scenario_id)
     content = request.POST.get("content", "").strip()
     recipient_id = request.POST.get("recipient_id")
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    redirect_url = f"{reverse('scenarios:manage', kwargs={'scenario_id': scenario.id})}#tab-messages"
+
+    def _respond_error(error_message: str, status_code: int):
+        if is_ajax:
+            return JsonResponse({"ok": False, "error": error_message}, status=status_code)
+        messages.error(request, error_message)
+        return redirect(redirect_url)
 
     if not content:
-        return JsonResponse({"ok": False, "error": "Message cannot be empty"}, status=400)
+        return _respond_error("Message cannot be empty", 400)
 
     if not recipient_id:
-        return JsonResponse({"ok": False, "error": "Recipient is required."}, status=400)
+        return _respond_error("Recipient is required.", 400)
 
     recipient_sp = ScenarioPlayer.objects.filter(
         scenario=scenario,
@@ -1345,11 +1353,11 @@ def scenario_send_message(request, scenario_id):
         is_active=True,
     ).select_related("player").first()
     if not recipient_sp:
-        return JsonResponse({"ok": False, "error": "Recipient not in scenario"}, status=404)
+        return _respond_error("Recipient not in scenario", 404)
 
     recipient = recipient_sp.player
     if recipient.id == request.user.id:
-        return JsonResponse({"ok": False, "error": "Cannot send a private message to yourself."}, status=400)
+        return _respond_error("Cannot send a private message to yourself.", 400)
 
     msg = Message.objects.create(
         scenario=scenario,
@@ -1359,6 +1367,10 @@ def scenario_send_message(request, scenario_id):
         content=content,
     )
     _create_message_receipts(msg)
+
+    if not is_ajax:
+        messages.success(request, f"Message sent to {recipient.username}.")
+        return redirect(redirect_url)
 
     return JsonResponse({
         "ok": True,
