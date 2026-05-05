@@ -130,6 +130,55 @@
         bootstrap.Modal.getOrCreateInstance(modal).show();
     };
 
+    window.showSpellModal = function showSpellModal(name, manaCost, description) {
+        const modal = document.getElementById('spellModal');
+        if (!modal || !window.bootstrap?.Modal) {
+            return;
+        }
+        document.getElementById('spellModalTitle').textContent = name || 'Spell';
+        document.getElementById('spellManaCost').textContent = String(safeNumber(manaCost, 0));
+        document.getElementById('spellDescription').textContent = description || '';
+        bootstrap.Modal.getOrCreateInstance(modal).show();
+    };
+
+    window.initSpellBadgePopups = function initSpellBadgePopups() {
+        if (document.body.dataset.spellBadgeHandlersBound === '1') {
+            return;
+        }
+        const openSpellModal = (badge) => {
+            if (!badge) {
+                return;
+            }
+            window.showSpellModal(
+                badge.dataset.spellName || '',
+                badge.dataset.spellManaCost || '0',
+                badge.dataset.spellDescription || ''
+            );
+        };
+
+        document.addEventListener('click', (event) => {
+            const badge = event.target.closest('.spell-badge');
+            if (!badge) {
+                return;
+            }
+            openSpellModal(badge);
+        });
+
+        document.addEventListener('keydown', (event) => {
+            const target = event.target;
+            if (!target || !target.classList?.contains('spell-badge')) {
+                return;
+            }
+            if (event.key !== 'Enter' && event.key !== ' ') {
+                return;
+            }
+            event.preventDefault();
+            openSpellModal(target);
+        });
+
+        document.body.dataset.spellBadgeHandlersBound = '1';
+    };
+
     window.showAddSkillModal = function showAddSkillModal() {
         const modalElement = document.getElementById('addSkillModal');
         if (!modalElement || !window.bootstrap?.Modal) {
@@ -702,56 +751,33 @@
 
         function renderSpellsSection(payload) {
             const spellsSection = document.getElementById('player-sheet-main-spells-section');
-            if (!spellsSection) return;
+            const spellsContent = document.getElementById('player-sheet-main-spells-content') || spellsSection;
+            if (!spellsSection || !spellsContent) return;
             const spells = Array.isArray(payload.spells) ? payload.spells : [];
             const signature = JSON.stringify(spells);
             if (sectionSignatures.spells === signature) return;
             if (!spells.length) {
                 spellsSection.style.display = 'none';
-                spellsSection.replaceChildren();
+                spellsContent.replaceChildren();
                 sectionSignatures.spells = signature;
                 return;
             }
-            const fragment = document.createDocumentFragment();
-            const header = document.createElement('div');
-            header.className = 'compact-header';
-            header.innerHTML = '<i class="fas fa-magic"></i> Spells';
-            fragment.appendChild(header);
             const list = document.createElement('div');
             list.dataset.sheetSpells = '';
             spells.forEach((spell) => {
-                const row = document.createElement('div');
-                row.className = 'weapon-item';
-                const strong = document.createElement('strong');
-                strong.textContent = spell.name || '';
-                row.appendChild(strong);
-                const cost = document.createElement('span');
-                cost.className = 'text-info';
-                cost.textContent = ` ${safeNumber(spell.mana_cost, 0)}MP`;
-                row.appendChild(document.createTextNode(' '));
-                row.appendChild(cost);
-                list.appendChild(row);
+                const badge = document.createElement('span');
+                badge.className = `badge ${spell.badge_color || 'bg-info'} me-1 mb-1 spell-badge`;
+                badge.setAttribute('role', 'button');
+                badge.setAttribute('tabindex', '0');
+                badge.dataset.spellName = spell.name || '';
+                badge.dataset.spellManaCost = String(safeNumber(spell.mana_cost, 0));
+                badge.dataset.spellDescription = spell.description || '';
+                badge.textContent = spell.name || '';
+                list.appendChild(badge);
             });
-            fragment.appendChild(list);
             spellsSection.style.display = '';
-            spellsSection.replaceChildren(fragment);
+            spellsContent.replaceChildren(list);
             sectionSignatures.spells = signature;
-        }
-
-        function updateResource(rootEl, key, current, max) {
-            const container = rootEl.querySelector(`.stat-bar-container[data-resource="${key}"]`);
-            if (container) {
-                container.dataset.current = current;
-                container.dataset.max = max;
-            }
-            const fill = rootEl.querySelector(`[data-resource-fill="${key}"]`);
-            if (fill) {
-                fill.style.width = `${(current / Math.max(max, 1)) * 100}%`;
-            }
-            const text = rootEl.querySelector(`[data-resource-text="${key}"]`);
-            if (text) {
-                text.textContent = `${current}/${max}`;
-            }
         }
 
         function patchSheet(rootEl, payload) {
@@ -789,8 +815,8 @@
             }
             renderSkillsSection(payload);
             renderCombatSection(payload);
-            renderItemsSection(payload);
             renderSpellsSection(payload);
+            renderItemsSection(payload);
         }
 
         let snapshotPending = false;
@@ -884,6 +910,8 @@
             addWeapon: wizardDataset.addWeapon || 'Add Weapon',
             addWeaponBtn: wizardDataset.addWeaponBtn || 'Add',
             unarmedBrawl: wizardDataset.unarmedBrawl || 'Unarmed Brawl',
+            noSpells: wizardDataset.noSpells || 'No spells added.',
+            spellFallback: wizardDataset.spellFallback || 'Spell',
             statDescriptions: {
                 STR: wizardDataset.statDescStr || '',
                 CON: wizardDataset.statDescCon || '',
@@ -899,10 +927,12 @@
         const WEAPON_NAME_I18N = { 'Unarmed Brawl': WIZ_I18N.unarmedBrawl };
         const initialWeaponsData = JSON.parse(document.getElementById('initial-weapons')?.textContent || '[]');
         const initialItemsData = JSON.parse(document.getElementById('initial-items')?.textContent || '[]');
+        const initialSpellsData = JSON.parse(document.getElementById('initial-spells')?.textContent || '[]');
         const customSkillsScript = document.getElementById('initial-custom-skills');
         const state = window.characterWizardState = {
             weaponEntries: Array.isArray(initialWeaponsData) ? initialWeaponsData : [],
             itemEntries: Array.isArray(initialItemsData) ? initialItemsData : [],
+            spellEntries: Array.isArray(initialSpellsData) ? initialSpellsData : [],
             editingWeaponIndex: null,
             editingItemIndex: null,
             currentSkillCategory: '',
@@ -913,13 +943,16 @@
 
         const weaponList = document.getElementById('weapon-list');
         const itemList = document.getElementById('item-list');
+        const spellList = document.getElementById('spell-list');
         const weaponsJsonInput = document.getElementById('weapons_json');
         const itemsJsonInput = document.getElementById('items_json');
+        const spellsJsonInput = document.getElementById('spells_json');
         const customSkillsInput = document.getElementById('custom_skills_json');
 
         function syncInventoryJson() {
             if (weaponsJsonInput) weaponsJsonInput.value = JSON.stringify(state.weaponEntries);
             if (itemsJsonInput) itemsJsonInput.value = JSON.stringify(state.itemEntries);
+            if (spellsJsonInput) spellsJsonInput.value = JSON.stringify(state.spellEntries);
         }
 
         function syncCustomSkillsJson() {
@@ -988,22 +1021,33 @@
             syncInventoryJson();
         }
 
-        function getNextCustomSkillId() {
-            const customSkillIds = Object.keys(state.customSkillEntries)
-                .map((value) => parseInt(value, 10))
-                .filter((value) => !Number.isNaN(value) && value < 0);
-            return String((customSkillIds.length ? Math.min(...customSkillIds) : 0) - 1);
+        function renderSpells() {
+            if (!spellList) return;
+            spellList.innerHTML = '';
+            if (!state.spellEntries.length) {
+                spellList.innerHTML = `<div class="list-group-item text-muted">${WIZ_I18N.noSpells}</div>`;
+                syncInventoryJson();
+                return;
+            }
+            state.spellEntries.forEach((entry, index) => {
+                const spellName = entry.name || `${WIZ_I18N.spellFallback} #${index + 1}`;
+                const badgeColor = entry.badge_color || 'bg-info';
+                spellList.innerHTML += `<div class="list-group-item d-flex justify-content-between align-items-center">
+                    <span class="badge ${badgeColor}">${escapeHtml(spellName)}</span>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeSpell(${index})"><i class="fas fa-trash"></i></button>
+                </div>`;
+            });
+            syncInventoryJson();
         }
-
-        window.removeWeapon = function removeWeapon(index) {
-            if (state.weaponEntries[index] && state.weaponEntries[index].is_default_unarmed) return;
-            state.weaponEntries.splice(index, 1);
-            renderWeapons();
-        };
 
         window.removeItem = function removeItem(index) {
             state.itemEntries.splice(index, 1);
             renderItems();
+        };
+
+        window.removeSpell = function removeSpell(index) {
+            state.spellEntries.splice(index, 1);
+            renderSpells();
         };
 
         window.editWeapon = function editWeapon(index) {
@@ -1140,6 +1184,23 @@
             document.getElementById('inline-item-name').value = '';
             document.getElementById('inline-item-quantity').value = '1';
         });
+        document.getElementById('confirm-add-spell')?.addEventListener('click', () => {
+            const select = document.getElementById('spell-template-select');
+            if (!select) return;
+            const selected = select.options[select.selectedIndex];
+            if (!selected || !selected.value) return;
+            const spellId = Number(selected.value);
+            if (state.spellEntries.some((entry) => Number(entry.spell_id) === spellId)) {
+                return;
+            }
+            state.spellEntries.push({
+                spell_id: spellId,
+                name: selected.dataset.name || selected.textContent,
+                badge_color: selected.dataset.color || 'bg-info',
+            });
+            renderSpells();
+            select.value = '';
+        });
         document.getElementById('inline-item-name')?.addEventListener('keydown', (event) => {
             if (event.key === 'Enter') {
                 event.preventDefault();
@@ -1205,6 +1266,7 @@
         syncCustomSkillsJson();
         renderWeapons();
         renderItems();
+        renderSpells();
     }
 
     function initKeeperMessagesPanel(configEl) {
@@ -2037,6 +2099,9 @@
         }
         if (typeof window.initEffectBadgePopovers === 'function') {
             window.initEffectBadgePopovers(document);
+        }
+        if (typeof window.initSpellBadgePopups === 'function') {
+            window.initSpellBadgePopups();
         }
         safeInit('status adjust controls', initStatusAdjustControls);
         safeInit('character edit page', initCharacterEditPage);

@@ -441,8 +441,17 @@ msgstr "Крок 2: Основні характеристики"
 msgid "Step 3: Skills"
 msgstr "Крок 3: Навички"
 
-msgid "Step 4: Weapons & Items"
-msgstr "Крок 4: Зброя та предмети"
+msgid "Step 4: Weapons, Items & Spells"
+msgstr "Крок 4: Зброя, предмети та заклинання"
+
+msgid "From spell list"
+msgstr "Зі списку заклять"
+
+msgid "Choose spell"
+msgstr "Оберіть закляття"
+
+msgid "Spells are shown on the sheet as badges."
+msgstr "Закляття відображаються на аркуші як бейджі."
 
 msgid "New Skill"
 msgstr "Нова навичка"

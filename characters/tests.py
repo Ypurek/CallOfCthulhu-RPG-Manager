@@ -22,11 +22,13 @@ from characters.models import (
     Character,
     CharacterChangeLog,
     CharacterItem,
+    CharacterSpell,
     CharacterSkill,
     CharacterTemplate,
     NPCTemplate,
     CharacterWeapon,
     Item,
+    Spell,
     Skill,
     Weapon,
 )
@@ -388,6 +390,14 @@ class CharacterDetailViewTests(TestCase):
     def setUp(self):
         self.player = User.objects.create_user(username='p', password='x', role='PLAYER')
         self.other = User.objects.create_user(username='o', password='x', role='PLAYER')
+        self.keeper = User.objects.create_user(username='k', password='x', role='KEEPER')
+        self.admin = User.objects.create_user(
+            username='a',
+            password='x',
+            role='PLAYER',
+            is_staff=True,
+            is_superuser=True,
+        )
         self.char = make_character(self.player, name='Hero')
 
     def test_unauthenticated_redirects(self):
@@ -397,6 +407,20 @@ class CharacterDetailViewTests(TestCase):
     def test_owner_can_view(self):
         self.client.login(username='p', password='x')
         self.assertEqual(self.client.get(reverse('characters:detail', args=[self.char.id])).status_code, 200)
+
+    def test_keeper_can_view(self):
+        self.client.login(username='k', password='x')
+        response = self.client.get(reverse('characters:detail', args=[self.char.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context['notes_editable'])
+        self.assertTrue(response.context['show_actions'])
+
+    def test_admin_can_view(self):
+        self.client.login(username='a', password='x')
+        response = self.client.get(reverse('characters:detail', args=[self.char.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context['notes_editable'])
+        self.assertTrue(response.context['show_actions'])
 
     def test_other_user_gets_404(self):
         self.client.login(username='o', password='x')
@@ -427,6 +451,33 @@ class CharacterDetailViewTests(TestCase):
         response = self.client.post(
             reverse('characters:detail', args=[self.char.id]), {'player_notes': 'x'})
         self.assertRedirects(response, reverse('characters:detail', args=[self.char.id]))
+
+    def test_keeper_cannot_edit_player_notes(self):
+        self.char.player_notes = 'owner note'
+        self.char.save(update_fields=['player_notes'])
+        self.client.login(username='k', password='x')
+        response = self.client.post(
+            reverse('characters:detail', args=[self.char.id]),
+            {'player_notes': 'keeper overwrite'},
+            follow=True,
+        )
+        self.char.refresh_from_db()
+        self.assertEqual(self.char.player_notes, 'owner note')
+        self.assertContains(response, 'permission to edit these notes')
+
+    def test_spell_badge_contains_popup_metadata(self):
+        spell = Spell.objects.create(
+            name='Shrivelling',
+            mana_cost=8,
+            description='Painful attack.',
+            badge_color='bg-danger',
+        )
+        CharacterSpell.objects.create(character=self.char, spell=spell)
+        self.client.login(username='p', password='x')
+        response = self.client.get(reverse('characters:detail', args=[self.char.id]))
+        self.assertContains(response, 'spell-badge')
+        self.assertContains(response, 'data-spell-mana-cost="8"', html=False)
+        self.assertContains(response, 'data-spell-description="Painful attack."', html=False)
 
 
 class CharacterDeleteViewTests(TestCase):
@@ -607,6 +658,71 @@ class CharacterTemplatesListViewTests(TestCase):
         response = self.client.get(reverse('characters:templates'))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context['templates'], [])
+
+
+class SpellAdminViewTests(TestCase):
+
+    def setUp(self):
+        self.player = User.objects.create_user(username='spell_player', password='x', role='PLAYER')
+        self.keeper = User.objects.create_user(username='spell_keeper', password='x', role='KEEPER')
+        self.spell = Spell.objects.create(name='Bind Byakhee', mana_cost=12, description='Summon and bind.', badge_color='bg-warning')
+
+    def test_player_cannot_access_spell_admin(self):
+        self.client.login(username='spell_player', password='x')
+        response = self.client.get(reverse('characters:spell_admin'))
+        self.assertRedirects(response, reverse('characters:templates'))
+
+    def test_keeper_can_create_spell_with_badge_color(self):
+        self.client.login(username='spell_keeper', password='x')
+        response = self.client.post(reverse('characters:spell_admin'), {
+            'action': 'create',
+            'name': 'Elder Sign',
+            'description': 'Protective ward.',
+            'mana_cost': 10,
+            'badge_color': 'bg-success',
+        })
+        self.assertRedirects(response, reverse('characters:spell_admin'))
+        created = Spell.objects.get(name='Elder Sign')
+        self.assertEqual(created.mana_cost, 10)
+        self.assertEqual(created.badge_color, 'bg-success')
+
+    def test_invalid_badge_color_falls_back_to_default(self):
+        self.client.login(username='spell_keeper', password='x')
+        self.client.post(reverse('characters:spell_admin'), {
+            'action': 'create',
+            'name': 'Shrivelling',
+            'description': 'Painful attack.',
+            'mana_cost': 8,
+            'badge_color': 'bg-danger hacked-class',
+        })
+        created = Spell.objects.get(name='Shrivelling')
+        self.assertEqual(created.badge_color, 'bg-info')
+
+        self.client.post(reverse('characters:spell_admin'), {
+            'action': 'update',
+            'spell_id': self.spell.id,
+            'name': self.spell.name,
+            'description': self.spell.description,
+            'mana_cost': self.spell.mana_cost,
+            'badge_color': 'not-a-real-badge',
+        })
+        self.spell.refresh_from_db()
+        self.assertEqual(self.spell.badge_color, 'bg-warning')
+
+    def test_keeper_cannot_rename_spell_to_existing_name(self):
+        other_spell = Spell.objects.create(name='Wrack', mana_cost=9, description='Agony.', badge_color='bg-danger')
+        self.client.login(username='spell_keeper', password='x')
+        response = self.client.post(reverse('characters:spell_admin'), {
+            'action': 'update',
+            'spell_id': other_spell.id,
+            'name': self.spell.name,
+            'description': other_spell.description,
+            'mana_cost': other_spell.mana_cost,
+            'badge_color': other_spell.badge_color,
+        }, follow=True)
+        self.assertContains(response, 'Spell with this name already exists.')
+        other_spell.refresh_from_db()
+        self.assertEqual(other_spell.name, 'Wrack')
 
 
 class TemplateDeleteViewTests(TestCase):
@@ -887,6 +1003,7 @@ class CharacterCreateWizardTests(TestCase):
             name='Fighting (Brawl)', defaults={'category': 'combat', 'base_value': 25, 'description': 'Close combat.'})
         self.weapon = Weapon.objects.create(name='Knife', skill_name='Fighting (Brawl)', damage='1D4')
         self.item = Item.objects.create(name='Flashlight', description='Useful light source.')
+        self.spell = Spell.objects.create(name='Elder Sign', mana_cost=10, description='Protective ward.', badge_color='bg-success')
 
     # ── helpers ──
 
@@ -908,11 +1025,12 @@ class CharacterCreateWizardTests(TestCase):
         data.update(extra)
         return self.client.post(reverse('characters:create'), data)
 
-    def _post_inventory(self, weapons=None, items=None):
+    def _post_inventory(self, weapons=None, items=None, spells=None):
         return self.client.post(reverse('characters:create'), {
             'step': 'inventory', 'action': 'next',
             'weapons_json': json.dumps(weapons or []),
             'items_json': json.dumps(items or []),
+            'spells_json': json.dumps(spells or []),
         })
 
     def _post_save(self):
@@ -940,10 +1058,21 @@ class CharacterCreateWizardTests(TestCase):
         self.assertContains(response, 'id="weaponModal"', html=False)
         self.assertNotContains(response, 'id="weapon-prepared"', html=False)
 
+    def test_player_inventory_step_hides_spells_section(self):
+        self.client.login(username='player', password='secret')
+        response = self.client.get(reverse('characters:create') + '?step=inventory')
+        self.assertNotContains(response, 'id="spell-template-select"', html=False)
+        self.assertNotContains(response, 'Spells are shown on the sheet as badges.')
+
+    def test_keeper_inventory_step_shows_spells_section(self):
+        self.client.login(username='keeper', password='secret')
+        response = self.client.get(reverse('characters:create') + '?step=inventory')
+        self.assertContains(response, 'id="spell-template-select"', html=False)
+
     # ── full happy path ──
 
     def test_full_creation_stores_character_and_relations(self):
-        self.client.login(username='player', password='secret')
+        self.client.login(username='keeper', password='secret')
         self._post_basic()
         self._post_stats()
         self._post_skills()
@@ -952,16 +1081,18 @@ class CharacterCreateWizardTests(TestCase):
                       'skill_id': self.skill_brawl.id, 'skill_name': 'Fighting (Brawl)',
                       'is_prepared': True, 'damage': '1D4'}],
             items=[{'item_id': self.item.id, 'quantity': 2}],
+            spells=[{'spell_id': self.spell.id, 'name': self.spell.name, 'badge_color': self.spell.badge_color}],
         )
         response = self._post_save()
         self.assertEqual(response.status_code, 302)
         c = Character.objects.get(name='Investigator')
-        self.assertEqual(c.owner, self.player)
+        self.assertEqual(c.owner, self.keeper)
         self.assertTrue(CharacterSkill.objects.filter(character=c, skill=self.skill_track, value=45).exists())
         self.assertTrue(CharacterSkill.objects.filter(character=c, skill=self.skill_own_language, value=80).exists())
         self.assertTrue(CharacterWeapon.objects.filter(character=c, weapon__name='Knife', is_prepared=True).exists())
         self.assertTrue(CharacterWeapon.objects.filter(character=c, weapon__name=DEFAULT_UNARMED_WEAPON_NAME).exists())
         self.assertTrue(CharacterItem.objects.filter(character=c, item=self.item, quantity=2).exists())
+        self.assertTrue(CharacterSpell.objects.filter(character=c, spell=self.spell).exists())
         self.assertEqual(c.hp_max, 11)
         self.assertEqual(c.mp_max, 13)
 
@@ -1188,6 +1319,32 @@ class CharacterCreateWizardTests(TestCase):
         )
         self.assertIsNotNone(rope)
         self.assertEqual(rope['quantity'], 3)
+
+    def test_imported_known_spell_stored_in_draft(self):
+        self.client.login(username='player', password='secret')
+        payload = {
+            'character_info': {'name': 'Occultist', 'occupation': '', 'age': ''},
+            'characteristics': {'STR': 50, 'CON': 50, 'DEX': 50, 'INT': 50,
+                                 'APP': 50, 'POW': 50, 'SIZ': 50, 'EDU': 50, 'Luck': 50},
+            'skills': {}, 'weapons': [], 'inventory': [],
+            'spells': [{'name': 'Elder Sign'}],
+        }
+        uploaded = SimpleUploadedFile('spell.json', json.dumps(payload).encode(), content_type='application/json')
+        self.client.post(reverse('characters:create_import_json'), {'json_file': uploaded})
+        draft = self.client.session[WIZARD_SESSION_KEY]
+        self.assertEqual(draft['inventory']['spells'], [])
+
+    def test_player_cannot_persist_spells_from_forged_inventory_payload(self):
+        self.client.login(username='player', password='secret')
+        self._post_basic(name='NoSpellPlayer')
+        self._post_stats()
+        self._post_skills()
+        self._post_inventory(
+            spells=[{'spell_id': self.spell.id, 'name': self.spell.name, 'badge_color': self.spell.badge_color}],
+        )
+        self._post_save()
+        c = Character.objects.get(name='NoSpellPlayer')
+        self.assertFalse(CharacterSpell.objects.filter(character=c).exists())
 
 
 # ===========================================================================
@@ -1439,6 +1596,13 @@ class CharacterEditWizardStateTransitionTests(TestCase):
     def setUp(self):
         self.player = User.objects.create_user(username='p', password='x', role='PLAYER')
         self.keeper = User.objects.create_user(username='k', password='x', role='KEEPER')
+        self.admin = User.objects.create_user(
+            username='a',
+            password='x',
+            role='PLAYER',
+            is_staff=True,
+            is_superuser=True,
+        )
         self.skill_brawl, _ = Skill.objects.get_or_create(
             name='Fighting (Brawl)', defaults={'category': 'combat', 'base_value': 25, 'description': ''})
         self.char = make_character(
@@ -1490,6 +1654,12 @@ class CharacterEditWizardStateTransitionTests(TestCase):
         self.char.refresh_from_db()
         self.assertEqual(self.char.name, 'KeeperEdited')
 
+    def test_admin_can_edit_any_character(self):
+        self.client.login(username='a', password='x')
+        self._run_edit('AdminEdited', 'Occultist', 62)
+        self.char.refresh_from_db()
+        self.assertEqual(self.char.name, 'AdminEdited')
+
     def test_changelog_entry_created_on_change(self):
         self.client.login(username='p', password='x')
         self._run_edit('Changed', 'Painter', 55)
@@ -1539,17 +1709,63 @@ class CharacterEditWizardStateTransitionTests(TestCase):
         self.char.refresh_from_db()
         self.assertEqual(self.char.strength, 0)
 
+    def test_player_edit_keeps_existing_spells_unchanged(self):
+        spell = Spell.objects.create(name='Wrack', mana_cost=9, description='Pain burst.', badge_color='bg-danger')
+        CharacterSpell.objects.create(character=self.char, spell=spell)
+        self.client.login(username='p', password='x')
+        self.client.post(self._edit_url(), {
+            'step': 'basic', 'action': 'next',
+            'name': 'Original Name', 'occupation': 'Soldier', 'description': '', 'age': '',
+        })
+        self.client.post(self._edit_url(), {
+            'step': 'stats', 'action': 'next',
+            'strength': 50, 'constitution': 50, 'dexterity': 50, 'intelligence': 50,
+            'power': 50, 'size': 50, 'appearance': 50, 'education': 50, 'luck': 50,
+        })
+        self.client.post(self._edit_url(), {
+            'step': 'skills', 'action': 'next',
+            f'skill_{self.skill_brawl.id}': 25,
+        })
+        # Forged spells_json should be ignored for player edits.
+        self.client.post(self._edit_url(), {
+            'step': 'inventory', 'action': 'next',
+            'weapons_json': '[]', 'items_json': '[]',
+            'spells_json': json.dumps([]),
+        })
+        self.client.post(self._edit_url(), {'step': 'review', 'action': 'save'})
+        self.assertTrue(CharacterSpell.objects.filter(character=self.char, spell=spell).exists())
+
 
 class CharacterEditWizardImportExportTests(TestCase):
     """Edit-wizard import / export sub-views."""
 
     def setUp(self):
         self.player = User.objects.create_user(username='p', password='x', role='PLAYER')
+        self.keeper = User.objects.create_user(username='k', password='x', role='KEEPER')
+        self.admin = User.objects.create_user(
+            username='a',
+            password='x',
+            role='PLAYER',
+            is_staff=True,
+            is_superuser=True,
+        )
         Skill.objects.get_or_create(name='Fighting (Brawl)', defaults={'category': 'combat', 'base_value': 25, 'description': ''})
         self.char = make_character(self.player, name='Export Me')
 
     def test_export_returns_json(self):
         self.client.login(username='p', password='x')
+        response = self.client.get(reverse('characters:edit_wizard_export', args=[self.char.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('application/json', response['Content-Type'])
+
+    def test_keeper_can_export_json(self):
+        self.client.login(username='k', password='x')
+        response = self.client.get(reverse('characters:edit_wizard_export', args=[self.char.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('application/json', response['Content-Type'])
+
+    def test_admin_can_export_json(self):
+        self.client.login(username='a', password='x')
         response = self.client.get(reverse('characters:edit_wizard_export', args=[self.char.id]))
         self.assertEqual(response.status_code, 200)
         self.assertIn('application/json', response['Content-Type'])
@@ -1567,6 +1783,34 @@ class CharacterEditWizardImportExportTests(TestCase):
         from characters.views import _edit_session_key
         draft = self.client.session[_edit_session_key(self.char.id)]
         self.assertEqual(draft['basic']['name'], 'Import Replacement')
+
+    def test_keeper_can_import_edit_draft(self):
+        self.client.login(username='k', password='x')
+        payload = {
+            'character_info': {'name': 'Keeper Imported', 'occupation': 'Archivist', 'age': '41'},
+            'characteristics': {'STR': 65, 'CON': 55, 'DEX': 45, 'INT': 75,
+                                 'APP': 40, 'POW': 60, 'SIZ': 50, 'EDU': 80, 'Luck': 55},
+            'skills': {}, 'weapons': [], 'inventory': [],
+        }
+        uploaded = SimpleUploadedFile('keeper-imp.json', json.dumps(payload).encode(), content_type='application/json')
+        self.client.post(reverse('characters:edit_wizard_import', args=[self.char.id]), {'json_file': uploaded})
+        from characters.views import _edit_session_key
+        draft = self.client.session[_edit_session_key(self.char.id)]
+        self.assertEqual(draft['basic']['name'], 'Keeper Imported')
+
+    def test_admin_can_import_edit_draft(self):
+        self.client.login(username='a', password='x')
+        payload = {
+            'character_info': {'name': 'Admin Imported', 'occupation': 'Curator', 'age': '39'},
+            'characteristics': {'STR': 60, 'CON': 50, 'DEX': 55, 'INT': 70,
+                                 'APP': 45, 'POW': 65, 'SIZ': 50, 'EDU': 75, 'Luck': 50},
+            'skills': {}, 'weapons': [], 'inventory': [],
+        }
+        uploaded = SimpleUploadedFile('admin-imp.json', json.dumps(payload).encode(), content_type='application/json')
+        self.client.post(reverse('characters:edit_wizard_import', args=[self.char.id]), {'json_file': uploaded})
+        from characters.views import _edit_session_key
+        draft = self.client.session[_edit_session_key(self.char.id)]
+        self.assertEqual(draft['basic']['name'], 'Admin Imported')
 
     def test_import_invalid_json_shows_error(self):
         self.client.login(username='p', password='x')

@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Spells - Cthulhu RPG Manager" %}{% endblock %}
+
+{% block content %}
+<div class="row align-items-center mb-4">
+    <div class="col">
+        <h1 class="mb-0"><i class="fas fa-magic"></i> {% trans "Spell Management" %}</h1>
+        <p class="text-muted mt-1 mb-0">{% trans "Manage reusable spells for character and NPC sheets." %}</p>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'characters:templates' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> {% trans "Back to Templates" %}
+        </a>
+    </div>
+</div>
+
+{% if messages %}
+<div class="mb-3">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="card mb-4">
+    <div class="card-header text-warning"><i class="fas fa-plus me-1"></i>{% trans "Add Spell" %}</div>
+    <div class="card-body">
+        <form method="post" class="row g-2 align-items-end">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create">
+            <div class="col-md-3">
+                <label for="spell-name" class="form-label">{% trans "Name" %}</label>
+                <input id="spell-name" name="name" type="text" class="form-control" required>
+            </div>
+            <div class="col-md-4">
+                <label for="spell-description" class="form-label">{% trans "Description" %}</label>
+                <input id="spell-description" name="description" type="text" class="form-control">
+            </div>
+            <div class="col-md-2">
+                <label for="spell-mana" class="form-label">{% trans "Mana Cost" %}</label>
+                <input id="spell-mana" name="mana_cost" type="number" min="0" class="form-control" value="0">
+            </div>
+            <div class="col-md-2">
+                <label for="spell-color" class="form-label">{% trans "Badge Color" %}</label>
+                <select id="spell-color" name="badge_color" class="form-select">
+                    {% for value, label in badge_colors %}
+                    <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-1 d-grid">
+                <button type="submit" class="btn btn-warning"><i class="fas fa-plus"></i></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="d-flex flex-column gap-3">
+    {% for spell in spells %}
+    <form method="post" class="card">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="update">
+        <input type="hidden" name="spell_id" value="{{ spell.id }}">
+        <div class="card-body">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label for="spell-name-{{ spell.id }}" class="form-label">{% trans "Name" %}</label>
+                    <input id="spell-name-{{ spell.id }}" type="text" name="name" class="form-control form-control-sm" value="{{ spell.name }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="spell-description-{{ spell.id }}" class="form-label">{% trans "Description" %}</label>
+                    <input id="spell-description-{{ spell.id }}" type="text" name="description" class="form-control form-control-sm" value="{{ spell.description }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="spell-mana-{{ spell.id }}" class="form-label">{% trans "Mana Cost" %}</label>
+                    <input id="spell-mana-{{ spell.id }}" type="number" name="mana_cost" min="0" class="form-control form-control-sm" value="{{ spell.mana_cost }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="spell-color-{{ spell.id }}" class="form-label">{% trans "Badge Color" %}</label>
+                    <select id="spell-color-{{ spell.id }}" name="badge_color" class="form-select form-select-sm">
+                        {% for value, label in badge_colors %}
+                        <option value="{{ value }}" {% if spell.badge_color == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-1 d-flex gap-1">
+                    <button type="submit" class="btn btn-sm btn-outline-info" title="{% trans 'Save' %}">
+                        <i class="fas fa-save"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="mt-2 d-flex justify-content-between align-items-center">
+                <span class="badge {{ spell.badge_color }}">{{ spell.name }}</span>
+                <button
+                    type="submit"
+                    formaction="{% url 'characters:spell_admin' %}"
+                    formmethod="post"
+                    name="action"
+                    value="delete"
+                    class="btn btn-sm btn-outline-danger"
+                    onclick="return confirm('{% trans 'Delete this spell?' %}');"
+                    title="{% trans 'Delete' %}">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+        </div>
+    </form>
+    {% empty %}
+    <div class="card">
+        <div class="card-body text-center text-muted py-4">{% trans "No spells yet." %}</div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+

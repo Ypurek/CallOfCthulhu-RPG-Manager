@@ -196,11 +196,17 @@
                 </div>
                 {% endfor %}
                 {% elif current_step == 'inventory' %}
-                <h5 class="mb-3">{% trans "Step 4: Weapons & Items" %}</h5>
+                <h5 class="mb-3">{% if can_manage_spells %}{% trans "Step 4: Weapons, Items & Spells" %}{% else %}{% trans "Step 4: Weapons & Items" %}{% endif %}</h5>
                 {{ draft.inventory.weapons|json_script:"initial-weapons" }}
                 {{ draft.inventory.items|json_script:"initial-items" }}
+                {% if can_manage_spells %}
+                {{ draft.inventory.spells|default:'[]'|json_script:"initial-spells" }}
+                {% else %}
+                {{ '[]'|json_script:"initial-spells" }}
+                {% endif %}
                 <input type="hidden" name="weapons_json" id="weapons_json" value="[]">
                 <input type="hidden" name="items_json" id="items_json" value="[]">
+                <input type="hidden" name="spells_json" id="spells_json" value="[]">
 
                 <!-- Cash -->
                 <div class="row mb-4">
@@ -212,7 +218,7 @@
                   </div>
                 </div>
                 <div class="row g-4">
-                    <div class="col-lg-6">
+                    <div class="col-lg-4">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <h6 class="mb-0">{% trans "Weapons" %}</h6>
                             <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#weaponModal">
@@ -222,7 +228,7 @@
                         <p class="text-muted small mb-2">{% trans "Unarmed brawl is added automatically and cannot be removed." %}</p>
                         <div id="weapon-list" class="list-group"></div>
                     </div>
-                    <div class="col-lg-6">
+                    <div class="col-lg-4">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <h6 class="mb-0">{% trans "Items" %}</h6>
                         </div>
@@ -242,6 +248,31 @@
                         <p class="text-muted small mb-2">{% trans "Enter on the item name field adds a new item to the list." %}</p>
                         <div id="item-list" class="list-group"></div>
                     </div>
+                    {% if can_manage_spells %}
+                    <div class="col-lg-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0">{% trans "Spells" %}</h6>
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-9">
+                                <label for="spell-template-select" class="form-label small">{% trans "From spell list" %}</label>
+                                <select id="spell-template-select" class="form-select form-select-sm">
+                                    <option value="">{% trans "Choose spell" %}</option>
+                                    {% for spell in spell_templates %}
+                                    <option value="{{ spell.id }}" data-name="{{ spell.name }}" data-color="{{ spell.badge_color|default:'bg-info' }}" title="{{ spell.description }}">
+                                        {{ spell.name }} ({{ spell.mana_cost }} MP)
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-3 d-flex align-items-end">
+                                <button id="confirm-add-spell" type="button" class="btn btn-sm btn-outline-primary w-100" aria-label="{% trans 'Add spell' %}" title="{% trans 'Add spell' %}">+</button>
+                            </div>
+                        </div>
+                        <p class="text-muted small mb-2">{% trans "Spells are shown on the sheet as badges." %}</p>
+                        <div id="spell-list" class="list-group"></div>
+                    </div>
+                    {% endif %}
                 </div>
                 {% else %}
                 <h5 class="mb-3">{% if edit_mode %}{% trans "Step 5: Review & Save" %}{% else %}{% trans "Step 5: Review & Create" %}{% endif %}</h5>
@@ -429,6 +460,8 @@
 {% trans "Add Weapon" as wtaddWeapon %}
 {% trans "Add" as wtadd %}
 {% trans "Unarmed Brawl" as wtunarmedBrawl %}
+{% trans "No spells added." as wtnoSpells %}
+{% trans "Spell" as wtspellFallback %}
 {% trans "STR" as wtSTR %}{% trans "CON" as wtCON %}{% trans "DEX" as wtDEX %}{% trans "INT" as wtINT %}{% trans "POW" as wtPOW %}{% trans "SIZ" as wtSIZ %}{% trans "APP" as wtAPP %}{% trans "EDU" as wtEDU %}{% trans "LCK" as wtLCK %}
 {% trans "Measures raw muscle power, lifting strength, grappling force, and how much punishment your body can impose physically." as wtdSTR %}
 {% trans "Represents endurance, toughness, breath, and how well the body resists exhaustion, injury, poison, or disease." as wtdCON %}
@@ -461,6 +494,8 @@
      data-add-weapon="{{ wtaddWeapon|escape }}"
      data-add-weapon-btn="{{ wtadd|escape }}"
      data-unarmed-brawl="{{ wtunarmedBrawl|escape }}"
+     data-no-spells="{{ wtnoSpells|escape }}"
+     data-spell-fallback="{{ wtspellFallback|escape }}"
      data-stat-desc-str="{{ wtdSTR|escape }}"
      data-stat-desc-con="{{ wtdCON|escape }}"
      data-stat-desc-dex="{{ wtdDEX|escape }}"

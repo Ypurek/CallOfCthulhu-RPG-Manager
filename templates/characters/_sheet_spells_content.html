@@ -1,11 +1,15 @@
 {% load i18n %}
 {% if sheet.spells %}
-<div class="compact-header"><i class="fas fa-magic"></i> {% trans "Spells" %}</div>
 <div data-sheet-spells>
     {% for spell in sheet.spells %}
-        <div class="weapon-item">
-            <strong>{{ spell.name }}</strong> <span class="text-info">{{ spell.mana_cost }}MP</span>
-        </div>
+        <span
+            class="badge {{ spell.badge_color|default:'bg-info' }} me-1 mb-1 spell-badge"
+            role="button"
+            tabindex="0"
+            data-spell-name="{{ spell.name|default:''|escape }}"
+            data-spell-mana-cost="{{ spell.mana_cost|default:0 }}"
+            data-spell-description="{{ spell.description|default:''|escape }}"
+        >{{ spell.name }}</span>
     {% endfor %}
 </div>
 {% endif %}

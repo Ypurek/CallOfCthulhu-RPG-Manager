@@ -61,8 +61,9 @@ class ItemAdmin(admin.ModelAdmin):
 
 @admin.register(Spell)
 class SpellAdmin(admin.ModelAdmin):
-    list_display = ['name', 'mana_cost']
+    list_display = ['name', 'description', 'mana_cost', 'badge_color']
     search_fields = ['name']
+    list_editable = ['badge_color']
 
 
 @admin.register(StatusEffect)

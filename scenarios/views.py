@@ -122,7 +122,12 @@ def _build_session_sheet(character: Character):
         for ci in character.items.select_related("item").all()
     ]
     spells = [
-        {"name": cs.spell.name, "mana_cost": cs.spell.mana_cost}
+        {
+            "name": cs.spell.name,
+            "badge_color": cs.spell.badge_color,
+            "mana_cost": cs.spell.mana_cost,
+            "description": cs.spell.description,
+        }
         for cs in character.spells.select_related("spell").all()
     ]
     sheet = _build_character_sheet_context(

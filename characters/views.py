@@ -14,11 +14,13 @@ from .models import (
     Character,
     CharacterChangeLog,
     CharacterItem,
+    CharacterSpell,
     CharacterSkill,
     CharacterTemplate,
     CharacterWeapon,
     Item,
     NPCTemplate,
+    Spell,
     Skill,
     Weapon,
 )
@@ -256,6 +258,23 @@ def _derive_secondary_stats(stats, cthulhu_mythos=0):
     }
 
 
+def _user_can_manage_character(user, character):
+    is_admin = bool(getattr(user, 'is_superuser', False) or getattr(user, 'is_staff', False))
+    is_keeper = bool(hasattr(user, 'is_keeper') and user.is_keeper())
+    return bool(
+        getattr(user, 'is_authenticated', False)
+        and (character.owner_id == user.id or is_keeper or is_admin)
+    )
+
+
+def _characters_visible_to_user(user):
+    queryset = Character.objects.all()
+    is_admin = bool(getattr(user, 'is_superuser', False) or getattr(user, 'is_staff', False))
+    if is_admin or (hasattr(user, 'is_keeper') and user.is_keeper()):
+        return queryset
+    return queryset.filter(owner=user)
+
+
 def _get_default_combat_skill():
     return (
         Skill.objects.filter(name='Fighting (Brawl)').first()
@@ -264,7 +283,7 @@ def _get_default_combat_skill():
 
 
 def _ensure_default_unarmed_weapon_entry(draft):
-    inventory = draft.setdefault('inventory', {'weapons': [], 'items': []})
+    inventory = draft.setdefault('inventory', {'weapons': [], 'items': [], 'spells': []})
     weapons = inventory.setdefault('weapons', [])
 
     default_skill = _get_default_combat_skill()
@@ -306,6 +325,7 @@ def _default_draft():
         'inventory': {
             'weapons': [],
             'items': [],
+            'spells': [],
         },
     }
     return _sync_custom_skill_values(_ensure_default_unarmed_weapon_entry(draft))
@@ -319,13 +339,16 @@ def _get_draft(request):
     draft.setdefault('stats', _default_stats())
     draft['skills'] = _initialize_skill_values(draft['stats'].get('education', 0), draft.get('skills', {}))
     draft.setdefault('custom_skills', _default_custom_skills())
-    draft.setdefault('inventory', {'weapons': [], 'items': []})
+    draft.setdefault('inventory', {'weapons': [], 'items': [], 'spells': []})
     draft['inventory'].setdefault('weapons', [])
     draft['inventory'].setdefault('items', [])
+    draft['inventory'].setdefault('spells', [])
     if not isinstance(draft['inventory']['weapons'], list):
         draft['inventory']['weapons'] = []
     if not isinstance(draft['inventory']['items'], list):
         draft['inventory']['items'] = []
+    if not isinstance(draft['inventory']['spells'], list):
+        draft['inventory']['spells'] = []
     return _sync_custom_skill_values(_ensure_default_unarmed_weapon_entry(draft))
 
 
@@ -389,6 +412,11 @@ def _export_payload_from_draft(draft, stat_max=PC_STAT_MAX):
             )
             for item in draft.get('inventory', {}).get('items', [])
         ],
+        'spells': [
+            {'name': spell.get('name', '')}
+            for spell in draft.get('inventory', {}).get('spells', [])
+            if spell.get('name')
+        ],
     }
 
 
@@ -417,7 +445,7 @@ def _normalize_imported_custom_skill_name(raw_name):
     return normalized_name
 
 
-def _draft_from_import(data, stat_max=PC_STAT_MAX):
+def _draft_from_import(data, stat_max=PC_STAT_MAX, include_spells=True):
     draft = _default_draft()
     if 'basic' in data and 'stats' in data:
         draft['basic'].update(data.get('basic', {}))
@@ -428,10 +456,15 @@ def _draft_from_import(data, stat_max=PC_STAT_MAX):
         draft['inventory'] = data.get('inventory', draft['inventory'])
         draft['inventory'].setdefault('weapons', [])
         draft['inventory'].setdefault('items', [])
+        draft['inventory'].setdefault('spells', [])
         if not isinstance(draft['inventory']['weapons'], list):
             draft['inventory']['weapons'] = []
         if not isinstance(draft['inventory']['items'], list):
             draft['inventory']['items'] = []
+        if not isinstance(draft['inventory']['spells'], list):
+            draft['inventory']['spells'] = []
+        if not include_spells:
+            draft['inventory']['spells'] = []
         return _sync_custom_skill_values(_ensure_default_unarmed_weapon_entry(draft))
 
     # Support importing sheet-shaped JSON like docs/characters/*.json.
@@ -554,6 +587,21 @@ def _draft_from_import(data, stat_max=PC_STAT_MAX):
             inventory['items'].append({'item_id': item.id, 'name': item.name, 'custom_name': item.name, 'quantity': qty})
         else:
             inventory['items'].append({'item_id': 0, 'custom_name': raw_name, 'name': raw_name, 'quantity': qty})
+
+    if include_spells:
+        spells_by_name = {spell.name.lower(): spell for spell in Spell.objects.all()}
+        for spell_entry in data.get('spells', []):
+            if isinstance(spell_entry, dict):
+                raw_spell_name = str(spell_entry.get('name') or '').strip()
+            else:
+                raw_spell_name = str(spell_entry or '').strip()
+            if not raw_spell_name:
+                continue
+            spell = spells_by_name.get(raw_spell_name.lower())
+            if spell:
+                inventory['spells'].append({'spell_id': spell.id, 'name': spell.name})
+    else:
+        inventory['spells'] = []
 
     return _sync_custom_skill_values(_ensure_default_unarmed_weapon_entry(draft))
 
@@ -690,6 +738,17 @@ def _create_character_from_draft(user, draft):
         if item:
             CharacterItem.objects.create(character=character, item=item, quantity=parsed_quantity)
 
+    for payload in inventory.get('spells', []):
+        spell = None
+        if payload.get('spell_id'):
+            spell = Spell.objects.filter(id=_to_int(payload.get('spell_id'), -1)).first()
+        if not spell:
+            spell_name = str(payload.get('name') or '').strip()
+            if spell_name:
+                spell = Spell.objects.filter(name__iexact=spell_name).first()
+        if spell:
+            CharacterSpell.objects.get_or_create(character=character, spell=spell)
+
     return character
 
 
@@ -718,6 +777,35 @@ def _normalize_preview_items(item_entries):
         quantity = _to_int(entry.get('quantity'), 0, 0)
         if name and quantity > 0:
             normalized.append({'name': name, 'quantity': quantity})
+    return normalized
+
+
+def _normalize_spell_badge_color(raw_badge_color, default='bg-info'):
+    allowed_badge_colors = {value for value, _ in Spell.BADGE_COLOR_CHOICES}
+    badge_color = str(raw_badge_color or '').strip()
+    return badge_color if badge_color in allowed_badge_colors else default
+
+
+def _normalize_preview_spells(spell_entries):
+    normalized = []
+    spell_names = {spell.id: spell.name for spell in Spell.objects.all()}
+    spell_badges = {spell.id: spell.badge_color for spell in Spell.objects.all()}
+    spell_mana_costs = {spell.id: spell.mana_cost for spell in Spell.objects.all()}
+    spell_descriptions = {spell.id: spell.description for spell in Spell.objects.all()}
+    for entry in spell_entries or []:
+        if not isinstance(entry, dict):
+            continue
+        spell_id = _to_int(entry.get('spell_id'), 0)
+        name = entry.get('name') or spell_names.get(spell_id, '')
+        if name:
+            normalized.append({
+                'name': name,
+                'badge_color': _normalize_spell_badge_color(
+                    entry.get('badge_color') or spell_badges.get(spell_id, 'bg-info')
+                ),
+                'mana_cost': _to_int(entry.get('mana_cost'), spell_mana_costs.get(spell_id, 0), 0),
+                'description': str(entry.get('description') or spell_descriptions.get(spell_id, '')).strip(),
+            })
     return normalized
 
 
@@ -822,13 +910,14 @@ def character_list(request):
 @login_required
 def character_detail(request, character_id):
     """Display character sheet"""
-    character = get_object_or_404(
-        Character,
-        id=character_id,
-        owner=request.user
-    )
+    character = get_object_or_404(_characters_visible_to_user(request.user), id=character_id)
+    can_manage_character = _user_can_manage_character(request.user, character)
+    notes_editable = character.owner_id == request.user.id
 
     if request.method == 'POST':
+        if not notes_editable:
+            messages.error(request, "You don't have permission to edit these notes.")
+            return redirect('characters:detail', character_id=character.id)
         character.player_notes = request.POST.get('player_notes', '').strip()
         character.save(update_fields=['player_notes', 'updated_at'])
         messages.success(request, 'Notes saved.')
@@ -847,7 +936,12 @@ def character_detail(request, character_id):
         for item in character.items.select_related('item').all()
     ]
     spells = [
-        {'name': spell.spell.name, 'mana_cost': spell.spell.mana_cost}
+        {
+            'name': spell.spell.name,
+            'badge_color': spell.spell.badge_color,
+            'mana_cost': spell.spell.mana_cost,
+            'description': spell.spell.description,
+        }
         for spell in character.spells.select_related('spell').all()
     ]
     sheet = _build_character_sheet_context(
@@ -862,8 +956,8 @@ def character_detail(request, character_id):
     context = {
         'sheet': sheet,
         'show_notes': True,
-        'notes_editable': True,
-        'show_actions': True,
+        'notes_editable': notes_editable,
+        'show_actions': can_manage_character,
     }
 
     return render(request, 'characters/detail.html', context)
@@ -887,7 +981,7 @@ def character_delete(request, character_id):
         return redirect('characters:detail', character_id=character_id)
 
     character = get_object_or_404(Character, id=character_id)
-    can_delete = character.owner == request.user or request.user.is_keeper()
+    can_delete = _user_can_manage_character(request.user, character)
 
     if not can_delete:
         messages.error(request, "You don't have permission to delete this character.")
@@ -906,10 +1000,7 @@ def character_edit(request, character_id):
 
     # Check if user can edit this character
     # (either owner or keeper of current scenario)
-    can_edit = (
-        character.owner == request.user or
-        request.user.is_keeper()
-    )
+    can_edit = _user_can_manage_character(request.user, character)
 
     if not can_edit:
         messages.error(request, "You don't have permission to edit this character.")
@@ -976,6 +1067,7 @@ def character_edit(request, character_id):
 def character_create(request):
     """Create new character with a multi-step wizard."""
     draft = _get_draft(request)
+    can_manage_spells = _can_manage_wizard_spells(request.user)
     template_meta = request.session.get(TEMPLATE_WIZARD_META_KEY)
     template_mode = bool(template_meta and _can_manage_templates(request.user))
     template_edit_mode = bool(template_mode and template_meta.get('mode') == 'edit')
@@ -1072,6 +1164,23 @@ def character_create(request):
                 if item_entry['quantity'] > 0 and (item_entry['item_id'] or item_entry['custom_name']):
                     inventory['items'].append(item_entry)
 
+            if can_manage_spells:
+                if 'spells_json' in request.POST:
+                    try:
+                        spells_payload = json.loads(request.POST.get('spells_json', '[]'))
+                    except json.JSONDecodeError:
+                        spells_payload = []
+                    inventory['spells'] = []
+                    for payload in spells_payload:
+                        if not isinstance(payload, dict):
+                            continue
+                        spell_id = _to_int(payload.get('spell_id'), 0)
+                        spell_name = str(payload.get('name', '')).strip()
+                        if spell_id > 0 and spell_name:
+                            inventory['spells'].append({'spell_id': spell_id, 'name': spell_name})
+            else:
+                inventory['spells'] = []
+
             _ensure_default_unarmed_weapon_entry(draft)
 
         current_index = WIZARD_STEPS.index(step)
@@ -1113,6 +1222,9 @@ def character_create(request):
                     messages.error(request, 'Failed to save template in database.')
                     return redirect('characters:templates')
 
+            if not can_manage_spells:
+                draft.setdefault('inventory', {})
+                draft['inventory']['spells'] = []
             character = _create_character_from_draft(request.user, draft)
             request.session.pop(WIZARD_SESSION_KEY, None)
             messages.success(request, f'Character "{character.name}" created successfully.')
@@ -1168,7 +1280,7 @@ def character_create(request):
         skill_values={int(key): value for key, value in draft['skills'].items()},
         weapons=_normalize_preview_weapons(draft['inventory']['weapons']),
         items=_normalize_preview_items(draft['inventory']['items']),
-        spells=[],
+        spells=_normalize_preview_spells(draft['inventory'].get('spells', [])) if can_manage_spells else [],
         can_add_custom_skill=False,
         custom_skills=draft.get('custom_skills', {}),
     )
@@ -1181,6 +1293,8 @@ def character_create(request):
         'skill_options': skill_options,
         'weapon_templates': list(Weapon.objects.order_by('name').values('id', 'name', 'damage', 'skill_name')),
         'item_templates': list(Item.objects.order_by('name').values('id', 'name')),
+        'spell_templates': list(Spell.objects.order_by('name').values('id', 'name', 'description', 'mana_cost', 'badge_color')) if can_manage_spells else [],
+        'can_manage_spells': can_manage_spells,
         'combat_skill_options': combat_skill_options,
         'skill_categories': existing_categories,
         'derived_stats': derived_stats,
@@ -1215,7 +1329,11 @@ def character_import_json(request):
 
     try:
         payload = json.loads(uploaded_file.read().decode('utf-8'))
-        draft = _draft_from_import(payload, stat_max=PC_STAT_MAX)
+        draft = _draft_from_import(
+            payload,
+            stat_max=PC_STAT_MAX,
+            include_spells=_can_manage_wizard_spells(request.user),
+        )
         draft['step'] = 'review'
         _save_draft(request, draft)
         messages.success(request, 'Character draft imported successfully.')
@@ -1243,6 +1361,14 @@ TEMPLATE_WIZARD_META_KEY = 'template_wizard_meta'
 def _can_manage_templates(user):
     return bool(
         getattr(user, 'is_superuser', False)
+        or (hasattr(user, 'is_keeper') and user.is_keeper())
+    )
+
+
+def _can_manage_wizard_spells(user):
+    return bool(
+        getattr(user, 'is_superuser', False)
+        or getattr(user, 'is_staff', False)
         or (hasattr(user, 'is_keeper') and user.is_keeper())
     )
 
@@ -1307,6 +1433,66 @@ def character_templates(request):
 
 
 @login_required
+def spell_admin(request):
+    """Keeper/admin page for managing spell templates."""
+    if not _can_manage_templates(request.user):
+        messages.error(request, 'Only keepers/admins can manage spells.')
+        return redirect('characters:templates')
+
+    if request.method == 'POST':
+        action = request.POST.get('action', '').strip()
+        if action == 'create':
+            name = str(request.POST.get('name', '')).strip()
+            description = str(request.POST.get('description', '')).strip()
+            mana_cost = _to_int(request.POST.get('mana_cost'), 0, 0)
+            badge_color = _normalize_spell_badge_color(request.POST.get('badge_color'), 'bg-info')
+            if not name:
+                messages.error(request, 'Spell name is required.')
+            elif Spell.objects.filter(name__iexact=name).exists():
+                messages.error(request, 'Spell with this name already exists.')
+            else:
+                spell = Spell.objects.create(
+                    name=name,
+                    description=description,
+                    mana_cost=mana_cost,
+                    badge_color=badge_color,
+                )
+                messages.success(request, f'Spell "{spell.name}" created.')
+        elif action == 'update':
+            spell_id = _to_int(request.POST.get('spell_id'), 0, 1)
+            spell = Spell.objects.filter(id=spell_id).first()
+            if not spell:
+                messages.error(request, 'Spell not found.')
+            else:
+                next_name = str(request.POST.get('name', spell.name)).strip() or spell.name
+                if Spell.objects.filter(name__iexact=next_name).exclude(id=spell.id).exists():
+                    messages.error(request, 'Spell with this name already exists.')
+                else:
+                    spell.name = next_name
+                    spell.description = str(request.POST.get('description', spell.description)).strip()
+                    spell.mana_cost = _to_int(request.POST.get('mana_cost'), spell.mana_cost, 0)
+                    spell.badge_color = _normalize_spell_badge_color(request.POST.get('badge_color'), spell.badge_color)
+                    spell.save(update_fields=['name', 'description', 'mana_cost', 'badge_color'])
+                    messages.success(request, f'Spell "{spell.name}" updated.')
+        elif action == 'delete':
+            spell_id = _to_int(request.POST.get('spell_id'), 0, 1)
+            spell = Spell.objects.filter(id=spell_id).first()
+            if not spell:
+                messages.error(request, 'Spell not found.')
+            else:
+                spell_name = spell.name
+                spell.delete()
+                messages.success(request, f'Spell "{spell_name}" deleted.')
+
+        return redirect('characters:spell_admin')
+
+    return render(request, 'characters/spells.html', {
+        'spells': Spell.objects.order_by('name'),
+        'badge_colors': Spell.BADGE_COLOR_CHOICES,
+    })
+
+
+@login_required
 def character_use_template(request, template_id):
     """Load a character template into the character creation wizard draft."""
     if request.method != 'POST':
@@ -1314,7 +1500,7 @@ def character_use_template(request, template_id):
 
     template = get_object_or_404(CharacterTemplate, id=template_id)
     payload = template.payload if isinstance(template.payload, dict) else {}
-    draft = _draft_from_import(payload)
+    draft = _draft_from_import(payload, include_spells=_can_manage_wizard_spells(request.user))
     draft['step'] = 'basic'
 
     request.session[WIZARD_SESSION_KEY] = draft
@@ -1350,7 +1536,7 @@ def template_edit_wizard(request, template_id):
         return redirect('characters:templates')
 
     payload = template.payload if isinstance(template.payload, dict) else {}
-    draft = _draft_from_import(payload)
+    draft = _draft_from_import(payload, include_spells=_can_manage_wizard_spells(request.user))
     draft['step'] = 'basic'
     request.session[WIZARD_SESSION_KEY] = draft
     request.session[TEMPLATE_WIZARD_META_KEY] = {'mode': 'edit', 'template_id': template.id}
@@ -1453,6 +1639,11 @@ def _template_payload_from_draft(draft, stat_max=PC_STAT_MAX):
             item.get('name') or item.get('custom_name', '')
             for item in draft.get('inventory', {}).get('items', [])
             if (item.get('name') or item.get('custom_name'))
+        ],
+        'spells': [
+            {'name': spell.get('name', '')}
+            for spell in draft.get('inventory', {}).get('spells', [])
+            if spell.get('name')
         ],
     }
 
@@ -1612,6 +1803,17 @@ def _create_npc_character_from_draft(user, draft):
         if item:
             qty = _to_int(payload.get('quantity'), 1, 1)
             CharacterItem.objects.create(character=character, item=item, quantity=qty)
+
+    for payload in inventory.get('spells', []):
+        spell = None
+        if payload.get('spell_id'):
+            spell = Spell.objects.filter(id=_to_int(payload.get('spell_id'), -1)).first()
+        if not spell:
+            spell_name = str(payload.get('name') or '').strip()
+            if spell_name:
+                spell = Spell.objects.filter(name__iexact=spell_name).first()
+        if spell:
+            CharacterSpell.objects.get_or_create(character=character, spell=spell)
 
     return character
 
@@ -1873,6 +2075,19 @@ def npc_create(request):
                 if entry['quantity'] > 0 and (entry['item_id'] or entry['custom_name']):
                     inventory['items'].append(entry)
 
+            try:
+                spells_payload = json.loads(request.POST.get('spells_json', '[]'))
+            except json.JSONDecodeError:
+                spells_payload = []
+            inventory['spells'] = []
+            for payload in spells_payload:
+                if not isinstance(payload, dict):
+                    continue
+                spell_id = _to_int(payload.get('spell_id'), 0)
+                spell_name = str(payload.get('name', '')).strip()
+                if spell_id > 0 and spell_name:
+                    inventory['spells'].append({'spell_id': spell_id, 'name': spell_name})
+
             _ensure_default_unarmed_weapon_entry(draft)
         elif step == 'review':
             draft['adjustments'] = {
@@ -2016,7 +2231,7 @@ def npc_create(request):
         skill_values={int(key): value for key, value in draft['skills'].items()},
         weapons=_normalize_preview_weapons(draft['inventory']['weapons']),
         items=_normalize_preview_items(draft['inventory']['items']),
-        spells=[],
+        spells=_normalize_preview_spells(draft['inventory'].get('spells', [])),
         can_add_custom_skill=False,
         custom_skills=draft.get('custom_skills', {}),
     )
@@ -2048,6 +2263,8 @@ def npc_create(request):
         'skill_options': skill_options,
         'weapon_templates': list(Weapon.objects.order_by('name').values('id', 'name', 'damage', 'skill_name')),
         'item_templates': list(Item.objects.order_by('name').values('id', 'name')),
+        'spell_templates': list(Spell.objects.order_by('name').values('id', 'name', 'description', 'mana_cost', 'badge_color')),
+        'can_manage_spells': True,
         'combat_skill_options': combat_skill_options,
         'skill_categories': existing_categories,
         'derived_stats': derived_stats,
@@ -2139,7 +2356,7 @@ def _normalize_item_entry_for_diff(entry):
     }
 
 
-def _build_edit_change_entries(character, draft):
+def _build_edit_change_entries(character, draft, can_manage_spells=True):
     """Compute character changes for history log, excluding HP/MP/SAN adjustments."""
     changes = []
     basic = draft.get('basic', {})
@@ -2213,6 +2430,16 @@ def _build_edit_change_entries(character, draft):
     if current_items != draft_items:
         add_change('Inventory', len(current_items), len(draft_items))
 
+    if can_manage_spells:
+        current_spell_ids = sorted(character.spells.values_list('spell_id', flat=True))
+        draft_spell_ids = sorted(
+            _to_int(spell.get('spell_id'), 0)
+            for spell in draft.get('inventory', {}).get('spells', [])
+            if isinstance(spell, dict) and _to_int(spell.get('spell_id'), 0) > 0
+        )
+        if current_spell_ids != draft_spell_ids:
+            add_change('Spells', len(current_spell_ids), len(draft_spell_ids))
+
     return changes
 
 
@@ -2268,6 +2495,14 @@ def _load_edit_draft_from_character(character):
         }
         for ci in character.items.select_related('item').all()
     ]
+    spells = [
+        {
+            'spell_id': cs.spell.id,
+            'name': cs.spell.name,
+            'badge_color': cs.spell.badge_color,
+        }
+        for cs in character.spells.select_related('spell').all()
+    ]
 
     draft = {
         'step': EDIT_WIZARD_STEPS[0],
@@ -2280,7 +2515,7 @@ def _load_edit_draft_from_character(character):
         'stats': stats,
         'skills': skill_values,
         'custom_skills': custom_skills,
-        'inventory': {'weapons': weapons, 'items': items, 'cash': int(character.cash or 0)},
+        'inventory': {'weapons': weapons, 'items': items, 'spells': spells, 'cash': int(character.cash or 0)},
         'adjustments': {
             'hp': 0,
             'mp': 0,
@@ -2291,7 +2526,7 @@ def _load_edit_draft_from_character(character):
     return _sync_custom_skill_values(_ensure_default_unarmed_weapon_entry(draft))
 
 
-def _apply_edit_draft_to_character(character, draft):
+def _apply_edit_draft_to_character(character, draft, can_manage_spells=True):
     """Apply all wizard draft data to an existing Character."""
     basic = draft['basic']
     stats = draft.get('stats', {})
@@ -2415,8 +2650,23 @@ def _apply_edit_draft_to_character(character, draft):
         if item:
             CharacterItem.objects.create(character=character, item=item, quantity=qty)
 
+    if can_manage_spells:
+        character.spells.all().delete()
+        for payload in draft.get('inventory', {}).get('spells', []):
+            if not isinstance(payload, dict):
+                continue
+            spell = None
+            if payload.get('spell_id'):
+                spell = Spell.objects.filter(id=_to_int(payload.get('spell_id'), -1)).first()
+            if not spell:
+                spell_name = str(payload.get('name') or '').strip()
+                if spell_name:
+                    spell = Spell.objects.filter(name__iexact=spell_name).first()
+            if spell:
+                CharacterSpell.objects.get_or_create(character=character, spell=spell)
 
-def _build_edit_wizard_context(request, character, draft):
+
+def _build_edit_wizard_context(request, character, draft, can_manage_spells):
     """Build the template context shared by GET and POST for the edit wizard."""
     current_step = draft['step']
     draft_stats = draft.get('stats', {})
@@ -2480,7 +2730,7 @@ def _build_edit_wizard_context(request, character, draft):
         skill_values={int(k): v for k, v in draft_skills.items() if str(k).lstrip('-').isdigit()},
         weapons=_normalize_preview_weapons(draft['inventory']['weapons']),
         items=_normalize_preview_items(draft['inventory']['items']),
-        spells=[],
+        spells=_normalize_preview_spells(draft['inventory'].get('spells', [])) if can_manage_spells else [],
         can_add_custom_skill=False,
         custom_skills=draft.get('custom_skills', {}),
     )
@@ -2515,6 +2765,8 @@ def _build_edit_wizard_context(request, character, draft):
         'draft': draft,
         'weapon_templates': list(Weapon.objects.order_by('name').values('id', 'name', 'damage', 'skill_name')),
         'item_templates': list(Item.objects.order_by('name').values('id', 'name')),
+        'spell_templates': list(Spell.objects.order_by('name').values('id', 'name', 'description', 'mana_cost', 'badge_color')) if can_manage_spells else [],
+        'can_manage_spells': can_manage_spells,
         'combat_skill_options': combat_skill_options,
         'derived_stats': derived_stats,
         'preview_sheet': preview_sheet,
@@ -2541,9 +2793,10 @@ def _build_edit_wizard_context(request, character, draft):
 def character_edit_wizard(request, character_id):
     """Multi-step wizard for editing an existing character's basic info and inventory."""
     character = get_object_or_404(Character, id=character_id)
-    if character.owner != request.user and not request.user.is_keeper():
+    if not _user_can_manage_character(request.user, character):
         messages.error(request, "You don't have permission to edit this character.")
         return redirect('characters:detail', character_id=character_id)
+    can_manage_spells = _can_manage_wizard_spells(request.user)
 
     session_key = _edit_session_key(character_id)
     is_npc = character.character_type == 'NPC'
@@ -2571,10 +2824,11 @@ def character_edit_wizard(request, character_id):
         draft.setdefault('stats', {})
         draft.setdefault('skills', {})
         draft.setdefault('custom_skills', _default_custom_skills())
-        draft.setdefault('inventory', {'weapons': [], 'items': []})
+        draft.setdefault('inventory', {'weapons': [], 'items': [], 'spells': []})
         draft.setdefault('adjustments', {'hp': 0, 'mp': 0, 'sanity': 0, 'luck': 0})
         draft['inventory'].setdefault('weapons', [])
         draft['inventory'].setdefault('items', [])
+        draft['inventory'].setdefault('spells', [])
         return _sync_custom_skill_values(_ensure_default_unarmed_weapon_entry(draft))
 
     def save_draft(draft):
@@ -2670,6 +2924,20 @@ def character_edit_wizard(request, character_id):
                 if entry['quantity'] > 0 and (entry['item_id'] or entry['custom_name']):
                     inventory['items'].append(entry)
 
+            if can_manage_spells and 'spells_json' in request.POST:
+                try:
+                    spells_payload = json.loads(request.POST.get('spells_json', '[]'))
+                except json.JSONDecodeError:
+                    spells_payload = []
+                inventory['spells'] = []
+                for payload in spells_payload:
+                    if not isinstance(payload, dict):
+                        continue
+                    spell_id = _to_int(payload.get('spell_id'), 0)
+                    spell_name = str(payload.get('name', '')).strip()
+                    if spell_id > 0 and spell_name:
+                        inventory['spells'].append({'spell_id': spell_id, 'name': spell_name})
+
             _ensure_default_unarmed_weapon_entry(draft)
         elif step == 'review':
             draft['adjustments'] = {
@@ -2687,8 +2955,8 @@ def character_edit_wizard(request, character_id):
             draft['step'] = target_step if target_step in EDIT_WIZARD_STEPS else step
         elif action == 'save':
             old_name = character.name
-            change_entries = _build_edit_change_entries(character, draft)
-            _apply_edit_draft_to_character(character, draft)
+            change_entries = _build_edit_change_entries(character, draft, can_manage_spells=can_manage_spells)
+            _apply_edit_draft_to_character(character, draft, can_manage_spells=can_manage_spells)
 
             if character.character_type == 'NPC' and old_name != character.name:
                 # Keep scenario card headers updated unless a custom per-scenario alias is used.
@@ -2719,14 +2987,14 @@ def character_edit_wizard(request, character_id):
         draft['step'] = requested_step
         save_draft(draft)
 
-    context = _build_edit_wizard_context(request, character, draft)
+    context = _build_edit_wizard_context(request, character, draft, can_manage_spells=can_manage_spells)
     return render(request, 'characters/create.html', context)
 
 
 @login_required
 def character_edit_wizard_export(request, character_id):
     """Export edit-wizard draft as JSON."""
-    character = get_object_or_404(Character, id=character_id, owner=request.user)
+    character = get_object_or_404(_characters_visible_to_user(request.user), id=character_id)
     draft = request.session.get(_edit_session_key(character_id)) or _load_edit_draft_from_character(character)
     response = HttpResponse(
         json.dumps(
@@ -2747,7 +3015,7 @@ def character_edit_wizard_export(request, character_id):
 @login_required
 def character_edit_wizard_import(request, character_id):
     """Import JSON into edit-wizard draft."""
-    character = get_object_or_404(Character, id=character_id, owner=request.user)
+    character = get_object_or_404(_characters_visible_to_user(request.user), id=character_id)
     is_npc = character.character_type == 'NPC'
     wizard_route = 'characters:npc_edit_wizard' if is_npc else 'characters:edit_wizard'
     next_url = request.GET.get('next')
@@ -2772,7 +3040,11 @@ def character_edit_wizard_import(request, character_id):
         return wizard_redirect()
     try:
         payload = json.loads(uploaded_file.read().decode('utf-8'))
-        draft = _draft_from_import(payload, stat_max=NPC_STAT_MAX if is_npc else PC_STAT_MAX)
+        draft = _draft_from_import(
+            payload,
+            stat_max=NPC_STAT_MAX if is_npc else PC_STAT_MAX,
+            include_spells=_can_manage_wizard_spells(request.user),
+        )
         draft['step'] = 'review'
         request.session[_edit_session_key(character_id)] = draft
         request.session.modified = True

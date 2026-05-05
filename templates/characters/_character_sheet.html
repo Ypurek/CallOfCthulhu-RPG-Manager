@@ -125,6 +125,16 @@
         </div>
     </div>
 
+    <div class="skills-container" id="{{ sid }}-spells-section" data-sheet-spells-section {% if not sheet.spells %}style="display:none;"{% endif %}>
+        <div class="section-header" onclick="toggleSection('spells', '{{ sid }}')">
+            <span><i class="fas fa-magic"></i> {% trans "Spells" %}</span>
+            <i class="fas fa-chevron-down" id="{{ sid }}-spells-icon"></i>
+        </div>
+        <div class="section-content" id="{{ sid }}-spells-content" data-sheet-spells-content>
+            {% include 'characters/_sheet_spells_content.html' %}
+        </div>
+    </div>
+
     <div class="skills-container">
         <div class="section-header" onclick="toggleSection('items', '{{ sid }}')">
             <span><i class="fas fa-backpack"></i> {% trans "Items" %}</span>
@@ -133,10 +143,6 @@
         <div class="section-content" id="{{ sid }}-items-content" data-sheet-items-content>
             {% include 'characters/_sheet_items_content.html' %}
         </div>
-    </div>
-
-    <div class="compact-section" id="{{ sid }}-spells-section" data-sheet-spells-section {% if not sheet.spells %}style="display:none;"{% endif %}>
-        {% include 'characters/_sheet_spells_content.html' %}
     </div>
 
     {% if show_notes %}

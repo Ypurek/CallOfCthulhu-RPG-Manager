@@ -239,9 +239,20 @@ class CharacterItem(models.Model):
 class Spell(models.Model):
     """Spell templates"""
 
+    BADGE_COLOR_CHOICES = [
+        ('bg-warning', _('Amber')),
+        ('bg-danger', _('Red')),
+        ('bg-info', _('Blue')),
+        ('bg-secondary', _('Gray')),
+        ('bg-success', _('Green')),
+        ('bg-primary', _('Indigo')),
+        ('bg-dark', _('Dark')),
+    ]
+
     name = models.CharField(max_length=100, unique=True)
     mana_cost = models.IntegerField()
     description = models.TextField()
+    badge_color = models.CharField(max_length=20, choices=BADGE_COLOR_CHOICES, default='bg-info')
 
     def __str__(self):
         return f"{self.name} ({self.mana_cost} MP)"
