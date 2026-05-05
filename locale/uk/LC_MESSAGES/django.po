@@ -113,7 +113,7 @@ msgid "Create and manage scenarios"
 msgstr "Створюйте та керуйте сценаріями"
 
 msgid "Manage NPCs and encounters"
-msgstr "Керуйте НПС та зустрічами"
+msgstr "Керуйте NPC та зустрічами"
 
 msgid "Track character progression"
 msgstr "Відстежуйте розвиток персонажа"
@@ -502,7 +502,7 @@ msgid "Player Character"
 msgstr "Персонаж гравця"
 
 msgid "Non-Player Character"
-msgstr "Персонаж не-гравця"
+msgstr "NPC"
 
 msgid "Mutual"
 msgstr "Спільні"
@@ -581,7 +581,7 @@ msgid "Credit Rating"
 msgstr "Кредитний рейтинг"
 
 msgid "Cthulhu Mythos"
-msgstr "Міф Ктулху"
+msgstr "Міти Ктулху"
 
 msgid "Disguise"
 msgstr "Маскування"
@@ -599,7 +599,7 @@ msgid "Fighting (Brawl)"
 msgstr "Бійка (Рукопашна)"
 
 msgid "Firearms (Bow/Crossbow)"
-msgstr "Вогнепальна зброя (Лук/Арбалет)"
+msgstr "Метальна зброя (Лук/Арбалет)"
 
 msgid "Firearms (Handgun)"
 msgstr "Вогнепальна зброя (Пістолет)"
@@ -635,7 +635,7 @@ msgid "Library Use"
 msgstr "Робота з бібліотекою"
 
 msgid "Listen"
-msgstr "Прослуховування"
+msgstr "Слух"
 
 msgid "Locksmith"
 msgstr "Зламування замків"
@@ -686,10 +686,10 @@ msgid "Sleight of Hand"
 msgstr "Спритність рук"
 
 msgid "Spot Hidden"
-msgstr "Виявлення прихованого"
+msgstr "Пошук прихованого"
 
 msgid "Stealth"
-msgstr "Прихованість"
+msgstr "Скрадання"
 
 msgid "Survival"
 msgstr "Виживання"
@@ -701,7 +701,7 @@ msgid "Throw"
 msgstr "Метання"
 
 msgid "Track"
-msgstr "Відстеження"
+msgstr "Вистежування"
 
 # --- Status effects ---
 msgid "Acrophobia"
@@ -1284,22 +1284,22 @@ msgid "Credit Rating"
 msgstr "Кредитний рейтинг"
 
 msgid "Cthulhu Mythos"
-msgstr "Міфос Ктулху"
+msgstr "Міти Ктулху"
 
 msgid "Disguise"
-msgstr "Переряджання"
+msgstr "Маскування"
 
 msgid "Drive Auto"
 msgstr "Водіння автомобіля"
 
 msgid "Fast Talk"
-msgstr "Швидка мова"
+msgstr "Балаканина"
 
 msgid "Fighting (Brawl)"
 msgstr "Бійка"
 
 msgid "Firearms (Bow/Crossbow)"
-msgstr "Вогнепальна зброя (Лук/Арбалет)"
+msgstr "Метальна зброя (Лук/Арбалет)"
 
 msgid "Firearms (Handgun)"
 msgstr "Вогнепальна зброя (Пістолет)"
@@ -1329,10 +1329,10 @@ msgid "Library Use"
 msgstr "Робота з бібліотекою"
 
 msgid "Listen"
-msgstr "Слухання"
+msgstr "Слух"
 
 msgid "Locksmith"
-msgstr "Слюсарна справа"
+msgstr "Зламування замків"
 
 msgid "Medicine"
 msgstr "Медицина"
@@ -1380,10 +1380,10 @@ msgid "Sleight of Hand"
 msgstr "Ловкість рук"
 
 msgid "Spot Hidden"
-msgstr "Помітити прихований"
+msgstr "Пошук прихованого"
 
 msgid "Stealth"
-msgstr "Таємність"
+msgstr "Скрадання"
 
 msgid "Survival"
 msgstr "Виживання"
@@ -1392,8 +1392,8 @@ msgid "Swim"
 msgstr "Плавання"
 
 msgid "Throw"
-msgstr "Кидання"
+msgstr "Метання"
 
 msgid "Track"
-msgstr "Стеження"
+msgstr "Вистежування"
 
