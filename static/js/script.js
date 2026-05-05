@@ -850,6 +850,16 @@
     }
 
     function initCharacterCreatePage() {
+        // Wire up the import JSON button regardless of the current wizard step.
+        document.getElementById('import-json-input')?.addEventListener('change', function () {
+            if (this.files.length > 0) {
+                document.getElementById('import-json-form')?.submit();
+            }
+        });
+        document.getElementById('import-json-trigger')?.addEventListener('click', function () {
+            document.getElementById('import-json-input')?.click();
+        });
+
         const config = document.getElementById('character-wizard-config');
         if (!config) {
             return;
@@ -1193,14 +1203,6 @@
             state.editingCustomSkillId = null;
             syncCustomSkillsJson();
             bootstrap.Modal.getInstance(document.getElementById('newSkillModal'))?.hide();
-        });
-        document.getElementById('import-json-input')?.addEventListener('change', function () {
-            if (this.files.length > 0) {
-                document.getElementById('import-json-form')?.submit();
-            }
-        });
-        document.getElementById('import-json-trigger')?.addEventListener('click', function () {
-            document.getElementById('import-json-input')?.click();
         });
         syncCustomSkillsJson();
         renderWeapons();
