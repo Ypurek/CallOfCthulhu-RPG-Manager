@@ -1052,6 +1052,7 @@ def scenario_player_snapshot(request, scenario_id):
     character = scenario_player.character if scenario_player else None
     sheet_payload = None
     if character and character.is_alive:
+        from scenarios.services import get_character_status_effects_display
         sheet = _build_session_sheet(character)
         sheet_payload = {
             "summary": {
@@ -1087,6 +1088,7 @@ def scenario_player_snapshot(request, scenario_id):
             "spells": sheet.get("spells", []),
             "dodge_value": sheet.get("dodge_value", 0),
             "can_add_custom_skill": bool(sheet.get("can_add_custom_skill", False)),
+            "status_effects": [dict(e, name=_t(e["name"])) for e in get_character_status_effects_display(character)],
         }
 
     return JsonResponse({

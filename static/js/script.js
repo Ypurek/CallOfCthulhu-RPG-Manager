@@ -780,6 +780,13 @@
             sectionSignatures.spells = signature;
         }
 
+        function updateResource(rootEl, key, current, max) {
+            const fill = rootEl.querySelector(`[data-resource-fill="${key}"]`);
+            const text = rootEl.querySelector(`[data-resource-text="${key}"]`);
+            if (fill) fill.style.width = `${(current / Math.max(max, 1)) * 100}%`;
+            if (text) text.textContent = `${current}/${max}`;
+        }
+
         function patchSheet(rootEl, payload) {
             if (!rootEl || !payload) return;
             const activeElement = document.activeElement;
@@ -817,6 +824,16 @@
             renderCombatSection(payload);
             renderSpellsSection(payload);
             renderItemsSection(payload);
+            if (payload.status_effects !== undefined) {
+                const charSheet = rootEl.querySelector('.character-sheet[data-character-id]');
+                const characterId = charSheet?.dataset.characterId;
+                const badgesContainer = characterId ? document.getElementById(`effects-badges-${characterId}`) : null;
+                if (badgesContainer) {
+                    badgesContainer.innerHTML = (payload.status_effects || []).map((eff) =>
+                        `<span class="badge ${escapeHtml(eff.badge_color)} effect-badge" data-effect-description="${escapeHtmlAttr(eff.description || '')}" role="button" tabindex="0">${escapeHtml(eff.name)}</span>`
+                    ).join('');
+                }
+            }
         }
 
         let snapshotPending = false;
